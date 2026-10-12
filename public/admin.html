@@ -81,10 +81,59 @@
         </div>
       </section>
 
+      <!-- ------------------------------------------------ Sécurité (privé) -->
+      <section class="card safety-card" id="safetyCard">
+        <div class="card-head">
+          <h2>🛟 Sécurité</h2>
+          <span class="badge">Privé</span>
+        </div>
+        <div id="sosActive" class="sos-active" hidden>
+          <strong id="sosActiveTitle"></strong>
+          <span id="sosActiveBody"></span>
+          <div class="row-buttons">
+            <a id="sosActiveMap" class="btn-link" target="_blank" rel="noopener">📍 Voir la position</a>
+            <button id="sosResolve" type="button">✅ Lever l'alerte</button>
+          </div>
+        </div>
+        <p class="muted small">Alertes réservées à toi et à tes contacts de confiance, jamais visibles par les supporters.</p>
+
+        <h3>1. Tes contacts de confiance</h3>
+        <ol class="steps small">
+          <li>Ils installent l'appli gratuite <strong>ntfy</strong> (<a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank" rel="noopener">iPhone</a> · <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener">Android</a>), sans compte.</li>
+          <li>Ils touchent <strong>+</strong> et s'abonnent au canal ci-dessous, ou ouvrent <a id="ntfyLink" target="_blank" rel="noopener">ce lien</a> sur leur téléphone.</li>
+        </ol>
+        <code id="ntfyTopic" class="copy big-code"></code>
+        <div class="row-buttons">
+          <button id="safetyTest" type="button">Envoyer un test aux contacts</button>
+          <button id="newChannel" type="button" class="link">Changer de canal</button>
+        </div>
+
+        <h3>2. Ton bouton SOS</h3>
+        <p class="small">Ouvre ce lien sur <strong>ton</strong> téléphone et ajoute-le à l'écran d'accueil. En course, un appui de 2 s envoie ta position à tes contacts, sans mot de passe.</p>
+        <code id="sosLink" class="copy"></code>
+        <div class="row-buttons">
+          <a id="sosOpen" class="btn-link" target="_blank" rel="noopener">Ouvrir la page SOS</a>
+          <button id="sosNow" type="button" class="danger">🆘 Envoyer un SOS maintenant</button>
+        </div>
+
+        <h3>3. Détections automatiques</h3>
+        <form id="safetyForm" class="alerts-form">
+          <label class="check"><input type="checkbox" name="stopped"> ⚠️ Immobile depuis <input type="number" name="stoppedMinutes" min="1" max="60" class="mini"> min</label>
+          <label class="check"><input type="checkbox" name="signalLost"> 📡 Plus de position depuis <input type="number" name="signalLostMinutes" min="2" max="60" class="mini"> min</label>
+          <label class="check"><input type="checkbox" name="offCourse"> 🧭 Hors parcours depuis <input type="number" name="offCourseMinutes" min="1" max="60" class="mini"> min</label>
+          <label class="check"><input type="checkbox" name="lowBattery"> 🔋 Batterie sous <input type="number" name="lowBatteryPercent" min="5" max="50" class="mini"> %</label>
+          <label class="check"><input type="checkbox" name="slowdown"> 🐢 Fort ralentissement</label>
+          <div class="row-buttons"><button class="primary" type="submit">Enregistrer</button></div>
+        </form>
+
+        <h3>Historique</h3>
+        <ul id="safetyLog" class="messages"></ul>
+      </section>
+
       <!-- ------------------------------------------------ Alertes -->
       <section class="card">
         <div class="card-head">
-          <h2>Alertes</h2>
+          <h2>Alertes aux supporters</h2>
           <span id="subscribers" class="badge"></span>
         </div>
         <p class="muted small">Envoyées automatiquement à tes supporters : notification sur leur téléphone s'ils ont touché « 🔔 Être alerté », et bandeau sur la page publique.</p>

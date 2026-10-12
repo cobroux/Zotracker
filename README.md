@@ -24,6 +24,7 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `ADMIN_PASSWORD` | Mot de passe de l'admin | généré |
 | `TRACKER_KEY` | Clé des applis GPS externes | générée |
 | `DATA_DIR` | Dossier de stockage (état JSON) | `./data` |
+| `NTFY_SERVER` | Serveur ntfy des alertes de sécurité | `https://ntfy.sh` |
 | `VAPID_SUBJECT` | Contact pour les notifications push | `mailto:zotracker@example.com` |
 
 ## Préparer ses courses
@@ -55,6 +56,31 @@ Elles s'affichent en bandeau et dans le fil « En direct » de la page publique.
 Dans l'admin, la section **Alertes** permet de choisir les alertes envoyées et les délais. Elle affiche le nombre d'abonnés et propose un bouton « Envoyer une alerte de test ».
 
 Les clés de notification (VAPID) sont générées au premier lancement et conservées dans `data/secrets.json`. Si tu les perds, tes abonnés devront se réabonner. Tu peux définir `VAPID_SUBJECT` avec ton adresse de contact (`mailto:toi@exemple.fr`).
+
+## Sécurité : alertes privées en cas de problème
+
+Ces alertes sont réservées à toi et à tes **contacts de confiance**. Elles n'apparaissent jamais sur la page publique.
+
+**Mise en place (section 🛟 Sécurité de l'admin)**
+
+1. Tes contacts installent l'appli gratuite **ntfy** ([iPhone](https://apps.apple.com/app/ntfy/id1625396347) · [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)). Ils n'ont pas besoin de compte. Ils s'abonnent ensuite au **canal** affiché dans l'admin, par exemple `zotracker-Lt7zrj2rXocP`. Le bouton « Envoyer un test aux contacts » permet de vérifier que ça marche.
+2. Sur **ton** téléphone, ouvre le **lien SOS** donné dans l'admin et ajoute-le à l'écran d'accueil.
+
+**En course**
+
+- 🆘 **SOS** : maintiens le gros bouton rouge 2 secondes. Un appui court ne déclenche rien, ce qui évite les fausses alertes dans la poche. Tes contacts reçoivent une notification prioritaire avec ta position GPS (lien Google Maps), le km, la précision et ton message éventuel. Le bouton « Je vais bien » lève l'alerte.
+- Détections automatiques (réglables) :
+  - ⚠️ **immobile** depuis 4 min, alors que des positions arrivent encore (chute, malaise) ;
+  - 📡 **plus de position** depuis 5 min ;
+  - 🧭 **hors parcours** depuis 3 min ;
+  - 🔋 **batterie faible** (Traccar Client transmet le niveau de batterie) ;
+  - 🐢 fort ralentissement (désactivé par défaut).
+
+Chaque alerte contient un bouton « Voir la position ». Elle s'affiche aussi dans l'admin, avec un bandeau rouge tant qu'un SOS est en cours.
+
+Le canal ntfy fait office de mot de passe : ne le partage qu'avec tes proches. Le bouton « Changer de canal » en crée un nouveau. Pour héberger ton propre serveur ntfy, définis la variable `NTFY_SERVER`.
+
+⚠️ Zotracker ne remplace pas les secours : en cas d'urgence vitale, appelle le **112**.
 
 ## Le jour de la course
 
@@ -109,6 +135,8 @@ lib/tracker.js     ajout de positions, filtrage, détection d'arrivée
 lib/stats.js       allure et heures de passage estimées
 lib/alerts.js      règles d'alerte (ravitos, mi-course, arrivée, perte de signal)
 lib/push.js        envoi des notifications Web Push
+lib/safety.js      alertes de sécurité privées (immobilité, signal, batterie…)
+public/sos.html    page SOS du coureur (appui long)
 public/sw.js       service worker qui affiche les notifications
 lib/store.js       stockage JSON + secrets
 public/            page publique (index.html, app.js), admin (admin.html, admin.js)

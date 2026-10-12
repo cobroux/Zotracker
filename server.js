@@ -8,6 +8,7 @@ const { parseGpx, parseWaypoints } = require('./lib/gpx');
 const { buildCourse, projectOnCourse } = require('./lib/geo');
 const { addPosition } = require('./lib/tracker');
 const alerts = require('./lib/alerts');
+const safety = require('./lib/safety');
 const { Push } = require('./lib/push');
 
 const PORT = process.env.PORT || 3000;
@@ -16,6 +17,10 @@ const secrets = store.secrets();
 const state = store.state;
 const push = new Push(state, secrets.vapid, process.env.VAPID_SUBJECT || 'mailto:zotracker@example.com', () => store.save());
 const alertSettings = () => alerts.normalizeSettings(state.alertSettings);
+const NTFY_SERVER = (process.env.NTFY_SERVER || 'https://ntfy.sh').replace(/\/+$/, '');
+// génère et mémorise le canal privé des contacts au premier lancement
+state.safetySettings = safety.normalizeSafety({}, state.safetySettings || {});
+store.save();
 
 const app = express();
 app.set('trust proxy', true);
@@ -24,6 +29,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/vendor/leaflet', express.static(path.dirname(require.resolve('leaflet/dist/leaflet.js'))));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/sos', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sos.html')));
 
 const activeRace = () => state.races.find((r) => r.id === state.activeRaceId) || null;
 
@@ -128,6 +134,24 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// Flux privé de l'admin (alertes de sécurité). EventSource ne permet pas d'en-tête : jeton en paramètre.
+const adminClients = new Set();
+app.get('/api/admin/stream', (req, res) => {
+  if (!safeEqual(String(req.query.token || ''), adminToken)) return res.status(401).end();
+  res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+  res.flushHeaders();
+  res.write('retry: 3000\n\n');
+  adminClients.add(res);
+  req.on('close', () => adminClients.delete(res));
+});
+setInterval(() => {
+  for (const res of adminClients) res.write(': ping\n\n');
+}, 25_000);
+
+function broadcastAdmin(event, data) {
+  for (const res of adminClients) send(res, event, data);
+}
+
 const admin = express.Router();
 admin.use(requireAdmin);
 app.use('/api/admin', admin);
@@ -148,6 +172,9 @@ function adminConfig() {
   return {
     trackerKey: secrets.trackerKey,
     alertSettings: alertSettings(),
+    safetySettings: state.safetySettings,
+    ntfyServer: NTFY_SERVER,
+    safety: activeRace() ? safety.ensureSafety(activeRace()) : { alerts: [], sos: null },
     subscribers: push.count,
     runner: state.runner,
     activeRaceId: state.activeRaceId,
@@ -401,8 +428,10 @@ app.all('/api/ingest', (req, res) => {
   if (!safeEqual(key || '', secrets.trackerKey)) return res.status(401).json({ error: 'Clé invalide' });
 
   const point = loc
-    ? { lat: loc.coords.latitude, lon: loc.coords.longitude, acc: loc.coords.accuracy, t: loc.timestamp }
-    : { lat: q.lat, lon: q.lon ?? q.lng ?? q.long, acc: q.acc ?? q.accuracy ?? q.hdop, t: q.t ?? q.timestamp ?? q.time };
+    ? { lat: loc.coords.latitude, lon: loc.coords.longitude, acc: loc.coords.accuracy, t: loc.timestamp, batt: loc.battery && loc.battery.level != null ? loc.battery.level * 100 : undefined }
+    : { lat: q.lat, lon: q.lon ?? q.lng ?? q.long, acc: q.acc ?? q.accuracy ?? q.hdop, t: q.t ?? q.timestamp ?? q.time, batt: q.batt ?? q.battery };
+  // certaines applis envoient alarm=sos quand on appuie sur leur bouton d'urgence
+  if (String(q.alarm || '').toLowerCase() === 'sos') triggerSos({ lat: Number(point.lat), lon: Number(point.lon), acc: Number(point.acc), source: 'appli GPS' });
   res.json(ingest([point]));
 });
 
@@ -417,13 +446,102 @@ function checkAlerts() {
   const race = activeRace();
   if (!race) return;
   const fresh = alerts.evaluate(race, state.runner, alertSettings());
-  if (!fresh.length) return;
-  store.save();
+  const risky = safety.evaluateSafety(race, state.runner, state.safetySettings);
+  if (fresh.length || risky.length) store.save();
   for (const a of fresh) {
     broadcast('alert', a);
     sendPush({ title: a.title, body: a.body, tag: a.id });
   }
+  for (const a of risky) dispatchSafety(a);
 }
+
+// ---------------------------------------------------------------- sécurité (privé : admin + contacts de confiance)
+
+/** Envoie une alerte de sécurité aux contacts via ntfy (appli gratuite iOS/Android). */
+async function notifyContacts(a) {
+  const topic = state.safetySettings.ntfyTopic;
+  const urgent = a.level === 'sos' || a.level === 'danger';
+  const body = {
+    topic,
+    title: a.title,
+    message: a.body + (a.mapsUrl ? `\n📍 Position : ${a.mapsUrl}` : ''),
+    priority: urgent ? 5 : a.level === 'ok' ? 3 : 4,
+    tags: [a.level === 'sos' ? 'sos' : a.level === 'ok' ? 'white_check_mark' : urgent ? 'warning' : 'runner'],
+  };
+  if (a.mapsUrl) {
+    body.click = a.mapsUrl;
+    body.actions = [{ action: 'view', label: 'Voir la position', url: a.mapsUrl, clear: false }];
+  }
+  try {
+    const res = await fetch(NTFY_SERVER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return true;
+  } catch (err) {
+    console.error('ntfy :', err.message);
+    return false;
+  }
+}
+
+function dispatchSafety(a) {
+  broadcastAdmin('safety', a);
+  return notifyContacts(a);
+}
+
+/** Déclenche (ou annule) un SOS, avec la position fournie ou la dernière position connue. */
+function triggerSos({ lat, lon, acc, note, source, cancel }) {
+  const race = activeRace();
+  const last = race && race.track[race.track.length - 1];
+  const pos = Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : last ? { lat: last.lat, lon: last.lon } : null;
+  const name = safety.firstName(state.runner);
+  let a;
+  if (cancel) {
+    a = safety.makeAlert(race, 'ok', `✅ ${name} va bien`, 'Fausse alerte ou problème résolu : l’alerte SOS est levée.', pos);
+    if (race) safety.ensureSafety(race).sos = null;
+  } else {
+    const details = [
+      note && `« ${String(note).slice(0, 200)} »`,
+      race && last && `km ${(Math.round(last.along / 100) / 10).toLocaleString('fr-FR')}${race.name ? ` · ${race.name}` : ''}`,
+      Number.isFinite(acc) && acc > 0 && `précision ±${Math.round(acc)} m`,
+      !pos && 'Position inconnue',
+      source && `via ${source}`,
+    ].filter(Boolean).join(' · ');
+    a = safety.makeAlert(race, 'sos', `🆘 SOS : ${name} a besoin d'aide`, details || 'Appelle-le ou rends-toi à sa position.', pos);
+    if (race) safety.ensureSafety(race).sos = a;
+  }
+  store.save();
+  return { alert: a, delivered: dispatchSafety(a) };
+}
+
+// Page SOS du coureur : protégée par la clé du traceur (pas besoin de se connecter en pleine course)
+app.post('/api/sos', async (req, res) => {
+  const b = req.body || {};
+  if (!safeEqual(String(b.key || ''), secrets.trackerKey)) return res.status(401).json({ error: 'Lien SOS invalide' });
+  const { alert, delivered } = triggerSos({ lat: Number(b.lat), lon: Number(b.lon), acc: Number(b.acc), note: b.note, source: b.source, cancel: !!b.cancel });
+  res.json({ ok: true, alert, delivered: await delivered });
+});
+
+admin.post('/sos', async (req, res) => {
+  const b = req.body || {};
+  const { alert, delivered } = triggerSos({ lat: Number(b.lat), lon: Number(b.lon), acc: Number(b.acc), note: b.note, source: 'admin', cancel: !!b.cancel });
+  res.json({ ok: true, alert, delivered: await delivered });
+});
+
+admin.put('/safety', (req, res) => {
+  state.safetySettings = safety.normalizeSafety(req.body || {}, state.safetySettings);
+  store.save();
+  res.json(adminConfig());
+});
+
+admin.post('/safety/new-channel', (req, res) => {
+  state.safetySettings = safety.normalizeSafety({ ntfyTopic: safety.newTopic() }, state.safetySettings);
+  store.save();
+  res.json(adminConfig());
+});
+
+admin.post('/safety/test', async (req, res) => {
+  const a = safety.makeAlert(null, 'test', '🔔 Test des alertes de sécurité', `Tu recevras ici les alertes privées concernant ${safety.firstName(state.runner)} pendant ses courses.`, null);
+  res.json({ delivered: await dispatchSafety(a) });
+});
 setInterval(checkAlerts, 20_000); // ETA et perte de signal évoluent avec le temps
 
 app.get('/api/push/key', (req, res) => res.json({ publicKey: push.publicKey }));

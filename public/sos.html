@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>SOS course</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#d92d20">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SOS">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="sos-page">
+  <main class="sos-main">
+    <h1>Besoin d'aide ?</h1>
+    <p class="muted">Maintiens le bouton <strong>2 secondes</strong> : tes contacts de confiance reçoivent une alerte avec ta position.</p>
+
+    <button id="sosBtn" class="sos-btn" type="button" aria-label="Envoyer un SOS (maintenir 2 secondes)">
+      <svg class="sos-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47"></circle></svg>
+      <span>SOS</span>
+    </button>
+
+    <label class="sos-note">Message (facultatif)
+      <input id="note" maxlength="200" placeholder="Ex : cheville tordue au km 18">
+    </label>
+
+    <p id="sosStatus" class="sos-status" role="status" aria-live="assertive"></p>
+    <button id="okBtn" class="ok-btn" type="button" hidden>✅ Je vais bien : annuler l'alerte</button>
+
+    <p class="muted small sos-help">En cas d'urgence vitale, appelle le <a href="tel:112">112</a>.</p>
+  </main>
+  <script src="/sos.js"></script>
+</body>
+</html>

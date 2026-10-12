@@ -339,3 +339,57 @@ code.copy { display: block; padding: 10px; cursor: copy; }
 label.check { flex-direction: row; align-items: center; gap: 10px; font-weight: 500; padding: 4px 0; }
 label.check input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
 .alerts-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 6px; }
+
+/* ---------------------------------------------------------------- page SOS */
+
+.sos-page { min-height: 100vh; }
+.sos-main {
+  max-width: 420px; margin: 0 auto; padding: 32px 16px;
+  padding-top: max(32px, env(safe-area-inset-top));
+  display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center;
+}
+.sos-main h1 { font-size: 1.6rem; margin: 0; }
+.sos-main p { margin: 0; }
+.sos-btn {
+  position: relative; width: min(64vw, 240px); aspect-ratio: 1; border-radius: 50%;
+  border: 0; background: var(--danger); color: #fff;
+  font-size: 3rem; font-weight: 800; letter-spacing: .05em;
+  box-shadow: 0 10px 30px rgba(217, 45, 32, .45), inset 0 -6px 0 rgba(0, 0, 0, .15);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.sos-btn:disabled { opacity: .4; }
+.sos-btn.holding { transform: scale(.96); }
+.sos-ring { position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); transform: rotate(-90deg); pointer-events: none; }
+.sos-ring circle { fill: none; stroke: #fff; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 296; stroke-dashoffset: 296; }
+.sos-btn.holding .sos-ring circle { transition: stroke-dashoffset 2s linear; stroke-dashoffset: 0; }
+.sos-note { width: 100%; text-align: left; }
+.sos-status { min-height: 1.5em; font-weight: 600; }
+.sos-status.sent { color: var(--danger); }
+.sos-status.ok { color: var(--ok); }
+.sos-status.error { color: var(--danger); }
+.sos-status.pending { color: var(--muted); }
+.ok-btn { width: 100%; padding: 14px; border-color: var(--ok); color: var(--ok); }
+.sos-help a { color: var(--danger); font-weight: 700; }
+
+/* ---------------------------------------------------------------- admin : sécurité */
+
+.safety-card.has-sos { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(217, 45, 32, .2); }
+.sos-active {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px; margin-bottom: 12px; border-radius: 12px;
+  background: var(--danger); color: #fff;
+}
+.sos-active .row-buttons { margin-bottom: 0; }
+.sos-active .btn-link, .sos-active button { background: #fff; color: var(--danger); border: 0; }
+.btn-link {
+  display: inline-block; padding: 10px 16px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  font-weight: 600; text-decoration: none;
+}
+.steps { margin: 0 0 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.big-code { font-size: 1rem; font-weight: 700; text-align: center; }
+label.check input.mini { width: 56px; height: auto; padding: 6px 8px; display: inline-block; }
+label.check { flex-wrap: wrap; }
+.messages li.lvl-sos strong, .messages li.lvl-danger strong { color: var(--danger); }
+.messages li.lvl-ok strong { color: var(--ok); }
+.messages li span:has(> a) { display: flex; flex-direction: column; }

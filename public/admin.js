@@ -58,6 +58,7 @@ const editedRace = () => config && config.races.find((r) => r.id === editId);
 function setConfig(c) {
   config = c;
   $('subscribers').textContent = `${c.subscribers} abonné${c.subscribers > 1 ? 's' : ''}`;
+  renderSafety();
   if (editId && !editedRace()) closeEditor();
   renderRaceList();
   renderLive();
@@ -95,8 +96,11 @@ async function start() {
     setupIngestHelp(c.trackerKey);
     fillRunnerForm(c.runner);
     fillAlertsForm(c.alertSettings);
+    fillSafetyForm(c.safetySettings);
+    setupSafetyHelp(c);
     setConfig(c);
     connectStream();
+    connectAdminStream();
   } catch {
     logout();
   }
@@ -117,7 +121,7 @@ function renderLive() {
   b.textContent = s.status === 'running' ? 'En course' : s.status === 'finished' ? 'Terminée' : 'Pas démarrée';
   const stats = ZT.computeStats(live, Date.now());
   $('sessionInfo').textContent = s.startedAt
-    ? `départ ${ZT.fmtClock(s.startedAt)} · ${ZT.fmtKm(stats.progress)} · ${live.track.length} points`
+    ? `départ ${ZT.fmtClock(s.startedAt)} · ${ZT.fmtKm(stats.progress)} · ${live.track.length} points${s.battery ? ` · 🔋 ${Math.round(s.battery.level)} %` : ''}`
     : '';
   $('startBtn').hidden = s.status === 'running';
   $('startBtn').textContent = s.status === 'finished' ? '▶ Nouveau départ' : '▶ Donner le départ';
@@ -216,6 +220,108 @@ function renderAlertLog() {
   $('alertLog').replaceChildren(...(list.length
     ? list.map((a) => el('li', {}, el('time', {}, ZT.fmtClock(a.t)), el('span', {}, el('strong', {}, a.title), a.body && el('small', { class: 'muted' }, a.body))))
     : [el('li', { class: 'muted small' }, 'Aucune alerte envoyée pour cette course.')]));
+}
+
+// ---------------------------------------------------------------- sécurité (privé)
+
+const SAFETY_FLAGS = ['stopped', 'signalLost', 'offCourse', 'lowBattery', 'slowdown'];
+const SAFETY_NUMS = ['stoppedMinutes', 'signalLostMinutes', 'offCourseMinutes', 'lowBatteryPercent'];
+
+function fillSafetyForm(st) {
+  const f = $('safetyForm');
+  for (const k of SAFETY_FLAGS) f[k].checked = !!st[k];
+  for (const k of SAFETY_NUMS) f[k].value = st[k];
+}
+
+function setupSafetyHelp(c) {
+  const topic = c.safetySettings.ntfyTopic;
+  $('ntfyTopic').textContent = topic;
+  $('ntfyLink').href = `${c.ntfyServer}/${topic}`;
+  const sos = `${location.origin}/sos?key=${encodeURIComponent(c.trackerKey)}`;
+  $('sosLink').textContent = sos;
+  $('sosOpen').href = sos;
+}
+
+for (const id of ['ntfyTopic', 'sosLink']) {
+  $(id).addEventListener('click', () => navigator.clipboard?.writeText($(id).textContent).then(() => toast('Copié')));
+}
+
+function renderSafety() {
+  const sf = config.safety || { alerts: [], sos: null };
+  const sos = sf.sos;
+  $('sosActive').hidden = !sos;
+  $('safetyCard').classList.toggle('has-sos', !!sos);
+  if (sos) {
+    $('sosActiveTitle').textContent = `${sos.title} (${ZT.fmtClock(sos.t)})`;
+    $('sosActiveBody').textContent = sos.body;
+    $('sosActiveMap').hidden = !sos.mapsUrl;
+    if (sos.mapsUrl) $('sosActiveMap').href = sos.mapsUrl;
+  }
+  $('safetyLog').replaceChildren(...(sf.alerts.length
+    ? sf.alerts.map((a) => el('li', { class: `lvl-${a.level}` },
+      el('time', {}, ZT.fmtClock(a.t)),
+      el('span', {},
+        el('strong', {}, a.title),
+        a.body && el('small', { class: 'muted' }, a.body),
+        a.mapsUrl && el('a', { href: a.mapsUrl, target: '_blank', rel: 'noopener', class: 'small' }, '📍 Voir la position'),
+      )))
+    : [el('li', { class: 'muted small' }, 'Aucune alerte de sécurité pour la course en ligne.')]));
+}
+
+$('safetyForm').addEventListener('submit', action(async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const body = {};
+  for (const k of SAFETY_FLAGS) body[k] = f[k].checked;
+  for (const k of SAFETY_NUMS) body[k] = f[k].value;
+  const c = await api('PUT', '/api/admin/safety', body);
+  fillSafetyForm(c.safetySettings);
+  setConfig(c);
+  toast('Réglages de sécurité enregistrés');
+}));
+
+$('safetyTest').addEventListener('click', action(async () => {
+  const r = await api('POST', '/api/admin/safety/test');
+  toast(r.delivered ? 'Test envoyé : tes contacts abonnés au canal doivent le recevoir' : "Échec de l'envoi vers ntfy (connexion du serveur ?)", !r.delivered);
+}));
+
+$('newChannel').addEventListener('click', action(async () => {
+  if (!confirm('Changer de canal ? Tes contacts devront s’abonner au nouveau canal.')) return;
+  const c = await api('POST', '/api/admin/safety/new-channel');
+  setupSafetyHelp(c);
+  setConfig(c);
+}));
+
+$('sosNow').addEventListener('click', action(async () => {
+  if (!confirm('Envoyer une alerte SOS à tes contacts de confiance ?')) return;
+  const pos = await new Promise((resolve) => navigator.geolocation
+    ? navigator.geolocation.getCurrentPosition((p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }), () => resolve({}), { enableHighAccuracy: true, timeout: 8000 })
+    : resolve({}));
+  const r = await api('POST', '/api/admin/sos', pos);
+  toast(r.delivered ? 'SOS envoyé à tes contacts' : "SOS enregistré mais l'envoi a échoué", !r.delivered);
+}));
+
+$('sosResolve').addEventListener('click', action(async () => {
+  if (!confirm('Lever l’alerte SOS et prévenir tes contacts que tout va bien ?')) return;
+  await api('POST', '/api/admin/sos', { cancel: true });
+}));
+
+/** Flux privé : alertes de sécurité en temps réel. */
+function connectAdminStream() {
+  const es = new EventSource(`/api/admin/stream?token=${encodeURIComponent(token)}`);
+  es.addEventListener('safety', (e) => {
+    const a = JSON.parse(e.data);
+    if (a.level === 'test') return;
+    config.safety = config.safety || { alerts: [], sos: null };
+    config.safety.alerts = [a, ...config.safety.alerts];
+    if (a.level === 'sos') config.safety.sos = a;
+    if (a.level === 'ok') config.safety.sos = null;
+    renderSafety();
+    if (a.level === 'sos' || a.level === 'danger') {
+      navigator.vibrate?.([300, 100, 300, 100, 300]);
+      toast(a.title, true);
+    }
+  });
 }
 
 // ---------------------------------------------------------------- liste des courses
