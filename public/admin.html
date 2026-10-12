@@ -81,6 +81,35 @@
         </div>
       </section>
 
+      <!-- ------------------------------------------------ Alertes -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Alertes</h2>
+          <span id="subscribers" class="badge"></span>
+        </div>
+        <p class="muted small">Envoyées automatiquement à tes supporters : notification sur leur téléphone s'ils ont touché « 🔔 Être alerté », et bandeau sur la page publique.</p>
+        <form id="alertsForm" class="alerts-form">
+          <label class="check"><input type="checkbox" name="start"> 🏃 Départ donné</label>
+          <label class="check"><input type="checkbox" name="aidApproach"> 📍 Approche d'un ravito</label>
+          <label class="check"><input type="checkbox" name="aidPass"> 🥤 Passage à un ravito</label>
+          <label class="check"><input type="checkbox" name="halfway"> ⏱️ Mi-course</label>
+          <label class="check"><input type="checkbox" name="finishApproach"> 🏁 Arrivée imminente</label>
+          <label class="check"><input type="checkbox" name="finish"> 🎉 Arrivée (avec le temps final)</label>
+          <label class="check"><input type="checkbox" name="messages"> 💬 Mes messages</label>
+          <label class="check"><input type="checkbox" name="signalLost"> 📡 Plus de position reçue</label>
+          <div class="alerts-nums">
+            <label>Prévenir avant un ravito / l'arrivée (min) <input type="number" name="approachMinutes" min="1" max="30"></label>
+            <label>Alerte « plus de position » après (min) <input type="number" name="signalLostMinutes" min="2" max="60"></label>
+          </div>
+          <div class="row-buttons">
+            <button class="primary" type="submit">Enregistrer</button>
+            <button id="alertTest" type="button">Envoyer une alerte de test</button>
+          </div>
+        </form>
+        <h3>Historique de la course en ligne</h3>
+        <ul id="alertLog" class="messages"></ul>
+      </section>
+
       <!-- ------------------------------------------------ Mes courses -->
       <section class="card">
         <div class="card-head">

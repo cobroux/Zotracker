@@ -316,3 +316,26 @@ code.copy { display: block; padding: 10px; cursor: copy; }
   .aid-row button { grid-column: 4; }
 }
 .admin-map { cursor: crosshair; }
+
+/* ---------------------------------------------------------------- alertes */
+
+.alert-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.alert-box:has(#alertBtn[hidden]):has(#alertStatus:empty) { display: none; }
+.alert-banner {
+  position: absolute; top: 12px; left: 12px; right: 12px; z-index: 600;
+  margin: 0 auto; max-width: 480px;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 14px; border-radius: 12px;
+  background: var(--text); color: var(--bg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+  cursor: pointer; animation: drop .3s ease;
+}
+.alert-banner span { font-size: .9rem; opacity: .85; }
+@keyframes drop { from { transform: translateY(-12px); opacity: 0; } }
+
+.messages li.is-alert span, .messages li span:has(> small) { display: flex; flex-direction: column; }
+
+.alerts-form { display: flex; flex-direction: column; gap: 6px; }
+label.check { flex-direction: row; align-items: center; gap: 10px; font-weight: 500; padding: 4px 0; }
+label.check input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+.alerts-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 6px; }

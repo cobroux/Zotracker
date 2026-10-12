@@ -129,12 +129,19 @@ function renderProfile() {
   $('raceFacts').replaceChildren(...raceFacts.flatMap(([k, v]) => [el('dt', {}, k), el('dd', {}, v)]));
 }
 
-function renderMessages() {
-  const list = state.messages;
-  $('messagesCard').hidden = !list.length;
-  $('messages').replaceChildren(
-    ...list.map((m) => el('li', {}, el('time', {}, ZT.fmtClock(m.t)), el('span', {}, m.text))),
-  );
+/** Fil « En direct » : messages du coureur et alertes automatiques, du plus récent au plus ancien. */
+function renderFeed() {
+  const items = [
+    ...state.messages.map((m) => ({ t: m.t, msg: m.text })),
+    ...(state.alerts || []).map((a) => ({ t: a.t, title: a.title, body: a.body })),
+  ].sort((a, b) => b.t - a.t).slice(0, 60);
+  $('messagesCard').hidden = !items.length;
+  $('messages').replaceChildren(...items.map((it) => el('li', { class: it.msg ? 'is-msg' : 'is-alert' },
+    el('time', {}, ZT.fmtClock(it.t)),
+    it.msg
+      ? el('span', {}, '💬 ', it.msg)
+      : el('span', {}, el('strong', {}, it.title), it.body && el('small', { class: 'muted' }, it.body)),
+  )));
 }
 
 /** Liste des ravitos + bandeau « prochain ravito ». Recalculé à chaque nouvelle position. */
@@ -214,7 +221,7 @@ function renderAll() {
   renderProfile();
   renderCourse();
   renderPosition();
-  renderMessages();
+  renderFeed();
   renderAid();
   renderStats();
   drawProfile();
@@ -261,8 +268,95 @@ function connect() {
     drawProfile();
   });
   es.addEventListener('messages', (e) => {
+    const before = state.messages.length;
     state.messages = JSON.parse(e.data);
-    renderMessages();
+    renderFeed();
+    if (state.messages.length > before) showBanner({ title: `💬 ${state.runner.name || 'Message'}`, body: state.messages[0].text });
+  });
+  es.addEventListener('alert', (e) => {
+    const a = JSON.parse(e.data);
+    if (a.type !== 'test') {
+      state.alerts = [a, ...(state.alerts || [])];
+      renderFeed();
+    }
+    showBanner(a);
   });
 }
 connect();
+
+// ---------------------------------------------------------------- alertes
+
+/** Bandeau affiché quelques secondes en haut de la carte. */
+function showBanner(a) {
+  const b = $('alertBanner');
+  b.replaceChildren(el('strong', {}, a.title), a.body && el('span', {}, a.body));
+  b.hidden = false;
+  if (document.visibilityState === 'visible') navigator.vibrate?.([80, 40, 80]);
+  clearTimeout(showBanner.timer);
+  showBanner.timer = setTimeout(() => { b.hidden = true; }, 8000);
+}
+$('alertBanner').addEventListener('click', () => { $('alertBanner').hidden = true; });
+
+const alertsUi = {
+  reg: null,
+  supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
+
+  async init() {
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (!this.supported) {
+      $('alertStatus').textContent = isIos && !standalone
+        ? "🔔 Pour recevoir les alertes sur iPhone : touche Partager puis « Sur l'écran d'accueil », et ouvre le site depuis l'icône."
+        : 'Les alertes s’affichent sur cette page (ton navigateur ne gère pas les notifications).';
+      return;
+    }
+    try {
+      this.reg = await navigator.serviceWorker.register('/sw.js');
+      const sub = await this.reg.pushManager.getSubscription();
+      this.render(!!sub);
+      $('alertBtn').hidden = false;
+    } catch {
+      $('alertStatus').textContent = 'Les alertes s’affichent sur cette page.';
+    }
+  },
+
+  render(on, note) {
+    $('alertBtn').textContent = on ? '🔕 Couper les alertes' : '🔔 Être alerté';
+    $('alertBtn').classList.toggle('primary', !on);
+    $('alertStatus').textContent = note || (on
+      ? 'Alertes activées sur cet appareil.'
+      : 'Départ, ravitos, arrivée : reçois une notification, même téléphone en veille.');
+  },
+
+  async toggle() {
+    const btn = $('alertBtn');
+    btn.disabled = true;
+    try {
+      const existing = await this.reg.pushManager.getSubscription();
+      if (existing) {
+        await fetch('/api/push/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: existing.endpoint }) });
+        await existing.unsubscribe();
+        return this.render(false);
+      }
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return this.render(false, 'Notifications refusées : autorise-les dans les réglages du navigateur pour ce site.');
+      const { publicKey } = await fetch('/api/push/key').then((r) => r.json());
+      const sub = await this.reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(publicKey) });
+      const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON() }) });
+      if (!res.ok) throw new Error();
+      this.render(true);
+    } catch {
+      this.render(false, "Impossible d'activer les alertes sur cet appareil. Elles restent visibles sur cette page.");
+    } finally {
+      btn.disabled = false;
+    }
+  },
+};
+
+function base64UrlToBytes(s) {
+  const b64 = (s + '='.repeat((4 - (s.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+}
+
+$('alertBtn').addEventListener('click', () => alertsUi.toggle());
+alertsUi.init();

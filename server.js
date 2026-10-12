@@ -7,11 +7,15 @@ const { Store, defaultSession, newRace } = require('./lib/store');
 const { parseGpx, parseWaypoints } = require('./lib/gpx');
 const { buildCourse, projectOnCourse } = require('./lib/geo');
 const { addPosition } = require('./lib/tracker');
+const alerts = require('./lib/alerts');
+const { Push } = require('./lib/push');
 
 const PORT = process.env.PORT || 3000;
 const store = new Store(process.env.DATA_DIR || path.join(__dirname, 'data'));
 const secrets = store.secrets();
 const state = store.state;
+const push = new Push(state, secrets.vapid, process.env.VAPID_SUBJECT || 'mailto:zotracker@example.com', () => store.save());
+const alertSettings = () => alerts.normalizeSettings(state.alertSettings);
 
 const app = express();
 app.set('trust proxy', true);
@@ -61,6 +65,7 @@ function publicState() {
     session: race ? race.session : defaultSession(),
     track: race ? race.track.map(compactPoint) : [],
     messages: race ? race.messages : [],
+    alerts: race ? race.alerts.slice(0, 50) : [],
     serverTime: Date.now(),
   };
 }
@@ -142,6 +147,8 @@ const adminRace = (r) => ({
 function adminConfig() {
   return {
     trackerKey: secrets.trackerKey,
+    alertSettings: alertSettings(),
+    subscribers: push.count,
     runner: state.runner,
     activeRaceId: state.activeRaceId,
     races: state.races.map(adminRace),
@@ -254,6 +261,7 @@ admin.post('/races/:id/course', findRace, (req, res) => {
   race.course = buildCourse(pts);
   race.session = defaultSession();
   race.track = [];
+  alerts.resetAlerts(race);
 
   // Les points d'intérêt du GPX deviennent des ravitaillements si aucun n'est encore saisi.
   let importedAid = 0;
@@ -274,6 +282,7 @@ admin.delete('/races/:id/course', findRace, (req, res) => {
   req.race.course = null;
   req.race.session = defaultSession();
   req.race.track = [];
+  alerts.resetAlerts(req.race);
   store.save();
   notifyIfActive(req.race);
   res.json(adminConfig());
@@ -292,13 +301,15 @@ admin.post('/session/start', requireActive, (req, res) => {
   const at = req.body.at ? Date.parse(req.body.at) : NaN;
   const startedAt = Number.isFinite(at) ? at : Date.now();
   if (race.session.status !== 'running') {
-    race.session = { ...defaultSession(), status: 'running', startedAt };
+    race.session = { ...defaultSession(), status: 'running', startedAt, armedAt: Date.now() };
     race.track = [];
+    alerts.resetAlerts(race);
   } else {
     race.session.startedAt = startedAt; // correction de l'heure de départ
   }
   store.save();
   broadcast('full', publicState());
+  checkAlerts();
   res.json(race.session);
 });
 
@@ -309,6 +320,7 @@ admin.post('/session/finish', requireActive, (req, res) => {
     race.session.finishedAt = Date.now();
     store.save();
     broadcast('session', race.session);
+    checkAlerts();
   }
   res.json(race.session);
 });
@@ -327,6 +339,7 @@ admin.post('/session/resume', requireActive, (req, res) => {
 admin.post('/session/reset', requireActive, (req, res) => {
   req.race.session = defaultSession();
   req.race.track = [];
+  alerts.resetAlerts(req.race);
   store.save();
   broadcast('full', publicState());
   res.json(req.race.session);
@@ -347,6 +360,7 @@ function ingest(points) {
   if (added.length) {
     store.save();
     broadcast('positions', { points: added.map(compactPoint), session: race.session });
+    checkAlerts();
   }
   return { received: points.length, added: added.length, status: race.session.status };
 }
@@ -363,6 +377,9 @@ admin.post('/messages', requireActive, (req, res) => {
   race.messages = race.messages.slice(0, 100);
   store.save();
   broadcast('messages', race.messages);
+  if (alertSettings().messages) {
+    sendPush({ title: `💬 ${alerts.firstName(state.runner)}`, body: text, tag: `msg-${race.messages[0].id}` });
+  }
   res.json(race.messages);
 });
 
@@ -387,6 +404,55 @@ app.all('/api/ingest', (req, res) => {
     ? { lat: loc.coords.latitude, lon: loc.coords.longitude, acc: loc.coords.accuracy, t: loc.timestamp }
     : { lat: q.lat, lon: q.lon ?? q.lng ?? q.long, acc: q.acc ?? q.accuracy ?? q.hdop, t: q.t ?? q.timestamp ?? q.time };
   res.json(ingest([point]));
+});
+
+// ---------------------------------------------------------------- alertes
+
+function sendPush(payload) {
+  push.send({ icon: '/icon-192.png', url: '/', ...payload }).catch((err) => console.error('Push :', err.message));
+}
+
+/** Évalue les règles d'alerte sur la course en ligne et diffuse les nouvelles alertes. */
+function checkAlerts() {
+  const race = activeRace();
+  if (!race) return;
+  const fresh = alerts.evaluate(race, state.runner, alertSettings());
+  if (!fresh.length) return;
+  store.save();
+  for (const a of fresh) {
+    broadcast('alert', a);
+    sendPush({ title: a.title, body: a.body, tag: a.id });
+  }
+}
+setInterval(checkAlerts, 20_000); // ETA et perte de signal évoluent avec le temps
+
+app.get('/api/push/key', (req, res) => res.json({ publicKey: push.publicKey }));
+
+app.post('/api/push/subscribe', (req, res) => {
+  try {
+    push.subscribe(req.body && req.body.subscription);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/push/unsubscribe', (req, res) => {
+  push.unsubscribe(String((req.body && req.body.endpoint) || ''));
+  res.json({ ok: true });
+});
+
+admin.put('/alerts', (req, res) => {
+  state.alertSettings = alerts.normalizeSettings(req.body || {});
+  store.save();
+  res.json(adminConfig());
+});
+
+admin.post('/alerts/test', async (req, res) => {
+  const a = { id: crypto.randomUUID(), type: 'test', title: '🔔 Alerte de test', body: 'Les notifications fonctionnent !', t: Date.now() };
+  broadcast('alert', a);
+  const result = await push.send({ title: a.title, body: a.body, tag: a.id, icon: '/icon-192.png', url: '/' });
+  res.json(result);
 });
 
 // ---------------------------------------------------------------- démarrage

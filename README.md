@@ -24,6 +24,7 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `ADMIN_PASSWORD` | Mot de passe de l'admin | généré |
 | `TRACKER_KEY` | Clé des applis GPS externes | générée |
 | `DATA_DIR` | Dossier de stockage (état JSON) | `./data` |
+| `VAPID_SUBJECT` | Contact pour les notifications push | `mailto:zotracker@example.com` |
 
 ## Préparer ses courses
 
@@ -34,6 +35,26 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 5. Le jour venu, clique sur **Mettre en ligne** pour afficher la course sur la page publique. Le compte à rebours démarre alors pour tes supporters.
 
 Sur la page publique, chaque ravitaillement apparaît sur la carte et dans une liste. Elle montre l'heure de passage réelle (✓) ou estimée (≈), et un bandeau indique le prochain ravito.
+
+## Alertes
+
+Les supporters sont prévenus automatiquement :
+
+- 🏃 départ donné ;
+- 📍 **approche d'un ravito** ou de l'arrivée, quelques minutes avant (5 par défaut, réglable) : idéal pour être au bon endroit ;
+- 🥤 passage à un ravito et ⏱️ mi-course ;
+- 🎉 arrivée, avec le temps final ;
+- 💬 tes messages ;
+- 📡 plus de position reçue depuis X minutes (réseau ou batterie).
+
+Elles s'affichent en bandeau et dans le fil « En direct » de la page publique. Les supporters qui touchent **🔔 Être alerté** reçoivent aussi une **notification sur leur téléphone**, même page fermée (Web Push).
+
+- **Android / ordinateur** : fonctionne directement dans Chrome, Firefox ou Edge.
+- **iPhone** (iOS 16.4 ou plus récent) : il faut d'abord ajouter le site à l'écran d'accueil (Partager → « Sur l'écran d'accueil »), puis l'ouvrir depuis l'icône.
+
+Dans l'admin, la section **Alertes** permet de choisir les alertes envoyées et les délais. Elle affiche le nombre d'abonnés et propose un bouton « Envoyer une alerte de test ».
+
+Les clés de notification (VAPID) sont générées au premier lancement et conservées dans `data/secrets.json`. Si tu les perds, tes abonnés devront se réabonner. Tu peux définir `VAPID_SUBJECT` avec ton adresse de contact (`mailto:toi@exemple.fr`).
 
 ## Le jour de la course
 
@@ -85,6 +106,10 @@ server.js          API, authentification, flux temps réel (Server-Sent Events)
 lib/geo.js         distances, construction et projection sur le parcours
 lib/gpx.js         lecture des fichiers GPX
 lib/tracker.js     ajout de positions, filtrage, détection d'arrivée
+lib/stats.js       allure et heures de passage estimées
+lib/alerts.js      règles d'alerte (ravitos, mi-course, arrivée, perte de signal)
+lib/push.js        envoi des notifications Web Push
+public/sw.js       service worker qui affiche les notifications
 lib/store.js       stockage JSON + secrets
 public/            page publique (index.html, app.js), admin (admin.html, admin.js)
 ```

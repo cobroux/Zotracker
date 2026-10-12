@@ -57,6 +57,7 @@ const editedRace = () => config && config.races.find((r) => r.id === editId);
 
 function setConfig(c) {
   config = c;
+  $('subscribers').textContent = `${c.subscribers} abonné${c.subscribers > 1 ? 's' : ''}`;
   if (editId && !editedRace()) closeEditor();
   renderRaceList();
   renderLive();
@@ -93,6 +94,7 @@ async function start() {
     $('app').hidden = false;
     setupIngestHelp(c.trackerKey);
     fillRunnerForm(c.runner);
+    fillAlertsForm(c.alertSettings);
     setConfig(c);
     connectStream();
   } catch {
@@ -123,6 +125,7 @@ function renderLive() {
   $('resumeBtn').hidden = s.status !== 'finished';
   if (document.activeElement !== $('startAt')) $('startAt').value = toLocalInput(s.startedAt, true);
   renderMessages();
+  renderAlertLog();
 }
 
 function renderMessages() {
@@ -180,6 +183,40 @@ $('messageForm').addEventListener('submit', action(async (e) => {
   e.target.reset();
   renderMessages();
 }));
+
+// ---------------------------------------------------------------- alertes
+
+const ALERT_FLAGS = ['start', 'aidApproach', 'aidPass', 'halfway', 'finishApproach', 'finish', 'messages', 'signalLost'];
+
+function fillAlertsForm(a) {
+  const f = $('alertsForm');
+  for (const k of ALERT_FLAGS) f[k].checked = !!a[k];
+  f.approachMinutes.value = a.approachMinutes;
+  f.signalLostMinutes.value = a.signalLostMinutes;
+}
+
+$('alertsForm').addEventListener('submit', action(async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const body = { approachMinutes: f.approachMinutes.value, signalLostMinutes: f.signalLostMinutes.value };
+  for (const k of ALERT_FLAGS) body[k] = f[k].checked;
+  const c = await api('PUT', '/api/admin/alerts', body);
+  fillAlertsForm(c.alertSettings);
+  setConfig(c);
+  toast('Alertes enregistrées');
+}));
+
+$('alertTest').addEventListener('click', action(async () => {
+  const r = await api('POST', '/api/admin/alerts/test');
+  toast(r.total ? `Alerte envoyée à ${r.sent} appareil(s) sur ${r.total}` : 'Alerte affichée sur la page publique (aucun abonné aux notifications pour l’instant)');
+}));
+
+function renderAlertLog() {
+  const list = (live && live.alerts) || [];
+  $('alertLog').replaceChildren(...(list.length
+    ? list.map((a) => el('li', {}, el('time', {}, ZT.fmtClock(a.t)), el('span', {}, el('strong', {}, a.title), a.body && el('small', { class: 'muted' }, a.body))))
+    : [el('li', { class: 'muted small' }, 'Aucune alerte envoyée pour cette course.')]));
+}
 
 // ---------------------------------------------------------------- liste des courses
 
@@ -529,6 +566,12 @@ function connectStream() {
   es.addEventListener('session', (e) => { live.session = JSON.parse(e.data); renderLive(); refreshConfigSoon(); });
   es.addEventListener('profile', (e) => Object.assign(live, JSON.parse(e.data)));
   es.addEventListener('messages', (e) => { live.messages = JSON.parse(e.data); renderMessages(); });
+  es.addEventListener('alert', (e) => {
+    const a = JSON.parse(e.data);
+    if (a.type === 'test') return;
+    live.alerts = [a, ...(live.alerts || [])];
+    renderAlertLog();
+  });
 }
 
 setInterval(() => config && renderLive(), 15_000);

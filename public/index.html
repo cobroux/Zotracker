@@ -26,10 +26,16 @@
       <div id="map"></div>
       <button id="followBtn" class="map-btn" type="button" hidden>📍 Suivre le coureur</button>
       <div id="offline" class="map-banner" hidden>Connexion perdue, reconnexion…</div>
+      <div id="alertBanner" class="alert-banner" role="status" aria-live="polite" hidden></div>
     </section>
 
     <aside class="panel">
       <div id="countdown" class="countdown" hidden></div>
+
+      <div id="alertBox" class="alert-box">
+        <button id="alertBtn" type="button" hidden>🔔 Être alerté</button>
+        <span id="alertStatus" class="muted small"></span>
+      </div>
 
       <div class="progress" id="progressBox">
         <div class="progress-bar"><div id="progressFill"></div></div>
