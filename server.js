@@ -3,9 +3,9 @@
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
-const { Store, defaultState } = require('./lib/store');
-const { parseGpx } = require('./lib/gpx');
-const { buildCourse } = require('./lib/geo');
+const { Store, defaultSession, newRace } = require('./lib/store');
+const { parseGpx, parseWaypoints } = require('./lib/gpx');
+const { buildCourse, projectOnCourse } = require('./lib/geo');
 const { addPosition } = require('./lib/tracker');
 
 const PORT = process.env.PORT || 3000;
@@ -20,6 +20,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/vendor/leaflet', express.static(path.dirname(require.resolve('leaflet/dist/leaflet.js'))));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+
+const activeRace = () => state.races.find((r) => r.id === state.activeRaceId) || null;
 
 // ---------------------------------------------------------------- temps réel (SSE)
 
@@ -37,19 +39,38 @@ setInterval(() => {
   for (const res of clients) res.write(': ping\n\n');
 }, 25_000);
 
+const compactPoint = (p) => [p.lat, p.lon, p.t, p.along];
+
+const raceInfo = (r) => ({
+  id: r.id,
+  name: r.name,
+  location: r.location,
+  plannedStart: r.plannedStart,
+  distanceKm: r.distanceKm,
+  description: r.description,
+  aidStations: r.aidStations,
+});
+
+/** Ce que voit la page publique : le profil + la course actuellement en ligne. */
 function publicState() {
+  const race = activeRace();
   return {
     runner: state.runner,
-    race: state.race,
-    course: state.course,
-    session: state.session,
-    track: state.track.map(compactPoint),
-    messages: state.messages,
+    race: race ? raceInfo(race) : null,
+    course: race ? race.course : null,
+    session: race ? race.session : defaultSession(),
+    track: race ? race.track.map(compactPoint) : [],
+    messages: race ? race.messages : [],
     serverTime: Date.now(),
   };
 }
 
-const compactPoint = (p) => [p.lat, p.lon, p.t, p.along];
+/** Prévient les pages ouvertes si la course modifiée est celle en ligne. */
+function notifyIfActive(race, event = 'full') {
+  if (race && race.id === state.activeRaceId) {
+    broadcast(event, event === 'full' ? publicState() : { runner: state.runner, race: raceInfo(race) });
+  }
+}
 
 app.get('/api/stream', (req, res) => {
   res.set({
@@ -106,13 +127,30 @@ const admin = express.Router();
 admin.use(requireAdmin);
 app.use('/api/admin', admin);
 
-// ---------------------------------------------------------------- admin : informations
-
 const str = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
-admin.get('/config', (req, res) => {
-  res.json({ trackerKey: secrets.trackerKey, state: publicState() });
+/** Résumé d'une course pour l'admin (sans la trace GPS complète). */
+const adminRace = (r) => ({
+  ...raceInfo(r),
+  course: r.course,
+  session: r.session,
+  trackCount: r.track.length,
+  messageCount: r.messages.length,
+  createdAt: r.createdAt,
 });
+
+function adminConfig() {
+  return {
+    trackerKey: secrets.trackerKey,
+    runner: state.runner,
+    activeRaceId: state.activeRaceId,
+    races: state.races.map(adminRace),
+  };
+}
+
+admin.get('/config', (req, res) => res.json(adminConfig()));
+
+// ---------------------------------------------------------------- admin : coureur
 
 admin.put('/runner', (req, res) => {
   const b = req.body || {};
@@ -132,127 +170,208 @@ admin.put('/runner', (req, res) => {
       .slice(0, 30),
   };
   store.save();
-  broadcast('profile', { runner: state.runner, race: state.race });
+  broadcast('profile', { runner: state.runner, race: activeRace() ? raceInfo(activeRace()) : null });
   res.json(state.runner);
 });
 
-admin.put('/race', (req, res) => {
-  const b = req.body || {};
-  const km = parseFloat(b.distanceKm);
-  state.race = {
-    name: str(b.name, 120),
-    location: str(b.location, 120),
-    plannedStart: b.plannedStart && Number.isFinite(Date.parse(b.plannedStart)) ? new Date(b.plannedStart).toISOString() : '',
-    distanceKm: Number.isFinite(km) && km > 0 ? km : null,
-    description: str(b.description, 3000),
-  };
-  store.save();
-  broadcast('profile', { runner: state.runner, race: state.race });
-  res.json(state.race);
-});
+// ---------------------------------------------------------------- admin : courses
 
-admin.post('/course', (req, res) => {
-  const pts = parseGpx(String(req.body.gpx || ''));
-  if (pts.length < 2) return res.status(400).json({ error: 'Aucun tracé trouvé dans ce fichier GPX.' });
-  state.course = buildCourse(pts);
-  resetTracking();
-  store.save();
-  broadcast('full', publicState());
-  res.json({ length: state.course.length, points: state.course.points.length, elevationGain: state.course.elevationGain });
-});
-
-admin.delete('/course', (req, res) => {
-  state.course = null;
-  resetTracking();
-  store.save();
-  broadcast('full', publicState());
-  res.json({ ok: true });
-});
-
-// ---------------------------------------------------------------- admin : course en direct
-
-function resetTracking() {
-  state.session = defaultState().session;
-  state.track = [];
+function findRace(req, res, next) {
+  req.race = state.races.find((r) => r.id === req.params.id);
+  if (!req.race) return res.status(404).json({ error: 'Course introuvable' });
+  next();
 }
 
-admin.post('/session/start', (req, res) => {
+function sanitizeAidStations(list) {
+  return (Array.isArray(list) ? list : [])
+    .map((a) => ({
+      id: typeof a.id === 'string' && a.id ? a.id.slice(0, 40) : crypto.randomUUID(),
+      name: str(a.name, 80),
+      km: Math.max(0, Math.round(parseFloat(a.km) * 1000) / 1000),
+      info: str(a.info, 200),
+    }))
+    .filter((a) => Number.isFinite(a.km) && (a.name || a.info))
+    .sort((a, b) => a.km - b.km)
+    .slice(0, 60);
+}
+
+function applyRaceFields(race, b) {
+  const km = parseFloat(b.distanceKm);
+  race.name = str(b.name, 120);
+  race.location = str(b.location, 120);
+  race.plannedStart = b.plannedStart && Number.isFinite(Date.parse(b.plannedStart)) ? new Date(b.plannedStart).toISOString() : '';
+  race.distanceKm = Number.isFinite(km) && km > 0 ? km : null;
+  race.description = str(b.description, 3000);
+  if (b.aidStations !== undefined) race.aidStations = sanitizeAidStations(b.aidStations);
+}
+
+admin.post('/races', (req, res) => {
+  const race = newRace();
+  applyRaceFields(race, req.body || {});
+  if (!race.name) race.name = 'Nouvelle course';
+  state.races.push(race);
+  if (!state.activeRaceId) state.activeRaceId = race.id;
+  store.save();
+  if (race.id === state.activeRaceId) broadcast('full', publicState());
+  res.json(adminConfig());
+});
+
+admin.put('/races/:id', findRace, (req, res) => {
+  applyRaceFields(req.race, req.body || {});
+  store.save();
+  notifyIfActive(req.race, 'profile');
+  res.json(adminConfig());
+});
+
+admin.delete('/races/:id', findRace, (req, res) => {
+  if (req.race.session.status === 'running') return res.status(409).json({ error: 'Termine la course avant de la supprimer.' });
+  state.races = state.races.filter((r) => r !== req.race);
+  if (state.activeRaceId === req.race.id) {
+    state.activeRaceId = null;
+    broadcast('full', publicState());
+  }
+  store.save();
+  res.json(adminConfig());
+});
+
+admin.post('/races/:id/activate', findRace, (req, res) => {
+  const current = activeRace();
+  if (current && current !== req.race && current.session.status === 'running') {
+    return res.status(409).json({ error: `« ${current.name} » est en cours : termine-la d'abord.` });
+  }
+  state.activeRaceId = req.race.id;
+  store.save();
+  broadcast('full', publicState());
+  res.json(adminConfig());
+});
+
+admin.post('/races/:id/course', findRace, (req, res) => {
+  const race = req.race;
+  if (race.session.status === 'running') return res.status(409).json({ error: 'Impossible de changer le parcours pendant la course.' });
+  const gpx = String(req.body.gpx || '');
+  const pts = parseGpx(gpx);
+  if (pts.length < 2) return res.status(400).json({ error: 'Aucun tracé trouvé dans ce fichier GPX.' });
+  race.course = buildCourse(pts);
+  race.session = defaultSession();
+  race.track = [];
+
+  // Les points d'intérêt du GPX deviennent des ravitaillements si aucun n'est encore saisi.
+  let importedAid = 0;
+  if (!race.aidStations.length) {
+    const wpts = parseWaypoints(gpx)
+      .map((w) => ({ ...w, ...projectOnCourse(race.course.points, w.lat, w.lon, 0, false) }))
+      .filter((w) => w.offset < 300);
+    race.aidStations = sanitizeAidStations(wpts.map((w) => ({ name: w.name || 'Ravitaillement', info: w.desc, km: Math.round(w.along / 100) / 10 })));
+    importedAid = race.aidStations.length;
+  }
+  store.save();
+  notifyIfActive(race);
+  res.json({ ...adminConfig(), imported: { length: race.course.length, elevationGain: race.course.elevationGain, aidStations: importedAid } });
+});
+
+admin.delete('/races/:id/course', findRace, (req, res) => {
+  if (req.race.session.status === 'running') return res.status(409).json({ error: 'Impossible de changer le parcours pendant la course.' });
+  req.race.course = null;
+  req.race.session = defaultSession();
+  req.race.track = [];
+  store.save();
+  notifyIfActive(req.race);
+  res.json(adminConfig());
+});
+
+// ---------------------------------------------------------------- admin : course en direct (course en ligne)
+
+function requireActive(req, res, next) {
+  req.race = activeRace();
+  if (!req.race) return res.status(409).json({ error: "Aucune course n'est en ligne." });
+  next();
+}
+
+admin.post('/session/start', requireActive, (req, res) => {
+  const race = req.race;
   const at = req.body.at ? Date.parse(req.body.at) : NaN;
   const startedAt = Number.isFinite(at) ? at : Date.now();
-  if (state.session.status !== 'running') {
-    state.session = { ...defaultState().session, status: 'running', startedAt };
-    state.track = [];
+  if (race.session.status !== 'running') {
+    race.session = { ...defaultSession(), status: 'running', startedAt };
+    race.track = [];
   } else {
-    state.session.startedAt = startedAt; // correction de l'heure de départ
+    race.session.startedAt = startedAt; // correction de l'heure de départ
   }
   store.save();
   broadcast('full', publicState());
-  res.json(state.session);
+  res.json(race.session);
 });
 
-admin.post('/session/finish', (req, res) => {
-  if (state.session.status === 'running') {
-    state.session.status = 'finished';
-    state.session.finishedAt = Date.now();
+admin.post('/session/finish', requireActive, (req, res) => {
+  const race = req.race;
+  if (race.session.status === 'running') {
+    race.session.status = 'finished';
+    race.session.finishedAt = Date.now();
     store.save();
-    broadcast('session', state.session);
+    broadcast('session', race.session);
   }
-  res.json(state.session);
+  res.json(race.session);
 });
 
-admin.post('/session/resume', (req, res) => {
-  if (state.session.status === 'finished') {
-    state.session.status = 'running';
-    state.session.finishedAt = null;
+admin.post('/session/resume', requireActive, (req, res) => {
+  const race = req.race;
+  if (race.session.status === 'finished') {
+    race.session.status = 'running';
+    race.session.finishedAt = null;
     store.save();
-    broadcast('session', state.session);
+    broadcast('session', race.session);
   }
-  res.json(state.session);
+  res.json(race.session);
 });
 
-admin.post('/session/reset', (req, res) => {
-  resetTracking();
+admin.post('/session/reset', requireActive, (req, res) => {
+  req.race.session = defaultSession();
+  req.race.track = [];
   store.save();
   broadcast('full', publicState());
-  res.json(state.session);
+  res.json(req.race.session);
 });
 
 function ingest(points) {
+  const race = activeRace();
+  if (!race) return { received: points.length, added: 0, status: 'no_race' };
   const added = [];
   const sorted = points
     .filter((p) => p && typeof p === 'object')
     .slice(0, 5000)
     .sort((a, b) => (Number(a.t) || 0) - (Number(b.t) || 0));
   for (const p of sorted) {
-    const r = addPosition(state, p);
+    const r = addPosition(race, p);
     if (!r.ignored) added.push(r);
   }
   if (added.length) {
     store.save();
-    broadcast('positions', { points: added.map(compactPoint), session: state.session });
+    broadcast('positions', { points: added.map(compactPoint), session: race.session });
   }
-  return { received: points.length, added: added.length, status: state.session.status };
+  return { received: points.length, added: added.length, status: race.session.status };
 }
 
 admin.post('/positions', (req, res) => {
   res.json(ingest(Array.isArray(req.body.points) ? req.body.points : []));
 });
 
-admin.post('/messages', (req, res) => {
+admin.post('/messages', requireActive, (req, res) => {
+  const race = req.race;
   const text = str(req.body.text, 500);
   if (!text) return res.status(400).json({ error: 'Message vide' });
-  state.messages.unshift({ id: crypto.randomUUID(), text, t: Date.now() });
-  state.messages = state.messages.slice(0, 100);
+  race.messages.unshift({ id: crypto.randomUUID(), text, t: Date.now() });
+  race.messages = race.messages.slice(0, 100);
   store.save();
-  broadcast('messages', state.messages);
-  res.json(state.messages);
+  broadcast('messages', race.messages);
+  res.json(race.messages);
 });
 
-admin.delete('/messages/:id', (req, res) => {
-  state.messages = state.messages.filter((m) => m.id !== req.params.id);
+admin.delete('/messages/:id', requireActive, (req, res) => {
+  const race = req.race;
+  race.messages = race.messages.filter((m) => m.id !== req.params.id);
   store.save();
-  broadcast('messages', state.messages);
-  res.json(state.messages);
+  broadcast('messages', race.messages);
+  res.json(race.messages);
 });
 
 // ------------------------------------------- applis GPS externes (OsmAnd, GPSLogger, Traccar Client…)

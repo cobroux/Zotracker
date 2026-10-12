@@ -3,7 +3,9 @@
 Suivi GPS en direct pour les courses à pied.
 
 - **Page publique** (`/`) : tes proches suivent ta position sur la carte en temps réel, avec la distance parcourue et restante, le chrono, l'allure moyenne et récente, l'heure d'arrivée estimée, le profil d'altitude, tes messages et tes infos (photo, présentation, objectif, records…).
-- **Admin** (`/admin`, protégé par mot de passe) : tu renseignes ton profil et la course, tu importes le parcours (GPX), tu donnes le départ, tu envoies ta position GPS depuis ton téléphone et tu publies des messages.
+- **Admin** (`/admin`, protégé par mot de passe) : tu prépares autant de courses que tu veux à l'avance (infos, parcours GPX, ravitaillements), tu choisis celle qui est affichée sur la page publique, tu donnes le départ et tu publies des messages.
+
+Tout fonctionne dans le navigateur du téléphone, sans appli à installer. Avec « Ajouter à l'écran d'accueil », le site s'ouvre ensuite comme une appli.
 
 ## Démarrage rapide
 
@@ -23,9 +25,19 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `TRACKER_KEY` | Clé des applis GPS externes | générée |
 | `DATA_DIR` | Dossier de stockage (état JSON) | `./data` |
 
+## Préparer ses courses
+
+1. Dans **Mes courses**, clique sur **+ Nouvelle course** et renseigne le nom, le lieu, le départ prévu et la distance.
+2. Importe le **fichier GPX** du parcours (site de l'organisateur, Strava, Garmin Connect, Komoot, OpenRunner, gpx.studio…).
+3. Ajoute les **ravitaillements** : à la main (km, nom, ce qui est proposé), ou en cliquant sur le parcours dans la carte. Si le GPX contient des points (waypoints), ils sont importés automatiquement.
+4. **Enregistre la course**. Tu peux en préparer plusieurs à l'avance.
+5. Le jour venu, clique sur **Mettre en ligne** pour afficher la course sur la page publique. Le compte à rebours démarre alors pour tes supporters.
+
+Sur la page publique, chaque ravitaillement apparaît sur la carte et dans une liste. Elle montre l'heure de passage réelle (✓) ou estimée (≈), et un bandeau indique le prochain ravito.
+
 ## Le jour de la course
 
-1. **Avant** : dans l'admin, remplis « Le coureur » et « La course », puis importe le fichier GPX du parcours (export Strava, Garmin Connect, Komoot, OpenRunner…). Partage le lien de la page publique.
+1. **Avant** : vérifie que la bonne course est **en ligne** et partage le lien de la page publique.
 2. **Au départ** : clique sur **Donner le départ**, ce qui active aussi le GPS du téléphone. Si tu as appuyé en retard, corrige l'heure via « Corriger l'heure de départ ».
 3. **Pendant** : le téléphone envoie un point toutes les 3 s environ. Si le réseau coupe, les points sont mis en attente et renvoyés plus tard.
 4. **À l'arrivée** : l'arrivée est détectée automatiquement en fin de parcours. Tu peux aussi cliquer sur **Terminer**.

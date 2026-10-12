@@ -23,6 +23,11 @@ const ZT = {
     return (m / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' km';
   },
 
+  /** Point kilométrique arrondi à 100 m : « 7,5 ». */
+  fmtPk(km) {
+    return (Math.round(km * 10) / 10).toLocaleString('fr-FR');
+  },
+
   fmtDuration(sec) {
     if (sec == null || !Number.isFinite(sec) || sec < 0) return '–';
     sec = Math.floor(sec);
@@ -83,19 +88,64 @@ const ZT = {
       if (from && last[3] - from[3] > 100) recentPace = (last[2] - from[2]) / 1000 / ((last[3] - from[3]) / 1000);
     }
 
+    // allure de prévision : moyenne entre l'allure globale et l'allure récente
+    const pace = avgPace ? (recentPace ? (avgPace + recentPace) / 2 : avgPace) : null;
     let eta = null;
     const remaining = total != null ? Math.max(0, total - progress) : null;
     if (s.status === 'finished') eta = s.finishedAt;
-    else if (remaining != null && avgPace && last) {
-      const pace = recentPace ? (avgPace + recentPace) / 2 : avgPace;
-      eta = last[2] + (remaining / 1000) * pace * 1000;
-    }
+    else if (remaining != null && pace && last) eta = last[2] + (remaining / 1000) * pace * 1000;
 
-    return { total, progress, remaining, elapsed, avgPace, recentPace, eta, lastTime: last ? last[2] : null, last };
+    return { total, progress, remaining, elapsed, avgPace, recentPace, pace, eta, lastTime: last ? last[2] : null, last };
+  },
+
+  /**
+   * Ravitaillements avec heure de passage réelle (si déjà passé) ou estimée.
+   * Retourne [{...aid, dist, passed, at, estimated}].
+   */
+  aidSchedule(state, stats) {
+    const aids = (state.race && state.race.aidStations) || [];
+    const s = state.session;
+    return aids.map((a) => {
+      const dist = a.km * 1000;
+      const passed = s.status !== 'idle' && stats.progress >= dist;
+      let at = null;
+      let estimated = false;
+      if (passed) {
+        const p = state.track.find((pt) => pt[3] >= dist);
+        at = p ? p[2] : s.startedAt;
+      } else if (s.status === 'running' && stats.pace && stats.last) {
+        at = stats.last[2] + ((dist - stats.progress) / 1000) * stats.pace * 1000;
+        estimated = true;
+      }
+      return { ...a, dist, passed, at, estimated };
+    });
+  },
+
+  /** Point du tracé le plus proche d'une position : { along, offset } en mètres. */
+  nearestOnCourse(course, lat, lon) {
+    const M = 111_195;
+    let best = { along: 0, offset: Infinity };
+    const pts = course.points;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const kx = Math.cos((a[0] * Math.PI) / 180) * M;
+      const bx = (b[1] - a[1]) * kx, by = (b[0] - a[0]) * M;
+      const px = (lon - a[1]) * kx, py = (lat - a[0]) * M;
+      const len2 = bx * bx + by * by;
+      const t = len2 ? Math.max(0, Math.min(1, (px * bx + py * by) / len2)) : 0;
+      const offset = Math.hypot(px - t * bx, py - t * by);
+      if (offset < best.offset) best = { along: a[3] + t * (b[3] - a[3]), offset };
+    }
+    return best;
+  },
+
+  aidIcon(passed) {
+    return L.divIcon({ className: 'aid-icon', html: `<span class="${passed ? 'passed' : ''}">🥤</span>`, iconSize: [28, 28], iconAnchor: [14, 14] });
   },
 
   /** Profil d'altitude dans un <canvas>, avec la progression actuelle. */
-  drawProfile(canvas, course, progress) {
+  drawProfile(canvas, course, progress, aidStations = []) {
     const pts = course && course.points.filter((p) => p[2] != null);
     if (!pts || pts.length < 2) { canvas.hidden = true; return; }
     canvas.hidden = false;
@@ -135,6 +185,19 @@ const ZT = {
     };
     area(len, line);
     if (progress > 0) area(progress, accent);
+
+    // ravitaillements : trait vertical + pastille
+    ctx.strokeStyle = muted;
+    ctx.setLineDash([3, 3]);
+    for (const a of aidStations) {
+      const ax = x(a.km * 1000);
+      if (ax < 0 || ax > w) continue;
+      ctx.beginPath(); ctx.moveTo(ax, top); ctx.lineTo(ax, h - bottom); ctx.stroke();
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.textBaseline = 'top';
+      ctx.fillText('🥤', Math.min(ax - 7, w - 16), 0);
+    }
+    ctx.setLineDash([]);
 
     ctx.fillStyle = muted;
     ctx.font = '11px system-ui, sans-serif';

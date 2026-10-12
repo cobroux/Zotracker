@@ -6,6 +6,9 @@
   <title>Zotracker Admin</title>
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#ff5a1f">
+  <link rel="manifest" href="/manifest-admin.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -22,57 +25,102 @@
   <div id="app" hidden>
     <header class="admin-bar">
       <strong>Zotracker · Admin</strong>
-      <a href="/" target="_blank" rel="noopener">Voir la page publique ↗</a>
+      <a href="/" target="_blank" rel="noopener">Page publique ↗</a>
     </header>
 
     <main class="admin-main">
-      <!-- ------------------------------------------------ Course en direct -->
-      <section class="card">
-        <h2>Course en direct</h2>
-        <p>Statut : <span id="sessionBadge" class="badge">…</span> <span id="sessionInfo" class="muted"></span></p>
-        <div class="row-buttons">
-          <button id="startBtn" class="primary" type="button">▶ Donner le départ</button>
-          <button id="finishBtn" type="button">🏁 Terminer</button>
-          <button id="resumeBtn" type="button">↺ Reprendre</button>
-          <button id="resetBtn" class="danger" type="button">Réinitialiser le suivi</button>
-        </div>
-        <details>
-          <summary>Corriger l'heure de départ</summary>
-          <div class="inline-form">
-            <input type="datetime-local" id="startAt" step="1">
-            <button id="startAtBtn" type="button">Appliquer</button>
+      <!-- ------------------------------------------------ Course en ligne -->
+      <section class="card live-card">
+        <h2>Course en ligne : <span id="liveName"></span></h2>
+        <p id="noLive" class="muted">Aucune course en ligne. Choisis-en une dans « Mes courses » avec <strong>Mettre en ligne</strong>.</p>
+        <div id="liveControls">
+          <p>Statut : <span id="sessionBadge" class="badge">…</span> <span id="sessionInfo" class="muted"></span></p>
+          <div class="row-buttons">
+            <button id="startBtn" class="primary" type="button">▶ Donner le départ</button>
+            <button id="finishBtn" type="button">🏁 Terminer</button>
+            <button id="resumeBtn" type="button">↺ Reprendre</button>
+            <button id="resetBtn" class="danger" type="button">Réinitialiser le suivi</button>
           </div>
-        </details>
+          <details>
+            <summary>Corriger l'heure de départ</summary>
+            <div class="inline-form">
+              <input type="datetime-local" id="startAt" step="1">
+              <button id="startAtBtn" type="button">Appliquer</button>
+            </div>
+          </details>
 
-        <h3>GPS de ce téléphone</h3>
-        <p class="muted small">Garde cette page ouverte et l'écran allumé pendant la course. Les positions ne sont enregistrées que lorsque la course est démarrée, et elles sont mises en attente si le réseau coupe.</p>
-        <div class="row-buttons">
-          <button id="gpsBtn" class="primary" type="button">Activer le GPS</button>
+          <details>
+            <summary>Envoyer ma position avec Traccar Client (recommandé)</summary>
+            <p class="small">Dans l'appli <strong>Traccar Client</strong> : précision haute, fréquence 10 s, et :</p>
+            <dl class="facts small">
+              <dt>URL du serveur</dt><dd><code id="ingestTraccar" class="copy"></code></dd>
+              <dt>Identifiant</dt><dd><code id="trackerKey" class="copy"></code></dd>
+            </dl>
+            <p class="small"><strong>OsmAnd</strong> / <strong>GPSLogger</strong> (URL personnalisée) :</p>
+            <code id="ingestOsmand" class="copy"></code>
+          </details>
+
+          <details>
+            <summary>Ou utiliser le GPS de ce navigateur (écran allumé)</summary>
+            <p class="muted small">Fonctionne seulement si cette page reste ouverte et l'écran allumé. À éviter si tu utilises déjà Traccar.</p>
+            <div class="row-buttons"><button id="gpsBtn" type="button">Activer le GPS</button></div>
+            <dl class="facts small">
+              <dt>Dernière position</dt><dd id="gpsFix">–</dd>
+              <dt>Précision</dt><dd id="gpsAcc">–</dd>
+              <dt>En attente d'envoi</dt><dd id="gpsQueue">0</dd>
+              <dt>Écran maintenu allumé</dt><dd id="gpsWake">–</dd>
+            </dl>
+          </details>
+
+          <h3>Messages aux supporters</h3>
+          <form id="messageForm" class="inline-form">
+            <input name="text" maxlength="500" placeholder="Ex : Ravito du 10e km, tout va bien !" required>
+            <button class="primary" type="submit">Publier</button>
+          </form>
+          <ul id="adminMessages" class="messages"></ul>
         </div>
-        <dl class="facts small">
-          <dt>Dernière position</dt><dd id="gpsFix">–</dd>
-          <dt>Précision</dt><dd id="gpsAcc">–</dd>
-          <dt>En attente d'envoi</dt><dd id="gpsQueue">0</dd>
-          <dt>Écran maintenu allumé</dt><dd id="gpsWake">–</dd>
-        </dl>
-
-        <details>
-          <summary>Utiliser une appli GPS externe (recommandé sur iPhone)</summary>
-          <p class="small">Une appli dédiée continue d'envoyer ta position même écran verrouillé. Configure-la pour appeler cette adresse :</p>
-          <p class="small"><strong>OsmAnd</strong> (Suivi en ligne) / <strong>GPSLogger</strong> (Journalisation URL personnalisée) :</p>
-          <code id="ingestOsmand" class="copy"></code>
-          <p class="small"><strong>Traccar Client</strong> : adresse du serveur <code id="ingestTraccar"></code>, identifiant de l'appareil <code id="trackerKey"></code></p>
-        </details>
       </section>
 
-      <!-- ------------------------------------------------ Messages -->
+      <!-- ------------------------------------------------ Mes courses -->
       <section class="card">
-        <h2>Messages aux supporters</h2>
-        <form id="messageForm" class="inline-form">
-          <input name="text" maxlength="500" placeholder="Ex : Ravito du 10e km, tout va bien !" required>
-          <button class="primary" type="submit">Publier</button>
+        <div class="card-head">
+          <h2>Mes courses</h2>
+          <button id="newRaceBtn" class="primary" type="button">+ Nouvelle course</button>
+        </div>
+        <ul id="raceList" class="race-list"></ul>
+      </section>
+
+      <!-- ------------------------------------------------ Édition d'une course -->
+      <section class="card" id="raceEditor" hidden>
+        <div class="card-head">
+          <h2 id="editorTitle">Modifier la course</h2>
+          <button id="editorClose" class="link" type="button">Fermer</button>
+        </div>
+        <form id="raceForm" class="grid-form">
+          <label>Nom de la course <input name="name" maxlength="120" required></label>
+          <label>Lieu <input name="location" maxlength="120"></label>
+          <label>Départ prévu <input name="plannedStart" type="datetime-local"></label>
+          <label>Distance officielle (km) <input name="distanceKm" type="number" step="0.001" min="0"></label>
+          <label class="full">Description <textarea name="description" rows="3" maxlength="3000"></textarea></label>
+
+          <div class="full">
+            <h3>Ravitaillements</h3>
+            <p class="muted small">Ajoute-les ici ou clique sur le parcours dans la carte ci-dessous pour en placer un. Si ton fichier GPX contient des points (waypoints), ils sont importés automatiquement.</p>
+            <div id="aidList" class="aid-list"></div>
+            <button id="aidAdd" type="button">+ Ajouter un ravitaillement</button>
+          </div>
+
+          <button class="primary" type="submit">Enregistrer la course</button>
         </form>
-        <ul id="adminMessages" class="messages"></ul>
+
+        <h3>Parcours (fichier GPX)</h3>
+        <p class="muted small">Exporte le tracé depuis le site de l'organisateur, Strava, Garmin Connect, Komoot, OpenRunner ou gpx.studio. Importer un nouveau parcours efface le suivi GPS de cette course.</p>
+        <div class="inline-form">
+          <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml">
+          <button id="courseDelete" type="button" class="danger">Supprimer le parcours</button>
+        </div>
+        <p id="courseInfo" class="small"></p>
+        <div id="adminMap" class="admin-map"></div>
       </section>
 
       <!-- ------------------------------------------------ Coureur -->
@@ -96,28 +144,6 @@
           </label>
           <button class="primary" type="submit">Enregistrer</button>
         </form>
-      </section>
-
-      <!-- ------------------------------------------------ Course -->
-      <section class="card">
-        <h2>La course</h2>
-        <form id="raceForm" class="grid-form">
-          <label>Nom de la course <input name="name" maxlength="120"></label>
-          <label>Lieu <input name="location" maxlength="120"></label>
-          <label>Départ prévu <input name="plannedStart" type="datetime-local"></label>
-          <label>Distance officielle (km) <input name="distanceKm" type="number" step="0.001" min="0"></label>
-          <label class="full">Description <textarea name="description" rows="3" maxlength="3000"></textarea></label>
-          <button class="primary" type="submit">Enregistrer</button>
-        </form>
-
-        <h3>Parcours (fichier GPX)</h3>
-        <p class="muted small">Exporte le tracé depuis Strava, Garmin Connect, Komoot, OpenRunner… Importer un nouveau parcours réinitialise le suivi.</p>
-        <div class="inline-form">
-          <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml">
-          <button id="courseDelete" type="button" class="danger">Supprimer le parcours</button>
-        </div>
-        <p id="courseInfo" class="small"></p>
-        <div id="adminMap" class="admin-map"></div>
       </section>
     </main>
   </div>

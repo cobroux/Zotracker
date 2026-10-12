@@ -2,10 +2,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { parseGpx } = require('../lib/gpx');
+const { parseGpx, parseWaypoints } = require('../lib/gpx');
 const { buildCourse, projectOnCourse, haversine } = require('../lib/geo');
 const { addPosition, parseTime } = require('../lib/tracker');
-const { defaultState } = require('../lib/store');
+const { newRace, migrate } = require('../lib/store');
 
 // Aller-retour de ~2 km vers l'est puis retour au départ.
 const LAT = 48.85;
@@ -41,7 +41,7 @@ test("projectOnCourse choisit le bon côté d'un aller-retour", () => {
 });
 
 test('addPosition suit la progression et détecte l’arrivée', () => {
-  const state = defaultState();
+  const state = newRace();
   state.course = buildCourse(parseGpx(outAndBackGpx()));
   const t0 = Date.parse('2026-10-12T08:00:00Z');
   assert.strictEqual(addPosition(state, { lat: LAT, lon: lonAt(0), t: t0 }).ignored, 'not_running');
@@ -54,7 +54,7 @@ test('addPosition suit la progression et détecte l’arrivée', () => {
 });
 
 test('addPosition ignore les points imprécis, hors parcours ou désordonnés', () => {
-  const state = defaultState();
+  const state = newRace();
   state.course = buildCourse(parseGpx(outAndBackGpx()));
   const t0 = Date.parse('2026-10-12T08:00:00Z');
   state.session = { ...state.session, status: 'running', startedAt: t0 };
@@ -68,7 +68,7 @@ test('addPosition ignore les points imprécis, hors parcours ou désordonnés', 
 });
 
 test('sans parcours, la distance est cumulée depuis le GPS', () => {
-  const state = defaultState();
+  const state = newRace();
   const t0 = Date.parse('2026-10-12T08:00:00Z');
   state.session = { ...state.session, status: 'running', startedAt: t0 };
   for (let i = 0; i <= 10; i++) addPosition(state, { lat: LAT, lon: lonAt(i * 100), t: t0 + (i + 1) * 30_000 }, t0 + 1e7);
@@ -82,4 +82,24 @@ test('parseTime accepte secondes, millisecondes et ISO', () => {
   assert.strictEqual(parseTime('1760256000000'), 1760256000000);
   assert.strictEqual(parseTime('2026-10-12T08:00:00Z'), Date.parse('2026-10-12T08:00:00Z'));
   assert.strictEqual(haversine(0, 0, 0, 0), 0);
+});
+
+test('migrate convertit l’ancien format à une seule course', () => {
+  const old = { runner: { name: 'Enzo' }, race: { name: '10 km' }, course: null, session: { status: 'finished' }, track: [{ lat: 1 }], messages: [] };
+  const s = migrate(old);
+  assert.strictEqual(s.races.length, 1);
+  assert.strictEqual(s.activeRaceId, s.races[0].id);
+  assert.strictEqual(s.races[0].name, '10 km');
+  assert.strictEqual(s.races[0].track.length, 1);
+  assert.strictEqual(migrate(null).races.length, 0);
+});
+
+test('les waypoints GPX sont placés sur le parcours', () => {
+  const gpx = outAndBackGpx().replace('<trk>', `<wpt lat="${LAT + 0.0003}" lon="${lonAt(1500)}"><name>Ravito</name></wpt><trk>`);
+  const c = buildCourse(parseGpx(gpx));
+  const [w] = parseWaypoints(gpx);
+  const r = projectOnCourse(c.points, w.lat, w.lon, 0, false);
+  assert.strictEqual(w.name, 'Ravito');
+  assert.ok(Math.abs(r.along - 1500) < 10 || Math.abs(r.along - 2500) < 10);
+  assert.ok(r.offset < 40);
 });

@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Suivi en direct</title>
   <meta name="theme-color" content="#ff5a1f">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -42,12 +45,18 @@
         <div class="stat highlight"><span class="label" id="sEtaLabel">Arrivée estimée</span><span class="value" id="sEta">–</span></div>
       </div>
       <p id="offCourse" class="warning" hidden>Le coureur semble s'être écarté du parcours.</p>
+      <div id="nextAid" class="next-aid" hidden></div>
 
       <canvas id="profile" class="profile" hidden></canvas>
 
       <section id="messagesCard" class="card" hidden>
         <h2>En direct</h2>
         <ul id="messages" class="messages"></ul>
+      </section>
+
+      <section id="aidCard" class="card" hidden>
+        <h2>Ravitaillements</h2>
+        <ol id="aidList" class="aid-timeline"></ol>
       </section>
 
       <section id="aboutCard" class="card" hidden>
