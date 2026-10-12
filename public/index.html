@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Suivi en direct</title>
+  <meta name="theme-color" content="#ff5a1f">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="public">
+  <header class="hero">
+    <div class="avatar" id="avatar"></div>
+    <div class="hero-text">
+      <h1 id="runnerName">Suivi en direct</h1>
+      <p id="raceLine" class="muted"></p>
+    </div>
+    <span id="statusBadge" class="badge">…</span>
+  </header>
+
+  <main class="layout">
+    <section class="map-wrap">
+      <div id="map"></div>
+      <button id="followBtn" class="map-btn" type="button" hidden>📍 Suivre le coureur</button>
+      <div id="offline" class="map-banner" hidden>Connexion perdue, reconnexion…</div>
+    </section>
+
+    <aside class="panel">
+      <div id="countdown" class="countdown" hidden></div>
+
+      <div class="progress" id="progressBox">
+        <div class="progress-bar"><div id="progressFill"></div></div>
+        <div class="progress-labels"><span id="progressPct"></span><span id="updated" class="muted"></span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span class="label">Parcouru</span><span class="value" id="sDone">–</span></div>
+        <div class="stat"><span class="label">Restant</span><span class="value" id="sLeft">–</span></div>
+        <div class="stat"><span class="label">Temps</span><span class="value" id="sTime">–</span></div>
+        <div class="stat"><span class="label">Allure moyenne</span><span class="value" id="sAvg">–</span></div>
+        <div class="stat"><span class="label">Allure récente</span><span class="value" id="sRecent">–</span></div>
+        <div class="stat highlight"><span class="label" id="sEtaLabel">Arrivée estimée</span><span class="value" id="sEta">–</span></div>
+      </div>
+      <p id="offCourse" class="warning" hidden>Le coureur semble s'être écarté du parcours.</p>
+
+      <canvas id="profile" class="profile" hidden></canvas>
+
+      <section id="messagesCard" class="card" hidden>
+        <h2>En direct</h2>
+        <ul id="messages" class="messages"></ul>
+      </section>
+
+      <section id="aboutCard" class="card" hidden>
+        <h2 id="aboutTitle">À propos</h2>
+        <p id="goal" class="goal" hidden></p>
+        <p id="bio" class="bio"></p>
+        <dl id="facts" class="facts"></dl>
+      </section>
+
+      <section id="raceCard" class="card" hidden>
+        <h2>La course</h2>
+        <p id="raceDesc" class="bio"></p>
+        <dl id="raceFacts" class="facts"></dl>
+      </section>
+    </aside>
+  </main>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/common.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

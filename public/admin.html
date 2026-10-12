@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Zotracker Admin</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#ff5a1f">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="admin">
+  <section id="login" class="login" hidden>
+    <form id="loginForm" class="card">
+      <h1>Zotracker · Admin</h1>
+      <label>Mot de passe <input type="password" name="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Se connecter</button>
+      <p id="loginError" class="error"></p>
+    </form>
+  </section>
+
+  <div id="app" hidden>
+    <header class="admin-bar">
+      <strong>Zotracker · Admin</strong>
+      <a href="/" target="_blank" rel="noopener">Voir la page publique ↗</a>
+    </header>
+
+    <main class="admin-main">
+      <!-- ------------------------------------------------ Course en direct -->
+      <section class="card">
+        <h2>Course en direct</h2>
+        <p>Statut : <span id="sessionBadge" class="badge">…</span> <span id="sessionInfo" class="muted"></span></p>
+        <div class="row-buttons">
+          <button id="startBtn" class="primary" type="button">▶ Donner le départ</button>
+          <button id="finishBtn" type="button">🏁 Terminer</button>
+          <button id="resumeBtn" type="button">↺ Reprendre</button>
+          <button id="resetBtn" class="danger" type="button">Réinitialiser le suivi</button>
+        </div>
+        <details>
+          <summary>Corriger l'heure de départ</summary>
+          <div class="inline-form">
+            <input type="datetime-local" id="startAt" step="1">
+            <button id="startAtBtn" type="button">Appliquer</button>
+          </div>
+        </details>
+
+        <h3>GPS de ce téléphone</h3>
+        <p class="muted small">Garde cette page ouverte et l'écran allumé pendant la course. Les positions ne sont enregistrées que lorsque la course est démarrée, et elles sont mises en attente si le réseau coupe.</p>
+        <div class="row-buttons">
+          <button id="gpsBtn" class="primary" type="button">Activer le GPS</button>
+        </div>
+        <dl class="facts small">
+          <dt>Dernière position</dt><dd id="gpsFix">–</dd>
+          <dt>Précision</dt><dd id="gpsAcc">–</dd>
+          <dt>En attente d'envoi</dt><dd id="gpsQueue">0</dd>
+          <dt>Écran maintenu allumé</dt><dd id="gpsWake">–</dd>
+        </dl>
+
+        <details>
+          <summary>Utiliser une appli GPS externe (recommandé sur iPhone)</summary>
+          <p class="small">Une appli dédiée continue d'envoyer ta position même écran verrouillé. Configure-la pour appeler cette adresse :</p>
+          <p class="small"><strong>OsmAnd</strong> (Suivi en ligne) / <strong>GPSLogger</strong> (Journalisation URL personnalisée) :</p>
+          <code id="ingestOsmand" class="copy"></code>
+          <p class="small"><strong>Traccar Client</strong> : adresse du serveur <code id="ingestTraccar"></code>, identifiant de l'appareil <code id="trackerKey"></code></p>
+        </details>
+      </section>
+
+      <!-- ------------------------------------------------ Messages -->
+      <section class="card">
+        <h2>Messages aux supporters</h2>
+        <form id="messageForm" class="inline-form">
+          <input name="text" maxlength="500" placeholder="Ex : Ravito du 10e km, tout va bien !" required>
+          <button class="primary" type="submit">Publier</button>
+        </form>
+        <ul id="adminMessages" class="messages"></ul>
+      </section>
+
+      <!-- ------------------------------------------------ Coureur -->
+      <section class="card">
+        <h2>Le coureur</h2>
+        <form id="runnerForm" class="grid-form">
+          <div class="photo-field">
+            <div class="avatar" id="photoPreview"></div>
+            <div>
+              <input type="file" id="photoInput" accept="image/*">
+              <button type="button" id="photoRemove" class="link">Retirer la photo</button>
+            </div>
+          </div>
+          <label>Nom affiché <input name="name" maxlength="80"></label>
+          <label>Dossard <input name="bib" maxlength="20"></label>
+          <label>Club <input name="club" maxlength="80"></label>
+          <label>Objectif <input name="goal" maxlength="120" placeholder="Ex : finir sous 3h30"></label>
+          <label class="full">Présentation <textarea name="bio" rows="4" maxlength="2000"></textarea></label>
+          <label class="full">Infos en plus <span class="muted small">(une par ligne, au format « Titre : valeur »)</span>
+            <textarea name="facts" rows="4" placeholder="Âge : 32 ans&#10;Record marathon : 3h41&#10;Instagram : @moi"></textarea>
+          </label>
+          <button class="primary" type="submit">Enregistrer</button>
+        </form>
+      </section>
+
+      <!-- ------------------------------------------------ Course -->
+      <section class="card">
+        <h2>La course</h2>
+        <form id="raceForm" class="grid-form">
+          <label>Nom de la course <input name="name" maxlength="120"></label>
+          <label>Lieu <input name="location" maxlength="120"></label>
+          <label>Départ prévu <input name="plannedStart" type="datetime-local"></label>
+          <label>Distance officielle (km) <input name="distanceKm" type="number" step="0.001" min="0"></label>
+          <label class="full">Description <textarea name="description" rows="3" maxlength="3000"></textarea></label>
+          <button class="primary" type="submit">Enregistrer</button>
+        </form>
+
+        <h3>Parcours (fichier GPX)</h3>
+        <p class="muted small">Exporte le tracé depuis Strava, Garmin Connect, Komoot, OpenRunner… Importer un nouveau parcours réinitialise le suivi.</p>
+        <div class="inline-form">
+          <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml">
+          <button id="courseDelete" type="button" class="danger">Supprimer le parcours</button>
+        </div>
+        <p id="courseInfo" class="small"></p>
+        <div id="adminMap" class="admin-map"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/common.js"></script>
+  <script src="/admin.js"></script>
+</body>
+</html>

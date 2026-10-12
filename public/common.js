@@ -1,0 +1,185 @@
+/* Fonctions partagées entre la page publique et l'admin. */
+'use strict';
+
+const ZT = {
+  /** Crée un élément DOM. Le contenu texte passe toujours par textContent (pas d'injection HTML). */
+  el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') node.className = v;
+      else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    }
+    for (const c of children.flat()) {
+      if (c == null || c === false) continue;
+      node.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    }
+    return node;
+  },
+
+  fmtKm(m) {
+    if (m == null || !Number.isFinite(m)) return '–';
+    return (m / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' km';
+  },
+
+  fmtDuration(sec) {
+    if (sec == null || !Number.isFinite(sec) || sec < 0) return '–';
+    sec = Math.floor(sec);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+  },
+
+  fmtPace(secPerKm) {
+    if (secPerKm == null || !Number.isFinite(secPerKm) || secPerKm <= 0 || secPerKm > 3600) return '–';
+    const m = Math.floor(secPerKm / 60);
+    const s = Math.round(secPerKm % 60);
+    return s === 60 ? `${m + 1}'00"/km` : `${m}'${String(s).padStart(2, '0')}"/km`;
+  },
+
+  fmtClock(ts) {
+    if (!ts) return '–';
+    return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  },
+
+  fmtDateTime(ts) {
+    if (!ts) return '';
+    return new Date(ts).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  },
+
+  fmtAgo(ms) {
+    const s = Math.max(0, Math.round(ms / 1000));
+    if (s < 60) return `il y a ${s} s`;
+    if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
+    return `il y a ${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
+  },
+
+  /** Longueur totale de référence : distance officielle si renseignée, sinon longueur du tracé. */
+  totalDistance(state) {
+    if (state.course) return state.course.length;
+    if (state.race && state.race.distanceKm) return state.race.distanceKm * 1000;
+    return null;
+  },
+
+  /** Statistiques calculées à partir du suivi. track = [[lat, lon, t, along]] */
+  computeStats(state, now) {
+    const s = state.session;
+    const track = state.track;
+    const last = track[track.length - 1];
+    const total = ZT.totalDistance(state);
+    const progress = s.progress || 0;
+    const elapsed = s.startedAt ? ((s.finishedAt || now) - s.startedAt) / 1000 : null;
+
+    let avgPace = null;
+    if (last && s.startedAt && last[3] > 200) avgPace = (last[2] - s.startedAt) / 1000 / (last[3] / 1000);
+
+    // allure sur les ~5 dernières minutes
+    let recentPace = null;
+    if (last) {
+      const from = track.find((p) => p[2] >= last[2] - 5 * 60_000);
+      if (from && last[3] - from[3] > 100) recentPace = (last[2] - from[2]) / 1000 / ((last[3] - from[3]) / 1000);
+    }
+
+    let eta = null;
+    const remaining = total != null ? Math.max(0, total - progress) : null;
+    if (s.status === 'finished') eta = s.finishedAt;
+    else if (remaining != null && avgPace && last) {
+      const pace = recentPace ? (avgPace + recentPace) / 2 : avgPace;
+      eta = last[2] + (remaining / 1000) * pace * 1000;
+    }
+
+    return { total, progress, remaining, elapsed, avgPace, recentPace, eta, lastTime: last ? last[2] : null, last };
+  },
+
+  /** Profil d'altitude dans un <canvas>, avec la progression actuelle. */
+  drawProfile(canvas, course, progress) {
+    const pts = course && course.points.filter((p) => p[2] != null);
+    if (!pts || pts.length < 2) { canvas.hidden = true; return; }
+    canvas.hidden = false;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const css = getComputedStyle(document.documentElement);
+    const accent = css.getPropertyValue('--accent').trim();
+    const muted = css.getPropertyValue('--muted').trim();
+    const line = css.getPropertyValue('--line').trim();
+
+    let min = Infinity, max = -Infinity;
+    for (const p of pts) { min = Math.min(min, p[2]); max = Math.max(max, p[2]); }
+    const pad = Math.max(10, (max - min) * 0.15);
+    min -= pad; max += pad;
+    const len = course.length || pts[pts.length - 1][3];
+    const top = 14, bottom = 18;
+    const x = (d) => (d / len) * w;
+    const y = (e) => top + (1 - (e - min) / (max - min)) * (h - top - bottom);
+
+    const area = (upTo, fill) => {
+      ctx.beginPath();
+      ctx.moveTo(0, h - bottom);
+      for (const p of pts) { if (p[3] > upTo) break; ctx.lineTo(x(p[3]), y(p[2])); }
+      const lastIn = [...pts].reverse().find((p) => p[3] <= upTo) || pts[0];
+      ctx.lineTo(x(Math.min(upTo, len)), y(lastIn[2]));
+      ctx.lineTo(x(Math.min(upTo, len)), h - bottom);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+    };
+    area(len, line);
+    if (progress > 0) area(progress, accent);
+
+    ctx.fillStyle = muted;
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${Math.round(max - pad)} m`, 4, 0);
+    ctx.textBaseline = 'bottom';
+    const step = len > 25000 ? 10000 : len > 8000 ? 5000 : 1000;
+    for (let d = step; d < len; d += step) ctx.fillText(`${d / 1000}`, x(d) - 4, h);
+    ctx.fillText('km', w - 18, h);
+  },
+
+  /** Découpe le parcours jusqu'à une distance donnée (pour colorer la partie parcourue). */
+  courseUpTo(course, dist) {
+    const out = [];
+    const pts = course.points;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (p[3] <= dist) { out.push([p[0], p[1]]); continue; }
+      const prev = pts[i - 1];
+      if (prev) {
+        const t = (dist - prev[3]) / (p[3] - prev[3] || 1);
+        out.push([prev[0] + (p[0] - prev[0]) * t, prev[1] + (p[1] - prev[1]) * t]);
+      }
+      break;
+    }
+    return out;
+  },
+
+  /** Point du parcours situé à une distance donnée. */
+  courseAt(course, dist) {
+    const seg = ZT.courseUpTo(course, dist);
+    return seg[seg.length - 1];
+  },
+
+  tileLayer() {
+    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    });
+  },
+
+  runnerIcon(photo) {
+    const html = photo
+      ? `<div class="runner-dot has-photo"><img alt="" src="${photo.replace(/"/g, '')}"></div>`
+      : '<div class="runner-dot"></div>';
+    return L.divIcon({ className: 'runner-icon', html, iconSize: [36, 36], iconAnchor: [18, 18] });
+  },
+};
