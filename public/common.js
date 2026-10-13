@@ -104,21 +104,87 @@ const ZT = {
    */
   aidSchedule(state, stats) {
     const aids = (state.race && state.race.aidStations) || [];
-    const s = state.session;
     return aids.map((a) => {
       const dist = a.km * 1000;
-      const passed = s.status !== 'idle' && stats.progress >= dist;
-      let at = null;
-      let estimated = false;
-      if (passed) {
-        const p = state.track.find((pt) => pt[3] >= dist);
-        at = p ? p[2] : s.startedAt;
-      } else if (s.status === 'running' && stats.pace && stats.last) {
-        at = stats.last[2] + ((dist - stats.progress) / 1000) * stats.pace * 1000;
-        estimated = true;
-      }
-      return { ...a, dist, passed, at, estimated };
+      return { ...a, dist, ...ZT.passageAt(state, stats, dist) };
     });
+  },
+
+  /**
+   * Passage du coureur à une distance donnée du parcours :
+   * heure réelle s'il est déjà passé, heure estimée sinon. Retourne { passed, at, estimated }.
+   */
+  passageAt(state, stats, dist) {
+    const s = state.session;
+    const passed = s.status !== 'idle' && stats.progress >= dist;
+    if (passed) {
+      const p = state.track.find((pt) => pt[3] >= dist);
+      return { passed, at: p ? p[2] : s.startedAt, estimated: false };
+    }
+    if (s.status === 'running' && stats.pace && stats.last) {
+      return { passed, at: stats.last[2] + ((dist - stats.progress) / 1000) * stats.pace * 1000, estimated: true };
+    }
+    return { passed, at: null, estimated: false };
+  },
+
+  /**
+   * Endroit du parcours où aller voir passer le coureur depuis une position :
+   * le passage le plus proche, en privilégiant (boucles, allers-retours) un passage
+   * encore devant le coureur. Retourne { along, offset } en mètres.
+   */
+  spotNear(course, lat, lon, fromDist = 0) {
+    const cands = ZT.segmentsNear(course, lat, lon);
+    const best = cands.reduce((a, b) => (b.offset < a.offset ? b : a));
+    const ahead = cands
+      .filter((c) => c.along >= fromDist && c.offset <= best.offset + Math.max(100, best.offset * 0.25))
+      .sort((a, b) => a.along - b.along)[0];
+    return ahead || best;
+  },
+
+  /** Projection d'une position sur chaque segment du tracé : [{ along, offset }]. */
+  segmentsNear(course, lat, lon) {
+    const M = 111_195;
+    const pts = course.points;
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const kx = Math.cos((a[0] * Math.PI) / 180) * M;
+      const bx = (b[1] - a[1]) * kx, by = (b[0] - a[0]) * M;
+      const px = (lon - a[1]) * kx, py = (lat - a[0]) * M;
+      const len2 = bx * bx + by * by;
+      const t = len2 ? Math.max(0, Math.min(1, (px * bx + py * by) / len2)) : 0;
+      out.push({ along: a[3] + t * (b[3] - a[3]), offset: Math.hypot(px - t * bx, py - t * by) });
+    }
+    return out.length ? out : [{ along: 0, offset: Infinity }];
+  },
+
+  /** Distance lisible : « 350 m » ou « 2,4 km ». */
+  fmtDist(m) {
+    if (m == null || !Number.isFinite(m)) return '–';
+    if (m < 1000) return `${Math.max(10, Math.round(m / 10) * 10)} m`;
+    return `${(m / 1000).toLocaleString('fr-FR', { maximumFractionDigits: m < 10_000 ? 1 : 0 })} km`;
+  },
+
+  /** Distance à vol d'oiseau entre deux points (m). */
+  distance(lat1, lon1, lat2, lon2) {
+    const r = (d) => (d * Math.PI) / 180;
+    const a = Math.sin(r(lat2 - lat1) / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(r(lon2 - lon1) / 2) ** 2;
+    return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(a)));
+  },
+
+  isApple: /iphone|ipad|ipod|macintosh/i.test(navigator.userAgent),
+
+  /**
+   * Liens d'itinéraire vers un point (l'application Plans / Google Maps part de la position
+   * actuelle du téléphone). Seules des coordonnées sont transmises, jamais la position du supporter.
+   */
+  directions(lat, lon) {
+    const ll = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+    return {
+      google: `https://www.google.com/maps/dir/?api=1&destination=${ll}`,
+      apple: `https://maps.apple.com/?daddr=${ll}`,
+    };
   },
 
   /** Point du tracé le plus proche d'une position : { along, offset } en mètres. */

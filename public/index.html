@@ -59,13 +59,36 @@
         <div class="stat wide highlight"><span class="label" id="sEtaLabel">Arrivée estimée</span><span class="value" id="sEta">–</span></div>
       </div>
 
-      <p id="offCourse" class="warning" hidden>Le coureur semble s'être écarté du parcours.</p>
+      <p id="offCourse" class="warning" hidden></p>
       <div id="nextAid" class="next-aid" hidden></div>
 
       <div id="alertBox" class="alert-box">
         <button id="alertBtn" type="button" hidden>Être alerté</button>
         <span id="alertStatus" class="muted small"></span>
       </div>
+
+      <section id="cheerCard" class="card cheer" hidden>
+        <h2 id="cheerTitle">Venir l'encourager</h2>
+        <p class="muted small cheer-intro">Choisis un endroit du parcours : tu vois vers quelle heure il y passera, et l'itinéraire pour t'y rendre s'ouvre dans ton appli de cartes.</p>
+
+        <div class="me-box">
+          <button id="locateBtn" type="button" class="locate-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 1.5V5M12 19v3.5M1.5 12H5M19 12h3.5"/></svg>
+            <span id="locateLabel">Me situer par rapport au coureur</span>
+          </button>
+          <div id="meInfo" class="me-info" hidden></div>
+          <p class="muted small">Ta position reste sur ton téléphone : elle n'est jamais envoyée ni enregistrée.</p>
+        </div>
+
+        <h3 id="spotTitle" class="caps">Aux ravitaillements</h3>
+        <ol id="spotList" class="spot-list"></ol>
+
+        <label class="spot-km">Ou à un point kilométrique
+          <input id="spotKm" type="text" inputmode="decimal" placeholder="ex. 12,5" autocomplete="off" maxlength="6">
+        </label>
+        <ol id="spotCustom" class="spot-list"></ol>
+        <p id="cheerTip" class="muted small">Astuce : touche le tracé sur la carte pour choisir un endroit.</p>
+      </section>
 
       <canvas id="profile" class="profile" hidden aria-label="Profil d'altitude du parcours" role="img"></canvas>
 

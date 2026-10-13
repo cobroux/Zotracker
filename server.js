@@ -135,7 +135,7 @@ const raceInfo = (r) => ({
 });
 
 /** Session sans les détails internes (batterie, horodatages techniques) : minimisation des données. */
-const publicSession = (s) => ({ status: s.status, startedAt: s.startedAt, finishedAt: s.finishedAt, progress: s.progress, offCourse: s.offCourse });
+const publicSession = (s) => ({ status: s.status, startedAt: s.startedAt, finishedAt: s.finishedAt, progress: s.progress, offCourse: s.offCourse, offCourseBy: s.offCourse ? s.offCourseBy || 0 : 0 });
 
 /** Ce que voit la page publique : le profil + la course actuellement en ligne. */
 function publicState() {

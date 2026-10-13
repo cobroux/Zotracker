@@ -15,6 +15,23 @@ const race = () => state.race || {};
 // zoom en bas à droite : le haut de la carte porte la carte d'identité du coureur
 const map = L.map('map', { zoomControl: false }).setView([46.6, 2.4], 6);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
+// bouton « me situer » au-dessus du zoom (même action que dans le panneau)
+const LocateControl = L.Control.extend({
+  options: { position: 'bottomright' },
+  onAdd() {
+    const bar = L.DomUtil.create('div', 'leaflet-bar');
+    const a = L.DomUtil.create('a', 'locate-ctl', bar);
+    a.href = '#';
+    a.title = 'Me situer';
+    a.setAttribute('role', 'button');
+    a.setAttribute('aria-label', 'Me situer par rapport au coureur');
+    a.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 1.5V5M12 19v3.5M1.5 12H5M19 12h3.5"/></svg>';
+    L.DomEvent.disableClickPropagation(bar);
+    L.DomEvent.on(a, 'click', (e) => { L.DomEvent.preventDefault(e); $('locateBtn').click(); });
+    return bar;
+  },
+});
+new LocateControl().addTo(map);
 ZT.addTiles(map);
 const layers = {
   course: L.polyline([], { color: ZT.cssVar('--route'), weight: 6, opacity: 0.9 }).addTo(map),
@@ -22,6 +39,9 @@ const layers = {
   trace: L.polyline([], { color: ZT.cssVar('--accent'), weight: 3, opacity: 0.6, dashArray: '4 6' }).addTo(map),
   markers: L.layerGroup().addTo(map),
   aid: L.layerGroup().addTo(map),
+  // tracé invisible et large : facilite le choix d'un endroit au doigt
+  hit: L.polyline([], { weight: 28, opacity: 0, interactive: true }).addTo(map),
+  me: L.layerGroup().addTo(map),
   runner: null,
 };
 let fitted = false;
@@ -38,6 +58,7 @@ function renderCourse() {
   layers.markers.clearLayers();
   const c = state.course;
   layers.course.setLatLngs(c ? c.points.map((p) => [p[0], p[1]]) : []);
+  layers.hit.setLatLngs(layers.course.getLatLngs());
   if (!c) return;
 
   const first = c.points[0];
@@ -59,16 +80,32 @@ function renderCourse() {
   if (!fitted) { map.fitBounds(layers.course.getBounds(), { padding: [24, 24] }); fitted = true; }
 }
 
-function renderAidMarkers(schedule) {
+// toucher le tracé : heure de passage et itinéraire vers cet endroit
+layers.hit.on('click', (e) => {
+  if (!state || !state.course) return;
+  const stats = ZT.computeStats(state, now());
+  const spot = ZT.spotNear(state.course, e.latlng.lat, e.latlng.lng, stats.progress);
+  const [lat, lon] = ZT.courseAt(state.course, spot.along);
+  L.popup().setLatLng([lat, lon]).setContent(spotPopup(`Km ${ZT.fmtPk(spot.along / 1000)}`, spot.along, stats)).openOn(map);
+});
+
+/** Contenu d'une info-bulle « endroit du parcours » : passage + itinéraire. */
+function spotPopup(title, dist, stats, extra) {
+  const [lat, lon] = ZT.courseAt(state.course, dist);
+  const when = passageText(ZT.passageAt(state, stats, dist));
+  return el('div', { class: 'aid-popup' },
+    el('strong', {}, title),
+    extra && el('div', {}, extra),
+    when && el('div', { class: 'muted' }, when),
+    directionLinks(lat, lon),
+  );
+}
+
+function renderAidMarkers(schedule, stats) {
   layers.aid.clearLayers();
   if (!state.course) return;
   for (const a of schedule) {
-    const when = a.at ? `${a.passed ? 'Passé à' : 'Passage estimé vers'} ${ZT.fmtClock(a.at)}` : '';
-    const popup = el('div', { class: 'aid-popup' },
-      el('strong', {}, `${a.name || 'Ravitaillement'} · km ${ZT.fmtPk(a.km)}`),
-      a.info && el('div', {}, a.info),
-      when && el('div', { class: 'muted' }, when),
-    );
+    const popup = spotPopup(`${a.name || 'Ravitaillement'} · km ${ZT.fmtPk(a.km)}`, a.dist, stats, a.info);
     L.marker(ZT.courseAt(state.course, a.dist), { icon: ZT.aidIcon(a.passed), zIndexOffset: 500 })
       .bindPopup(popup)
       .addTo(layers.aid);
@@ -150,7 +187,7 @@ function renderFeed() {
 function renderAid() {
   const stats = ZT.computeStats(state, now());
   const schedule = ZT.aidSchedule(state, stats);
-  renderAidMarkers(schedule);
+  renderAidMarkers(schedule, stats);
 
   $('aidCard').hidden = !schedule.length;
   $('aidList').replaceChildren(...schedule.map((a) => {
@@ -174,7 +211,160 @@ function renderAid() {
         ` dans ${ZT.fmtKm(next.dist - stats.progress)}${next.at ? ` · vers ${ZT.fmtClock(next.at)}` : ''}`),
     );
   }
+  renderCheer();
 }
+
+// ---------------------------------------------------------------- venir l'encourager
+
+/** « vers 14:32 · dans 25 min » / « passé à 14:10 ». */
+function passageText(p) {
+  if (!p.at) return '';
+  if (p.passed) return `Déjà passé à ${ZT.fmtClock(p.at)}`;
+  const min = Math.round((p.at - now()) / 60_000);
+  return `Passage vers ${ZT.fmtClock(p.at)}${min > 0 ? ` · dans ${fmtMinutes(min)}` : ' · imminent'}`;
+}
+
+function fmtMinutes(min) {
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
+}
+
+const firstName = () => (state.runner.name || '').trim().split(/\s+/)[0] || 'le coureur';
+
+/** Boutons d'itinéraire : Google Maps partout, Plans en plus sur iPhone / Mac. */
+function directionLinks(lat, lon) {
+  const d = ZT.directions(lat, lon);
+  const link = (href, txt, cls) => el('a', { href, target: '_blank', rel: 'noopener noreferrer', class: `btn-link ${cls}` }, txt);
+  return el('span', { class: 'dir-links' },
+    link(d.google, ZT.isApple ? 'Google Maps' : 'Itinéraire', 'primary'),
+    ZT.isApple && link(d.apple, 'Plans', ''),
+  );
+}
+
+/** Une ligne « endroit » : km, nom, heure de passage, distance depuis le supporter, itinéraire. */
+function spotRow(name, dist, stats, km) {
+  const p = ZT.passageAt(state, stats, dist);
+  const [lat, lon] = ZT.courseAt(state.course, dist);
+  const fromMe = me && ZT.distance(me.lat, me.lon, lat, lon);
+  const details = [passageText(p), fromMe && `à ${ZT.fmtDist(fromMe)} de toi`].filter(Boolean).join(' · ');
+  return el('li', { class: p.passed ? 'passed' : '' },
+    el('span', { class: 'aid-km' }, `km ${ZT.fmtPk(km ?? dist / 1000)}`),
+    el('span', { class: 'aid-body' }, el('strong', {}, name), details && el('small', { class: 'muted' }, details)),
+    p.passed ? el('span', { class: 'aid-when' }, '✓') : directionLinks(lat, lon),
+  );
+}
+
+function renderCheer() {
+  const card = $('cheerCard');
+  const status = state.session.status;
+  card.hidden = !state.race || status === 'finished';
+  if (card.hidden) return;
+  const name = firstName();
+  $('cheerTitle').textContent = state.runner.name ? `Venir encourager ${name}` : 'Venir l’encourager';
+  $('locateLabel').textContent = watchId != null ? 'Arrêter de me situer' : `Me situer par rapport à ${name}`;
+  $('locateBtn').classList.toggle('on', watchId != null);
+  document.querySelector('.locate-ctl')?.classList.toggle('on', watchId != null);
+
+  const stats = ZT.computeStats(state, now());
+  const c = state.course;
+  // ravitos encore devant le coureur
+  const aids = c ? ZT.aidSchedule(state, stats).filter((a) => !a.passed && a.dist <= c.length) : [];
+  $('spotTitle').hidden = !aids.length;
+  $('spotList').replaceChildren(...aids.map((a) => spotRow(a.name || 'Ravitaillement', a.dist, stats, a.km)));
+
+  $('spotKm').closest('label').hidden = !c;
+  const km = parseFloat($('spotKm').value.replace(',', '.'));
+  const custom = c && Number.isFinite(km) && km >= 0 && km * 1000 <= c.length;
+  $('spotCustom').replaceChildren(...(custom ? [spotRow(`Km ${ZT.fmtPk(km)}`, km * 1000, stats, km)] : []));
+  card.querySelector('.cheer-intro').hidden = !c;
+  $('cheerTip').hidden = !c;
+
+  renderMe(stats);
+}
+$('spotKm').addEventListener('input', () => state && renderCheer());
+
+// ---- position du supporter (calculée uniquement dans le navigateur)
+
+let me = null;
+let watchId = null;
+let meFitted = false;
+
+function renderMe(stats) {
+  layers.me.clearLayers();
+  const info = $('meInfo');
+  info.hidden = !me;
+  if (!me) return;
+  const name = firstName();
+  const lines = [];
+  const meLL = [me.lat, me.lon];
+  L.circle(meLL, { radius: me.acc || 0, stroke: false, fillColor: ZT.cssVar('--me'), fillOpacity: 0.12, interactive: false }).addTo(layers.me);
+  L.marker(meLL, { icon: L.divIcon({ className: 'me-icon', html: '<span class="me-dot"></span><span class="me-tag">Toi</span>', iconSize: [16, 16], iconAnchor: [8, 8] }), zIndexOffset: 900, interactive: false }).addTo(layers.me);
+
+  if (stats.last && state.session.status !== 'idle') {
+    const runnerLL = [stats.last[0], stats.last[1]];
+    L.polyline([meLL, runnerLL], { color: ZT.cssVar('--me'), weight: 2, dashArray: '2 7', interactive: false }).addTo(layers.me);
+    lines.push(el('p', {}, `${name} est à `, el('strong', {}, ZT.fmtDist(ZT.distance(me.lat, me.lon, runnerLL[0], runnerLL[1]))), ' de toi (à vol d’oiseau).'));
+  } else {
+    lines.push(el('p', {}, `${name} n’a pas encore pris le départ.`));
+  }
+
+  if (state.course) {
+    const spot = ZT.spotNear(state.course, me.lat, me.lon, stats.progress);
+    const [lat, lon] = ZT.courseAt(state.course, spot.along);
+    const p = ZT.passageAt(state, stats, spot.along);
+    L.marker([lat, lon], { icon: L.divIcon({ className: 'spot-icon', html: '<span>★</span>', iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: 800 })
+      .bindPopup(() => spotPopup('Le plus près de toi', spot.along, ZT.computeStats(state, now())))
+      .addTo(layers.me);
+    lines.push(el('p', {},
+      'Le parcours passe à ', el('strong', {}, ZT.fmtDist(spot.offset)), ' de toi, au ',
+      el('strong', {}, `km ${ZT.fmtPk(spot.along / 1000)}`), '.',
+      passageText(p) && el('br'), passageText(p)));
+    if (!p.passed) lines.push(directionLinks(lat, lon));
+  }
+  info.replaceChildren(...lines);
+
+  // premier repère : cadre la carte sur le supporter et le coureur (ou le parcours)
+  if (!meFitted) {
+    meFitted = true;
+    const b = L.latLngBounds([meLL]);
+    if (stats.last) b.extend([stats.last[0], stats.last[1]]);
+    else if (state.course) b.extend(layers.course.getBounds());
+    follow = false;
+    $('followBtn').hidden = !stats.last;
+    map.fitBounds(b, { padding: [60, 60], maxZoom: 16 });
+  }
+}
+
+function meError(msg) {
+  stopLocate();
+  const info = $('meInfo');
+  info.hidden = false;
+  info.replaceChildren(el('p', { class: 'warning' }, msg));
+}
+
+function stopLocate() {
+  if (watchId != null) navigator.geolocation.clearWatch(watchId);
+  watchId = null;
+  me = null;
+  meFitted = false;
+  if (state) renderCheer();
+}
+
+$('locateBtn').addEventListener('click', () => {
+  if (watchId != null) return stopLocate();
+  if (!window.isSecureContext) return meError('La localisation demande une connexion sécurisée (adresse en https).');
+  if (!navigator.geolocation) return meError('Ton navigateur ne permet pas la localisation.');
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      me = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
+      if (state) renderCheer();
+    },
+    (err) => meError(err.code === err.PERMISSION_DENIED
+      ? 'Localisation refusée : autorise-la pour ce site dans les réglages de ton navigateur.'
+      : 'Position introuvable pour le moment. Réessaie dans un instant.'),
+    { enableHighAccuracy: true, maximumAge: 15_000, timeout: 30_000 },
+  );
+  if (state) renderCheer();
+});
 
 /** Icône de goutte (SVG statique de l'application, jamais de contenu utilisateur). */
 function dropIcon() {
@@ -224,7 +414,12 @@ function renderStats() {
   $('progressFill').style.width = `${pct}%`;
   $('progressPct').textContent = `${pct.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`;
   $('updated').textContent = s.lastTime && status === 'running' ? `Position mise à jour ${ZT.fmtAgo(t - s.lastTime)}` : '';
-  $('offCourse').hidden = !(status === 'running' && state.session.offCourse);
+  const off = status === 'running' && state.session.offCourse;
+  $('offCourse').hidden = !off;
+  if (off) {
+    const by = state.session.offCourseBy;
+    $('offCourse').textContent = `Hors du tracé prévu${by ? ` (à ${ZT.fmtDist(by)})` : ''} : la distance est estimée avec le GPS en attendant qu'il rejoigne le parcours.`;
+  }
 }
 
 function fmtCountdown(sec) {
@@ -250,7 +445,7 @@ window.addEventListener('themechange', () => {
   layers.course.setStyle({ color: ZT.cssVar('--route') });
   layers.done.setStyle({ color: ZT.cssVar('--accent') });
   layers.trace.setStyle({ color: ZT.cssVar('--accent') });
-  if (state) drawProfile();
+  if (state) { drawProfile(); renderCheer(); }
 });
 
 // ---------------------------------------------------------------- flux temps réel

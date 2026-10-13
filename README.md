@@ -49,6 +49,13 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 
 Sur la page publique, chaque ravitaillement apparaît sur la carte et dans une liste. Elle montre l'heure de passage réelle (✓) ou estimée (≈), et un bandeau indique le prochain ravito.
 
+### Venir t'encourager
+
+La carte **Venir encourager…** de la page publique aide tes supporters à te voir passer :
+
+- **Me situer** : leur position s'affiche sur la carte, avec leur distance par rapport à toi, l'endroit du parcours le plus proche d'eux et l'heure à laquelle tu y passeras. Cette position est calculée uniquement dans leur navigateur : elle n'est jamais envoyée au serveur. La localisation du navigateur exige une adresse en **https** (ou `localhost`).
+- **Itinéraire** vers un ravito, un point kilométrique choisi ou un endroit touché sur le tracé : ouvre Google Maps (et Plans sur iPhone), départ depuis la position du téléphone.
+
 ## Alertes
 
 Les supporters sont prévenus automatiquement :
@@ -116,7 +123,7 @@ Pour une course longue, utilise plutôt une appli de suivi qui fonctionne en arr
 ## Comment c'est calculé
 
 - Chaque position est **projetée sur le parcours GPX**. La distance parcourue correspond donc à la distance le long du tracé officiel, sans le zigzag du GPS. Les allers-retours et les boucles sont gérés.
-- Les positions imprécises (plus de 100 m) sont ignorées. Un écart de plus de 150 m affiche « hors parcours » sans faire avancer la distance.
+- Les positions imprécises (plus de 100 m) sont ignorées. Un écart de plus de 150 m affiche « hors parcours » : la distance continue alors d'avancer avec le GPS, puis se recale sur le tracé dès que tu le rejoins (l'arrivée n'est jamais déclarée hors du tracé).
 - Sans parcours GPX, la distance est cumulée directement à partir des points GPS.
 - L'heure d'arrivée estimée fait la moyenne entre l'allure moyenne et l'allure des 5 dernières minutes.
 

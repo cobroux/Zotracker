@@ -32,6 +32,7 @@
   --teal-soft: #ecfeff;
   --teal-text: #155e75;
   --route: #9db3d3;           /* parcours restant */
+  --me: #7c3aed;              /* position du supporter */
   --ok: #15803d;
   --danger: #d92d20;
   --warn-bg: #fef3c7;
@@ -58,6 +59,7 @@ html.dark {
   --teal-soft: #0f2a36;
   --teal-text: #cff7f0;
   --route: #2a3d63;
+  --me: #a78bfa;
   --ok: #34d399;
   --danger: #f04438;
   --warn-bg: #3a2e0b;
@@ -241,6 +243,40 @@ body.public { min-height: 100vh; }
 }
 #alertBtn.on { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
 
+/* « Venir l'encourager » : position du supporter et itinéraires */
+.cheer { display: flex; flex-direction: column; gap: 12px; }
+.cheer h2, .cheer p { margin: 0; }
+.cheer h3.caps { margin: 4px 0 -4px; font-size: .7rem; }
+.me-box { display: flex; flex-direction: column; gap: 8px; }
+.locate-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; height: 48px; border-color: var(--me); color: var(--me);
+}
+.locate-btn.on { background: var(--me); border-color: var(--me); color: #fff; }
+.me-info {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 14px; border-radius: 12px;
+  background: color-mix(in srgb, var(--me) 10%, var(--surface)); font-size: .92rem;
+}
+.me-info strong { font-family: var(--font-num); }
+.spot-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.spot-list:empty { display: none; }
+.spot-list li {
+  display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 4px 10px; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+}
+.spot-list li:last-child { border-bottom: 0; }
+.spot-list .aid-km { font-family: var(--font-num); font-weight: 700; color: var(--teal); }
+.spot-list .aid-body { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.spot-list .dir-links, .spot-list .aid-when { grid-column: 2; }
+.spot-list li.passed { opacity: .7; }
+.spot-km { margin-top: 4px; }
+.dir-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.dir-links .btn-link { min-height: 38px; padding: 7px 14px; font-size: .88rem; }
+.dir-links .btn-link.primary { background: var(--accent-btn); border-color: var(--accent-btn); color: #fff; }
+.aid-popup .dir-links { margin-top: 6px; }
+.aid-popup .dir-links .btn-link.primary { color: #fff; }
+
 .goal { font-weight: 700; margin: 0 0 .5rem; }
 .bio { white-space: pre-line; margin: 0 0 .5rem; }
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
@@ -320,6 +356,24 @@ html.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(185deg) brightness(.
 }
 .aid-icon span svg { width: 14px; height: 14px; }
 .aid-icon span.passed { border-color: var(--ok); color: var(--ok); }
+.me-icon { background: none; border: 0; }
+.me-dot {
+  display: block; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--me); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+.me-tag {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  padding: 1px 6px; border-radius: 6px; background: var(--me); color: #fff;
+  font-size: 11px; font-weight: 800; white-space: nowrap;
+}
+.spot-icon { background: none; border: 0; }
+.spot-icon span {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface); border: 3px solid var(--me); color: var(--me);
+  font-size: 13px; box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+}
+.leaflet-bar a.locate-ctl { display: grid; place-items: center; }
+.leaflet-bar a.locate-ctl.on { color: var(--me) !important; }
 .aid-popup { display: flex; flex-direction: column; gap: 2px; font-size: .85rem; }
 
 /* ---------------------------------------------------------------- formulaires et boutons */

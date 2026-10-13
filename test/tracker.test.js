@@ -67,6 +67,42 @@ test('addPosition ignore les points imprécis, hors parcours ou désordonnés', 
   assert.ok(Math.abs(state.session.progress - 300) < 5);
 });
 
+test('hors parcours, la distance continue avec le GPS puis se recale sur le tracé', () => {
+  const state = newRace();
+  state.course = buildCourse(parseGpx(outAndBackGpx()));
+  const t0 = Date.parse('2026-10-12T08:00:00Z');
+  state.session = { ...state.session, status: 'running', startedAt: t0 };
+  const now = t0 + 1e7;
+  let t = t0;
+  const at = (lat, m) => addPosition(state, { lat, lon: lonAt(m), t: (t += 60_000), acc: 5 }, now);
+  at(LAT, 0);
+  at(LAT, 200);
+  // détour à ~300 m au nord du tracé : 3 × 200 m parcourus
+  const north = LAT + 300 / 111_195;
+  at(north, 300);
+  at(north, 500);
+  at(north, 700);
+  assert.ok(state.session.offCourse);
+  assert.ok(state.session.offCourseBy > 250);
+  assert.ok(state.session.progress > 700, `progression ${state.session.progress}`);
+  // retour sur le tracé à 800 m : la position sur le parcours fait foi
+  at(LAT, 800);
+  assert.ok(!state.session.offCourse);
+  assert.ok(Math.abs(state.session.progress - 800) < 5, `progression ${state.session.progress}`);
+});
+
+test("loin du tracé (test à la maison), la distance avance mais l'arrivée n'est pas déclarée", () => {
+  const state = newRace();
+  state.course = buildCourse(parseGpx(outAndBackGpx()));
+  const t0 = Date.parse('2026-10-12T08:00:00Z');
+  state.session = { ...state.session, status: 'running', startedAt: t0 };
+  const far = LAT + 0.5; // ~55 km du parcours
+  for (let i = 0; i <= 60; i++) addPosition(state, { lat: far, lon: lonAt(i * 100), t: t0 + (i + 1) * 30_000 }, t0 + 1e7);
+  assert.ok(state.session.offCourse);
+  assert.strictEqual(state.session.status, 'running');
+  assert.ok(state.session.progress > 3900 && state.session.progress < state.course.length - 30);
+});
+
 test('sans parcours, la distance est cumulée depuis le GPS', () => {
   const state = newRace();
   const t0 = Date.parse('2026-10-12T08:00:00Z');
