@@ -12,7 +12,9 @@ const race = () => state.race || {};
 
 // ---------------------------------------------------------------- carte
 
-const map = L.map('map', { zoomControl: true }).setView([46.6, 2.4], 6);
+// zoom en bas à droite : le haut de la carte porte la carte d'identité du coureur
+const map = L.map('map', { zoomControl: false }).setView([46.6, 2.4], 6);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
 ZT.addTiles(map);
 const layers = {
   course: L.polyline([], { color: ZT.cssVar('--route'), weight: 6, opacity: 0.9 }).addTo(map),
@@ -102,11 +104,8 @@ function renderProfile() {
   document.title = r.name ? `${r.name} · Suivi en direct` : 'Suivi en direct';
   $('runnerName').textContent = r.name || 'Suivi en direct';
   $('raceLine').textContent = state.race
-    ? [rc.name, rc.location].filter(Boolean).join(' · ')
+    ? [rc.name, r.bib && `Dossard ${r.bib}`].filter(Boolean).join(' · ')
     : 'Aucune course prévue pour le moment';
-  $('heroGoal').textContent = r.goal ? `Objectif : ${r.goal}` : r.club || '';
-  $('bibTag').hidden = !r.bib;
-  $('bibNum').textContent = r.bib || '';
 
   const avatar = $('avatar');
   avatar.replaceChildren(r.photo ? el('img', { src: r.photo, alt: r.name }) : el('span', {}, (r.name || '?').slice(0, 1).toUpperCase()));
