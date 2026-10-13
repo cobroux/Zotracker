@@ -137,6 +137,18 @@ test('fichiers de données lisibles uniquement par l’application', () => {
   assert.ok(!('adminPassword' in secrets), 'pas de mot de passe en clair');
 });
 
+test('SOS envoyé par le bouton de Traccar Client (format JSON récent)', async () => {
+  const { cookie } = await login();
+  const key = (await (await fetch(base + '/api/admin/config', { headers: { cookie } })).json()).trackerKey;
+  const body = { device_id: key, location: { timestamp: new Date().toISOString(), coords: { latitude: 48.85, longitude: 2.35, accuracy: 8 }, extras: { alarm: 'sos' }, battery: { level: 0.36 } } };
+  const res = await fetch(base + '/api/ingest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  assert.strictEqual(res.status, 200);
+  const cfg = await (await fetch(base + '/api/admin/config', { headers: { cookie } })).json();
+  assert.match(cfg.safety.sos.title, /SOS/);
+  assert.match(cfg.safety.sos.mapsUrl, /48\.85,2\.35/);
+});
+
+
 test('limitation des tentatives de connexion', async () => {
   let last;
   for (let i = 0; i < 12; i++) last = await post('/api/login', { password: 'x' });

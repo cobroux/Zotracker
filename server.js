@@ -561,8 +561,10 @@ app.all('/api/ingest', ingestLimiter, (req, res) => {
   const point = loc
     ? { lat: loc.coords.latitude, lon: loc.coords.longitude, acc: loc.coords.accuracy, t: loc.timestamp, batt: loc.battery && loc.battery.level != null ? loc.battery.level * 100 : undefined }
     : { lat: q.lat, lon: q.lon ?? q.lng ?? q.long, acc: q.acc ?? q.accuracy ?? q.hdop, t: q.t ?? q.timestamp ?? q.time, batt: q.batt ?? q.battery };
-  // certaines applis envoient alarm=sos quand on appuie sur leur bouton d'urgence
-  if (String(q.alarm || '').toLowerCase() === 'sos') triggerSos({ lat: Number(point.lat), lon: Number(point.lon), acc: Number(point.acc), source: 'appli GPS' });
+  // bouton SOS des applis GPS : « alarm=sos » dans l'URL (protocole OsmAnd) ou dans les
+  // données de la position (Traccar Client récent : location.extras.alarm)
+  const alarm = q.alarm || (loc && (loc.alarm || (loc.extras && loc.extras.alarm)));
+  if (String(alarm || '').toLowerCase() === 'sos') triggerSos({ lat: Number(point.lat), lon: Number(point.lon), acc: Number(point.acc), source: 'appli GPS' });
   res.json(ingest([point]));
 });
 
