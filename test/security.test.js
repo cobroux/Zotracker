@@ -123,8 +123,11 @@ test('point du coureur : seuls des réglages connus sont acceptés', async () =>
   let r = await put({ style: 'emoji', emoji: '🦊', color: '#DB2777', size: 'l', pulse: false });
   assert.deepStrictEqual(r.marker, { style: 'emoji', emoji: '🦊', color: '#db2777', size: 'l', pulse: false });
   r = await put({ style: '<script>', emoji: '<img src=x onerror=alert(1)>', color: 'red;background:url(x)', size: 'xxl' });
-  assert.deepStrictEqual(r.marker, { style: 'photo', emoji: '🏃', color: '#1d4ed8', size: 'm', pulse: true });
-  assert.strictEqual((await (await fetch(base + '/api/state')).json()).runner.marker.style, 'photo');
+  // valeurs inconnues : réglage par défaut (renard orange, grand format)
+  assert.deepStrictEqual(r.marker, { style: 'emoji', emoji: '🦊', color: '#ea580c', size: 'l', pulse: true });
+  assert.strictEqual((await (await fetch(base + '/api/state')).json()).runner.marker.emoji, '🦊');
+  r = await put({ style: 'initials', color: '#1d4ed8', size: 'm' });
+  assert.deepStrictEqual(r.marker, { style: 'initials', emoji: '🦊', color: '#1d4ed8', size: 'm', pulse: true });
 });
 
 test('clé du traceur et page SOS : mauvaise clé refusée, clé régénérable', async () => {

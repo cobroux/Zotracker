@@ -41,7 +41,7 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 
 ### Ton point sur la carte
 
-Dans **Mon profil → Ton point sur la carte**, choisis comment tu apparais pour tes supporters : ta **photo**, tes **initiales**, un **emoji** (🏃, 🦊, 🚀…) ou un **simple point**, avec sa couleur, sa taille et un halo animé. L'aperçu est immédiat, et le changement s'affiche en direct sur la page publique.
+Dans **Mon profil → Ton point sur la carte**, choisis comment tu apparais pour tes supporters (par défaut : 🦊 orange, grand format, halo animé) : ta **photo**, tes **initiales**, un **emoji** (🏃, 🦊, 🚀…) ou un **simple point**, avec sa couleur, sa taille et un halo animé. L'aperçu est immédiat, et le changement s'affiche en direct sur la page publique.
 
 ## Préparer ses courses
 

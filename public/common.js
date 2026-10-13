@@ -404,7 +404,7 @@ const ZT = {
   },
 
   /** Réglages par défaut du point du coureur (profils créés avant cette option). */
-  MARKER_DEFAULT: { style: 'photo', emoji: '🏃', color: '#1d4ed8', size: 'm', pulse: true },
+  MARKER_DEFAULT: { style: 'emoji', emoji: '🦊', color: '#ea580c', size: 'l', pulse: true },
 
   /**
    * Point du coureur, selon ses réglages : photo, initiales, emoji ou simple point coloré.
@@ -429,7 +429,7 @@ const ZT = {
   },
 
   runnerIcon(runner) {
-    const size = runner && runner.marker && runner.marker.size === 'l' ? 48 : 36;
+    const size = ({ ...ZT.MARKER_DEFAULT, ...((runner && runner.marker) || {}) }).size === 'l' ? 48 : 36;
     return L.divIcon({ className: 'runner-icon', html: ZT.runnerDot(runner), iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
   },
 };
