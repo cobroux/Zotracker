@@ -305,6 +305,25 @@
             <p id="retentionInfo" class="muted small"></p>
           </section>
 
+          <section class="card" id="mapCard">
+            <h2>🗺️ Fond de carte</h2>
+            <p id="mapEnv" class="muted small" hidden>Le fond de carte est défini sur le serveur (variable TILE_URL).</p>
+            <form id="mapForm" class="alerts-form">
+              <label class="check"><input type="radio" name="provider" value="osm"> OpenStreetMap : gratuit, sans clé (usage léger)</label>
+              <label class="check"><input type="radio" name="provider" value="maptiler"> MapTiler : avec ta clé gratuite (recommandé si beaucoup de supporters)</label>
+              <div id="maptilerBox" hidden>
+                <ol class="steps small">
+                  <li>Crée un compte gratuit sur <a href="https://cloud.maptiler.com/" target="_blank" rel="noopener">cloud.maptiler.com</a> (sans carte bancaire).</li>
+                  <li>Va dans <strong>Account → API keys</strong> et copie ta clé.</li>
+                  <li>Clique sur la clé et ajoute ton domaine dans <strong>Allowed HTTP origins</strong> (et <code>localhost</code> pour tester) : personne d'autre ne pourra l'utiliser.</li>
+                </ol>
+                <label>Clé MapTiler <input name="maptilerKey" autocomplete="off" spellcheck="false" placeholder="ex. AbCdEf123456GhIjKl"></label>
+              </div>
+              <p class="muted small">Si le fond choisi ne répond pas, la carte bascule automatiquement sur un fond de secours.</p>
+              <div class="row-buttons"><button class="primary" type="submit">Enregistrer</button></div>
+            </form>
+          </section>
+
           <section class="card" id="twoFactorCard">
             <div class="card-head"><h2>🔐 Double authentification</h2><span id="twoFactorBadge" class="badge"></span></div>
             <div id="tfOff">

@@ -36,7 +36,7 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `VAPID_SUBJECT` | Contact pour les notifications push | `mailto:zotracker@example.com` |
 | `TRACK_RETENTION_DAYS` | Positions GPS effacées N jours après la course (0 = jamais) | `90` |
 | `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client | `loopback, linklocal, uniquelocal` |
-| `TILE_URL` / `TILE_ATTRIBUTION` | Fournisseur du fond de carte | CARTO (repli automatique sur OpenStreetMap) |
+| `TILE_URL` / `TILE_ATTRIBUTION` | Fond de carte imposé par le serveur. Sinon, il se choisit dans l'admin (⚙️ Paramètres → Fond de carte) | OpenStreetMap, avec repli sur OpenTopoMap |
 | `PUSH_ALLOWED_HOSTS` | Services push supplémentaires autorisés (séparés par des virgules) | — |
 
 ## Préparer ses courses

@@ -34,19 +34,40 @@ app.disable('x-powered-by');
 // Ne faire confiance à X-Forwarded-For que pour le reverse proxy local (Caddy) : sinon un
 // attaquant pourrait changer d'IP à volonté et contourner les limites de débit.
 app.set('trust proxy', process.env.TRUST_PROXY || 'loopback, linklocal, uniquelocal');
-// Fond de carte : CARTO (sans clé, données OpenStreetMap) par défaut, avec bascule automatique
-// vers les tuiles OpenStreetMap si le premier fournisseur ne répond pas. Configurable avec TILE_URL.
+// Fond de carte, choisi dans l'admin (Paramètres) : OpenStreetMap sans clé par défaut, ou
+// MapTiler avec ta clé. TILE_URL (variable d'environnement) reste prioritaire.
+// En cas d'erreurs de tuiles, le navigateur bascule sur le fond de secours.
 const OSM_ATTRIBUTION = '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-const TILES = {
-  url: process.env.TILE_URL || 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-  attribution: process.env.TILE_ATTRIBUTION || (process.env.TILE_URL ? '' : `${OSM_ATTRIBUTION} &copy; <a href="https://carto.com/attributions">CARTO</a>`),
-  maxZoom: Number(process.env.TILE_MAX_ZOOM || 19),
-  fallback: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: OSM_ATTRIBUTION, maxZoom: 19 },
+const OSM = { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: OSM_ATTRIBUTION, maxZoom: 19 };
+const OPENTOPOMAP = {
+  url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  attribution: `${OSM_ATTRIBUTION}, SRTM | style &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)`,
+  maxZoom: 17,
 };
-app.use(sec.securityHeaders({ tileHosts: [...sec.tileHostsFor(TILES.url), ...sec.tileHostsFor(TILES.fallback.url)] }));
+const MAPTILER_KEY = /^[A-Za-z0-9]{10,64}$/;
+state.map = { provider: state.map && state.map.provider === 'maptiler' ? 'maptiler' : 'osm', maptilerKey: (state.map && state.map.maptilerKey) || '' };
+
+function currentTiles() {
+  let primary = OSM;
+  if (process.env.TILE_URL) {
+    primary = { url: process.env.TILE_URL, attribution: process.env.TILE_ATTRIBUTION || '', maxZoom: Number(process.env.TILE_MAX_ZOOM || 19) };
+  } else if (state.map.provider === 'maptiler' && MAPTILER_KEY.test(state.map.maptilerKey)) {
+    primary = {
+      url: `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${state.map.maptilerKey}`,
+      attribution: `&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> ${OSM_ATTRIBUTION}`,
+      maxZoom: 19,
+    };
+  }
+  return { ...primary, fallback: primary.url === OSM.url ? OPENTOPOMAP : OSM };
+}
+const tileHosts = () => {
+  const t = currentTiles();
+  return [...sec.tileHostsFor(t.url), ...sec.tileHostsFor(t.fallback.url)];
+};
+app.use(sec.securityHeaders({ tileHosts }));
 app.get('/tiles.js', (req, res) => {
   res.type('application/javascript').set('Cache-Control', 'no-cache');
-  res.send(`window.ZT_TILES = ${JSON.stringify(TILES).replace(/</g, '\\u003c')};\n`);
+  res.send(`window.ZT_TILES = ${JSON.stringify(currentTiles()).replace(/</g, '\\u003c')};\n`);
 });
 
 // Journal d'accès minimal : jamais de query string (elle peut contenir des clés).
@@ -274,6 +295,7 @@ function adminConfig() {
     safetySettings: state.safetySettings,
     privacy: state.privacy,
     passwordFromEnv: secrets.passwordFromEnv,
+    map: { provider: state.map.provider, maptilerKey: state.map.maptilerKey, fromEnv: !!process.env.TILE_URL },
     twoFactor: { enabled: !!(secrets.totp && secrets.totp.enabled), recoveryLeft: secrets.totp && secrets.totp.enabled ? secrets.totp.recovery.length : 0 },
     trackerKeyFromEnv: secrets.trackerKeyFromEnv,
     retentionDays: RETENTION_DAYS,
@@ -743,6 +765,16 @@ admin.post('/logout-all', (req, res) => {
 admin.post('/tracker-key/rotate', (req, res) => {
   if (secrets.trackerKeyFromEnv) return res.status(409).json({ error: 'La clé est définie par la variable TRACKER_KEY du serveur.' });
   secrets.update({ trackerKey: sec.randomKey(18) });
+  res.json(adminConfig());
+});
+
+admin.put('/map', (req, res) => {
+  const b = req.body || {};
+  const provider = b.provider === 'maptiler' ? 'maptiler' : 'osm';
+  const key = String(b.maptilerKey || '').trim();
+  if (provider === 'maptiler' && !MAPTILER_KEY.test(key)) return res.status(400).json({ error: 'Clé MapTiler invalide (lettres et chiffres uniquement).' });
+  state.map = { provider, maptilerKey: provider === 'maptiler' ? key : state.map.maptilerKey };
+  store.save();
   res.json(adminConfig());
 });
 

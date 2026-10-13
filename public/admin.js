@@ -120,6 +120,7 @@ async function start() {
     setupSafetyHelp(c);
     setConfig(c);
     fillAccount(c);
+    fillMap(c);
     if (!streamsStarted) {
       streamsStarted = true;
       connectStream();
@@ -190,6 +191,29 @@ function renderChecklist() {
     )));
   $('checklistCard').hidden = done === items.length && !!active && active.session.status === 'running';
 }
+
+// ---------------------------------------------------------------- fond de carte
+
+function fillMap(c) {
+  const f = $('mapForm');
+  f.provider.value = c.map.provider;
+  f.maptilerKey.value = c.map.maptilerKey || '';
+  $('maptilerBox').hidden = c.map.provider !== 'maptiler';
+  $('mapEnv').hidden = !c.map.fromEnv;
+  for (const input of f.elements) input.disabled = c.map.fromEnv;
+}
+
+$('mapForm').addEventListener('change', (e) => {
+  if (e.target.name === 'provider') $('maptilerBox').hidden = e.target.value !== 'maptiler';
+});
+
+$('mapForm').addEventListener('submit', action(async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  await api('PUT', '/api/admin/map', { provider: f.provider.value, maptilerKey: f.maptilerKey.value });
+  toast('Fond de carte enregistré');
+  setTimeout(() => location.reload(), 900); // recharge pour appliquer le nouveau fond
+}));
 
 // ---------------------------------------------------------------- double authentification
 
