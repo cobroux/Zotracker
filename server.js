@@ -33,7 +33,18 @@ app.disable('x-powered-by');
 // Ne faire confiance à X-Forwarded-For que pour le reverse proxy local (Caddy) : sinon un
 // attaquant pourrait changer d'IP à volonté et contourner les limites de débit.
 app.set('trust proxy', process.env.TRUST_PROXY || 'loopback, linklocal, uniquelocal');
-app.use(sec.securityHeaders());
+// Fond de carte : OpenStreetMap par défaut. Pour un usage intensif, utilise un fournisseur
+// dédié (MapTiler, Stadia, Thunderforest… souvent gratuits pour un petit usage).
+const TILES = {
+  url: process.env.TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: process.env.TILE_ATTRIBUTION || '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: Number(process.env.TILE_MAX_ZOOM || 19),
+};
+app.use(sec.securityHeaders({ tileHosts: sec.tileHostsFor(TILES.url) }));
+app.get('/tiles.js', (req, res) => {
+  res.type('application/javascript').set('Cache-Control', 'no-cache');
+  res.send(`window.ZT_TILES = ${JSON.stringify(TILES).replace(/</g, '\\u003c')};\n`);
+});
 
 // Journal d'accès minimal : jamais de query string (elle peut contenir des clés).
 app.use((req, res, next) => {
@@ -720,7 +731,10 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 
 function start(port = PORT) {
   const server = app.listen(port, () => {
-    console.log(`Zotracker démarré sur le port ${server.address().port}`);
+    const port = server.address().port;
+    console.log(`Zotracker démarré sur le port ${port}`);
+    console.log(`  Page publique : http://localhost:${port}/`);
+    console.log(`  Admin         : http://localhost:${port}/admin`);
     if (secrets.generatedPassword) {
       console.log(`  Mot de passe admin généré (affiché une seule fois, change-le dans l'admin) : ${secrets.generatedPassword}`);
     }

@@ -36,7 +36,9 @@ test('en-têtes de sécurité présents sur toutes les pages', async () => {
   assert.match(h.get('content-security-policy'), /default-src 'self'.*frame-ancestors 'none'/);
   assert.strictEqual(h.get('x-content-type-options'), 'nosniff');
   assert.strictEqual(h.get('x-frame-options'), 'DENY');
-  assert.strictEqual(h.get('referrer-policy'), 'no-referrer');
+  // l'origine seule part vers les tuiles (exigé par OpenStreetMap), jamais le chemin ni les clés
+  assert.strictEqual(h.get('referrer-policy'), 'strict-origin-when-cross-origin');
+  assert.match(h.get('content-security-policy'), /img-src 'self' data: https:\/\/tile\.openstreetmap\.org/);
   assert.strictEqual(h.get('x-robots-tag'), 'noindex, nofollow');
   assert.strictEqual(h.get('x-powered-by'), null);
   assert.strictEqual((await fetch(base + '/api/state')).headers.get('cache-control'), 'no-store');

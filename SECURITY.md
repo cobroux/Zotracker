@@ -18,7 +18,7 @@ Zotracker manipule des données sensibles : ta **position en temps réel**, ton 
 - Les positions ne sont enregistrées **que lorsque la course est démarrée**. Personne ne voit où tu es avant le départ ni après l'arrivée.
 - En mode **🔑 lien privé** (admin → Compte & confidentialité), seuls les détenteurs du lien voient le suivi. Le site n'est de toute façon jamais indexé par les moteurs de recherche.
 - Les données restent sur **ton** serveur. Seuls ces services tiers sont utilisés :
-  - OpenStreetMap, pour les fonds de carte (il ne reçoit aucune URL ni aucune clé, grâce à `Referrer-Policy: no-referrer`) ;
+  - OpenStreetMap, pour les fonds de carte. Il ne reçoit que l'origine du site, ce qu'exige sa politique d'utilisation, jamais le chemin ni les clés (`Referrer-Policy: strict-origin-when-cross-origin`). Le fournisseur se change avec `TILE_URL` ;
   - les services de notification des navigateurs (Google, Apple, Mozilla), pour les alertes chiffrées de bout en bout (Web Push) ;
   - ntfy.sh, pour les alertes de sécurité. Tu peux héberger ton propre serveur ntfy.
 

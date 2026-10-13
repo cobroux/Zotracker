@@ -232,10 +232,18 @@ const ZT = {
     return seg[seg.length - 1];
   },
 
+  /** Fond de carte configuré par le serveur (/tiles.js), OpenStreetMap par défaut. */
   tileLayer() {
-    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
+    const cfg = window.ZT_TILES || {
+      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    };
+    return L.tileLayer(cfg.url, {
+      maxZoom: cfg.maxZoom,
+      attribution: cfg.attribution,
+      // seule l'origine du site est envoyée au serveur de tuiles (exigé par OpenStreetMap)
+      referrerPolicy: 'strict-origin-when-cross-origin',
     });
   },
 
