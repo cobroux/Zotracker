@@ -403,10 +403,33 @@ const ZT = {
     return layer;
   },
 
-  runnerIcon(photo) {
-    const html = photo
-      ? `<div class="runner-dot has-photo"><img alt="" src="${photo.replace(/"/g, '')}"></div>`
-      : '<div class="runner-dot"></div>';
-    return L.divIcon({ className: 'runner-icon', html, iconSize: [36, 36], iconAnchor: [18, 18] });
+  /** Réglages par défaut du point du coureur (profils créés avant cette option). */
+  MARKER_DEFAULT: { style: 'photo', emoji: '🏃', color: '#1d4ed8', size: 'm', pulse: true },
+
+  /**
+   * Point du coureur, selon ses réglages : photo, initiales, emoji ou simple point coloré.
+   * Construit en DOM (textContent) : aucun contenu du profil n'est interprété comme du HTML.
+   */
+  runnerDot(runner) {
+    const m = { ...ZT.MARKER_DEFAULT, ...((runner && runner.marker) || {}) };
+    const photo = runner && runner.photo;
+    const style = m.style === 'photo' && !photo ? 'initials' : m.style;
+    const dot = ZT.el('div', { class: `runner-dot is-${style} size-${m.size}${m.pulse ? ' pulse' : ''}` });
+    dot.style.setProperty('--dot', /^#[0-9a-f]{6}$/i.test(m.color) ? m.color : ZT.MARKER_DEFAULT.color);
+    if (style === 'photo') dot.append(ZT.el('img', { alt: '', src: photo }));
+    else if (style === 'emoji') dot.append(ZT.el('span', {}, m.emoji || '🏃'));
+    else if (style === 'initials') dot.append(ZT.el('span', {}, ZT.initials(runner && runner.name)));
+    return dot;
+  },
+
+  initials(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  },
+
+  runnerIcon(runner) {
+    const size = runner && runner.marker && runner.marker.size === 'l' ? 48 : 36;
+    return L.divIcon({ className: 'runner-icon', html: ZT.runnerDot(runner), iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
   },
 };

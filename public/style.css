@@ -334,13 +334,54 @@ html.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(185deg) brightness(.
 
 .runner-icon { background: none; border: 0; }
 .runner-dot {
+  --dot: #1d4ed8;
   width: 36px; height: 36px; border-radius: 50%;
-  background: var(--accent-btn); border: 3px solid #fff; overflow: hidden;
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent), 0 2px 6px rgba(0, 0, 0, .35);
-  animation: ring 2s infinite;
+  display: grid; place-items: center;
+  background: var(--dot); color: #fff; border: 3px solid #fff; overflow: hidden;
+  font-family: var(--font-num); font-weight: 700; font-size: 14px; line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
 }
+.runner-dot.size-l { width: 48px; height: 48px; font-size: 18px; }
+.runner-dot.is-emoji { background: #fff; border-color: var(--dot); font-size: 19px; }
+.runner-dot.is-emoji.size-l { font-size: 26px; }
+.runner-dot.is-photo { border-color: var(--dot); }
+.runner-dot.is-dot { width: 22px; height: 22px; margin: 7px; }
+.runner-dot.is-dot.size-l { width: 30px; height: 30px; margin: 9px; }
+.runner-dot.pulse { animation: ring 2s infinite; }
 .runner-dot img { width: 100%; height: 100%; object-fit: cover; display: block; }
-@keyframes ring { 70% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--accent) 0%, transparent), 0 2px 6px rgba(0, 0, 0, .35); } }
+@keyframes ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--dot) 55%, transparent), 0 2px 6px rgba(0, 0, 0, .35); }
+  70%, 100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--dot) 0%, transparent), 0 2px 6px rgba(0, 0, 0, .35); }
+}
+@media (prefers-reduced-motion: reduce) { .runner-dot.pulse { animation: none; } }
+
+/* réglage du point dans l'admin */
+.marker-field { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 14px 16px; align-items: start; }
+.marker-preview {
+  grid-row: span 4; width: 76px; height: 76px; border-radius: 16px;
+  display: grid; place-items: center; background: var(--track);
+  border: 1px solid var(--line);
+}
+.marker-field fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.marker-field legend { font-size: .9rem; font-weight: 600; padding: 0; margin-bottom: 6px; }
+.chip-radio { position: relative; }
+.chip-radio input { position: absolute; opacity: 0; pointer-events: none; }
+.chip-radio span {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 6px 12px;
+  border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  font-weight: 600; font-size: .88rem; cursor: pointer;
+}
+.chip-radio input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.chip-radio input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.swatch span { width: 34px; height: 34px; min-height: 0; padding: 0; border-radius: 50%; background: var(--sw); border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--line); }
+.swatch input:checked + span { background: var(--sw); box-shadow: 0 0 0 2px var(--text); }
+.emoji-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.emoji-picks button { min-height: 38px; width: 42px; padding: 0; font-size: 1.2rem; }
+#emojiSet input[name=markerEmoji] { width: 80px; text-align: center; font-size: 1.1rem; }
+@media (max-width: 520px) {
+  .marker-field { grid-template-columns: minmax(0, 1fr); }
+  .marker-preview { grid-row: auto; }
+}
 
 .flag-icon { background: none; border: 0; }
 .flag {

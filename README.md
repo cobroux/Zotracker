@@ -39,6 +39,10 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `TILE_URL` / `TILE_ATTRIBUTION` | Fond de carte imposé par le serveur. Sinon, il se choisit dans l'admin (⚙️ Paramètres → Fond de carte) | OpenStreetMap, avec repli sur OpenTopoMap |
 | `PUSH_ALLOWED_HOSTS` | Services push supplémentaires autorisés (séparés par des virgules) | — |
 
+### Ton point sur la carte
+
+Dans **Mon profil → Ton point sur la carte**, choisis comment tu apparais pour tes supporters : ta **photo**, tes **initiales**, un **emoji** (🏃, 🦊, 🚀…) ou un **simple point**, avec sa couleur, sa taille et un halo animé. L'aperçu est immédiat, et le changement s'affiche en direct sur la page publique.
+
 ## Préparer ses courses
 
 1. Dans **Mes courses**, clique sur **+ Nouvelle course** et renseigne le nom, le lieu, le départ prévu et la distance.

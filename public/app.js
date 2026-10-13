@@ -169,7 +169,7 @@ function renderPosition() {
   }
   const ll = [s.last[0], s.last[1]];
   if (!layers.runner) {
-    layers.runner = L.marker(ll, { icon: ZT.runnerIcon(state.runner.photo), zIndexOffset: 1000 }).addTo(map);
+    layers.runner = L.marker(ll, { icon: ZT.runnerIcon(state.runner), zIndexOffset: 1000 }).addTo(map);
   } else {
     layers.runner.setLatLng(ll);
   }
@@ -191,7 +191,7 @@ function renderProfile() {
 
   const avatar = $('avatar');
   avatar.replaceChildren(r.photo ? el('img', { src: r.photo, alt: r.name }) : el('span', {}, (r.name || '?').slice(0, 1).toUpperCase()));
-  if (layers.runner) layers.runner.setIcon(ZT.runnerIcon(r.photo));
+  if (layers.runner) layers.runner.setIcon(ZT.runnerIcon(r));
 
   const facts = [...(r.club ? [{ label: 'Club', value: r.club }] : []), ...r.facts];
   $('aboutCard').hidden = !(r.bio || r.goal || facts.length);

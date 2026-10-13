@@ -203,6 +203,42 @@
                   <button type="button" id="photoRemove" class="link">Retirer la photo</button>
                 </div>
               </div>
+              <div class="full">
+                <h3>Ton point sur la carte</h3>
+                <div class="marker-field">
+                  <div class="marker-preview" id="markerPreview" aria-hidden="true"></div>
+                  <fieldset>
+                    <legend>Style</legend>
+                    <label class="chip-radio"><input type="radio" name="markerStyle" value="photo"><span>📷 Photo</span></label>
+                    <label class="chip-radio"><input type="radio" name="markerStyle" value="initials"><span>Aa Initiales</span></label>
+                    <label class="chip-radio"><input type="radio" name="markerStyle" value="emoji"><span>😀 Emoji</span></label>
+                    <label class="chip-radio"><input type="radio" name="markerStyle" value="dot"><span>● Point simple</span></label>
+                  </fieldset>
+                  <fieldset id="emojiSet">
+                    <legend>Emoji</legend>
+                    <input name="markerEmoji" maxlength="16" aria-label="Emoji" autocomplete="off">
+                    <span class="emoji-picks"><button type="button" data-emoji="🏃">🏃</button><button type="button" data-emoji="🏃‍♀️">🏃‍♀️</button><button type="button" data-emoji="⚡">⚡</button><button type="button" data-emoji="🔥">🔥</button><button type="button" data-emoji="🚀">🚀</button><button type="button" data-emoji="⭐">⭐</button><button type="button" data-emoji="🦊">🦊</button><button type="button" data-emoji="🐆">🐆</button><button type="button" data-emoji="🦄">🦄</button><button type="button" data-emoji="💪">💪</button></span>
+                  </fieldset>
+                  <fieldset>
+                    <legend>Couleur</legend>
+                    <label class="chip-radio swatch" title="Bleu"><input type="radio" name="markerColor" value="#1d4ed8" aria-label="Bleu"><span></span></label>
+                    <label class="chip-radio swatch" title="Bleu nuit"><input type="radio" name="markerColor" value="#0b2545" aria-label="Bleu nuit"><span></span></label>
+                    <label class="chip-radio swatch" title="Turquoise"><input type="radio" name="markerColor" value="#0e7490" aria-label="Turquoise"><span></span></label>
+                    <label class="chip-radio swatch" title="Vert"><input type="radio" name="markerColor" value="#15803d" aria-label="Vert"><span></span></label>
+                    <label class="chip-radio swatch" title="Jaune"><input type="radio" name="markerColor" value="#ca8a04" aria-label="Jaune"><span></span></label>
+                    <label class="chip-radio swatch" title="Orange"><input type="radio" name="markerColor" value="#ea580c" aria-label="Orange"><span></span></label>
+                    <label class="chip-radio swatch" title="Rouge"><input type="radio" name="markerColor" value="#dc2626" aria-label="Rouge"><span></span></label>
+                    <label class="chip-radio swatch" title="Rose"><input type="radio" name="markerColor" value="#db2777" aria-label="Rose"><span></span></label>
+                  </fieldset>
+                  <fieldset>
+                    <legend>Taille et effet</legend>
+                    <label class="chip-radio"><input type="radio" name="markerSize" value="m"><span>Normal</span></label>
+                    <label class="chip-radio"><input type="radio" name="markerSize" value="l"><span>Grand</span></label>
+                    <label class="check"><input type="checkbox" name="markerPulse"> Halo animé</label>
+                  </fieldset>
+                </div>
+                <p id="markerNote" class="muted small" hidden>Sans photo, tes initiales s'affichent à la place.</p>
+              </div>
               <label>Nom affiché <input name="name" maxlength="80"></label>
               <label>Dossard <input name="bib" maxlength="20"></label>
               <label>Club <input name="club" maxlength="80"></label>

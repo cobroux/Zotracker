@@ -117,6 +117,16 @@ test('données publiques minimisées (pas de batterie ni de détails internes)',
   assert.doesNotMatch(body, /battery|armedAt|offCourseSince|safety|secret/);
 });
 
+test('point du coureur : seuls des réglages connus sont acceptés', async () => {
+  const { cookie } = await login();
+  const put = (marker) => fetch(base + '/api/admin/runner', { method: 'PUT', headers: { cookie, 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify({ name: 'Enzo', facts: [], marker }) }).then((r) => r.json());
+  let r = await put({ style: 'emoji', emoji: '🦊', color: '#DB2777', size: 'l', pulse: false });
+  assert.deepStrictEqual(r.marker, { style: 'emoji', emoji: '🦊', color: '#db2777', size: 'l', pulse: false });
+  r = await put({ style: '<script>', emoji: '<img src=x onerror=alert(1)>', color: 'red;background:url(x)', size: 'xxl' });
+  assert.deepStrictEqual(r.marker, { style: 'photo', emoji: '🏃', color: '#1d4ed8', size: 'm', pulse: true });
+  assert.strictEqual((await (await fetch(base + '/api/state')).json()).runner.marker.style, 'photo');
+});
+
 test('clé du traceur et page SOS : mauvaise clé refusée, clé régénérable', async () => {
   assert.strictEqual((await fetch(base + '/api/ingest?key=faux&lat=1&lon=1')).status, 401);
   assert.strictEqual((await post('/api/sos', { key: 'faux' })).status, 401);
