@@ -97,6 +97,10 @@ app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 app.use(express.static(path.join(__dirname, 'public'), { index: 'index.html' }));
 app.use('/vendor/leaflet', express.static(path.dirname(require.resolve('leaflet/dist/leaflet.js'))));
+// polices hébergées ici (pas de Google Fonts : les adresses IP des visiteurs ne partent pas chez un tiers)
+for (const font of ['manrope', 'barlow-condensed']) {
+  app.use(`/vendor/fonts/${font}`, express.static(path.join(path.dirname(require.resolve(`@fontsource/${font}/package.json`)), 'files'), { maxAge: '30d', immutable: true }));
+}
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/sos', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sos.html')));
 

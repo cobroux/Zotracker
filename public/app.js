@@ -15,9 +15,9 @@ const race = () => state.race || {};
 const map = L.map('map', { zoomControl: true }).setView([46.6, 2.4], 6);
 ZT.addTiles(map);
 const layers = {
-  course: L.polyline([], { color: '#6b7a99', weight: 5, opacity: 0.6 }).addTo(map),
-  done: L.polyline([], { color: '#ff5a1f', weight: 6 }).addTo(map),
-  trace: L.polyline([], { color: '#ff5a1f', weight: 3, opacity: 0.5, dashArray: '4 6' }).addTo(map),
+  course: L.polyline([], { color: ZT.cssVar('--route'), weight: 6, opacity: 0.9 }).addTo(map),
+  done: L.polyline([], { color: ZT.cssVar('--accent'), weight: 6 }).addTo(map),
+  trace: L.polyline([], { color: ZT.cssVar('--accent'), weight: 3, opacity: 0.6, dashArray: '4 6' }).addTo(map),
   markers: L.layerGroup().addTo(map),
   aid: L.layerGroup().addTo(map),
   runner: null,
@@ -102,8 +102,11 @@ function renderProfile() {
   document.title = r.name ? `${r.name} · Suivi en direct` : 'Suivi en direct';
   $('runnerName').textContent = r.name || 'Suivi en direct';
   $('raceLine').textContent = state.race
-    ? [rc.name, rc.location, r.bib && `Dossard ${r.bib}`].filter(Boolean).join(' · ')
+    ? [rc.name, rc.location].filter(Boolean).join(' · ')
     : 'Aucune course prévue pour le moment';
+  $('heroGoal').textContent = r.goal ? `Objectif : ${r.goal}` : r.club || '';
+  $('bibTag').hidden = !r.bib;
+  $('bibNum').textContent = r.bib || '';
 
   const avatar = $('avatar');
   avatar.replaceChildren(r.photo ? el('img', { src: r.photo, alt: r.name }) : el('span', {}, (r.name || '?').slice(0, 1).toUpperCase()));
@@ -166,11 +169,21 @@ function renderAid() {
   $('nextAid').hidden = !next;
   if (next) {
     $('nextAid').replaceChildren(
-      el('span', {}, '🥤 Prochain ravito : '),
-      el('strong', {}, next.name || 'Ravitaillement'),
-      el('span', {}, ` dans ${ZT.fmtKm(next.dist - stats.progress)}${next.at ? ` · vers ${ZT.fmtClock(next.at)}` : ''}`),
+      dropIcon(),
+      el('span', {},
+        'Prochain ravito : ', el('strong', {}, next.name || 'Ravitaillement'),
+        ` dans ${ZT.fmtKm(next.dist - stats.progress)}${next.at ? ` · vers ${ZT.fmtClock(next.at)}` : ''}`),
     );
   }
+}
+
+/** Icône de goutte (SVG statique de l'application, jamais de contenu utilisateur). */
+function dropIcon() {
+  const span = el('span', { 'aria-hidden': 'true', style: null });
+  span.innerHTML = ZT.DROP_SVG;
+  span.firstChild.setAttribute('width', '20');
+  span.firstChild.setAttribute('height', '20');
+  return span;
 }
 
 function drawProfile() {
@@ -187,7 +200,7 @@ function renderStats() {
 
   const badge = $('statusBadge');
   badge.className = `badge ${state.race ? status : ''}`;
-  badge.textContent = !state.race ? 'Hors course' : status === 'running' ? '● En course' : status === 'finished' ? '🏁 Arrivé' : 'Pas encore parti';
+  badge.textContent = !state.race ? 'Hors course' : status === 'running' ? 'En course' : status === 'finished' ? 'Arrivé' : 'Pas encore parti';
 
   const planned = race().plannedStart && Date.parse(race().plannedStart);
   const cd = $('countdown');
@@ -196,7 +209,9 @@ function renderStats() {
     cd.textContent = planned > t ? `Départ dans ${fmtCountdown((planned - t) / 1000)}` : 'Départ imminent…';
   } else cd.hidden = true;
 
-  $('sDone').textContent = ZT.fmtKm(s.progress);
+  $('sDone').textContent = ((s.progress || 0) / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const officialKm = race().distanceKm || (s.total ? s.total / 1000 : null);
+  $('sTotal').textContent = officialKm ? ` / ${officialKm.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km` : ' km';
   $('sLeft').textContent = s.remaining != null ? ZT.fmtKm(s.remaining) : '–';
   $('sTime').textContent = s.elapsed != null ? ZT.fmtDuration(s.elapsed) : '–';
   $('sAvg').textContent = ZT.fmtPace(s.avgPace);
@@ -206,6 +221,7 @@ function renderStats() {
 
   const pct = s.total ? Math.min(100, (s.progress / s.total) * 100) : 0;
   $('progressBox').hidden = !s.total;
+  $('progressPct').hidden = !s.total;
   $('progressFill').style.width = `${pct}%`;
   $('progressPct').textContent = `${pct.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`;
   $('updated').textContent = s.lastTime && status === 'running' ? `Position mise à jour ${ZT.fmtAgo(t - s.lastTime)}` : '';
@@ -230,6 +246,13 @@ function renderAll() {
 setInterval(renderStats, 1000);
 setInterval(() => state && renderAid(), 30_000);
 window.addEventListener('resize', () => state && drawProfile());
+// changement clair/sombre : couleurs de la carte et du profil
+window.addEventListener('themechange', () => {
+  layers.course.setStyle({ color: ZT.cssVar('--route') });
+  layers.done.setStyle({ color: ZT.cssVar('--accent') });
+  layers.trace.setStyle({ color: ZT.cssVar('--accent') });
+  if (state) drawProfile();
+});
 
 // ---------------------------------------------------------------- flux temps réel
 
@@ -359,8 +382,10 @@ const alertsUi = {
 
   render(on, note) {
     if (!$('alertBtn')) return;
-    $('alertBtn').textContent = on ? '🔕 Couper les alertes' : '🔔 Être alerté';
-    $('alertBtn').classList.toggle('primary', !on);
+    const bell = el('span', { 'aria-hidden': 'true' });
+    bell.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>';
+    $('alertBtn').replaceChildren(bell, on ? 'Couper les alertes' : 'Être alerté');
+    $('alertBtn').classList.toggle('on', on);
     $('alertStatus').textContent = note || (on
       ? 'Alertes activées sur cet appareil.'
       : 'Départ, ravitos, arrivée : reçois une notification, même téléphone en veille.');

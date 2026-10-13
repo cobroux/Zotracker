@@ -140,8 +140,16 @@ const ZT = {
     return best;
   },
 
+  /** Valeur d'une variable de couleur du thème (claire ou sombre). */
+  cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  },
+
+  /** Icône de goutte (ravitaillement), en SVG inline. */
+  DROP_SVG: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.7c3.5 4.1 6 7.4 6 10.3a6 6 0 0 1-12 0c0-2.9 2.5-6.2 6-10.3z"/></svg>',
+
   aidIcon(passed) {
-    return L.divIcon({ className: 'aid-icon', html: `<span class="${passed ? 'passed' : ''}">🥤</span>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+    return L.divIcon({ className: 'aid-icon', html: `<span class="${passed ? 'passed' : ''}">${ZT.DROP_SVG}</span>`, iconSize: [28, 28], iconAnchor: [14, 14] });
   },
 
   /** Profil d'altitude dans un <canvas>, avec la progression actuelle. */
@@ -158,10 +166,11 @@ const ZT = {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
 
-    const css = getComputedStyle(document.documentElement);
-    const accent = css.getPropertyValue('--accent').trim();
-    const muted = css.getPropertyValue('--muted').trim();
-    const line = css.getPropertyValue('--line').trim();
+    const accent = ZT.cssVar('--accent');
+    const muted = ZT.cssVar('--muted');
+    const line = ZT.cssVar('--track');
+    const teal = ZT.cssVar('--teal');
+    const font = ZT.cssVar('--font-num') || 'system-ui, sans-serif';
 
     let min = Infinity, max = -Infinity;
     for (const p of pts) { min = Math.min(min, p[2]); max = Math.max(max, p[2]); }
@@ -187,20 +196,19 @@ const ZT = {
     if (progress > 0) area(progress, accent);
 
     // ravitaillements : trait vertical + pastille
-    ctx.strokeStyle = muted;
+    ctx.strokeStyle = teal;
+    ctx.fillStyle = teal;
     ctx.setLineDash([3, 3]);
     for (const a of aidStations) {
       const ax = x(a.km * 1000);
       if (ax < 0 || ax > w) continue;
       ctx.beginPath(); ctx.moveTo(ax, top); ctx.lineTo(ax, h - bottom); ctx.stroke();
-      ctx.font = '12px system-ui, sans-serif';
-      ctx.textBaseline = 'top';
-      ctx.fillText('🥤', Math.min(ax - 7, w - 16), 0);
+      ctx.beginPath(); ctx.arc(Math.min(Math.max(ax, 5), w - 5), 6, 4.5, 0, Math.PI * 2); ctx.fill();
     }
     ctx.setLineDash([]);
 
     ctx.fillStyle = muted;
-    ctx.font = '11px system-ui, sans-serif';
+    ctx.font = `600 12px ${font}`;
     ctx.textBaseline = 'top';
     ctx.fillText(`${Math.round(max - pad)} m`, 4, 0);
     ctx.textBaseline = 'bottom';

@@ -287,7 +287,7 @@ function renderTopStatus() {
   const status = live && live.race ? live.session.status : race ? race.session.status : null;
   const top = $('topStatus');
   top.className = `badge ${status || ''}`;
-  top.textContent = !race ? 'Aucune course en ligne' : status === 'running' ? '● En course' : status === 'finished' ? 'Terminée' : 'En ligne';
+  top.textContent = !race ? 'Aucune course en ligne' : status === 'running' ? 'En course' : status === 'finished' ? 'Terminée' : 'En ligne';
   $('navLiveDot').hidden = status !== 'running';
   const sos = config.safety && config.safety.sos;
   $('navSosDot').hidden = !sos;
@@ -624,7 +624,8 @@ $('newRaceBtn').addEventListener('click', action(async () => {
 
 const adminMap = L.map('adminMap').setView([46.6, 2.4], 5);
 ZT.addTiles(adminMap);
-const courseLine = L.polyline([], { color: '#6b7a99', weight: 4 }).addTo(adminMap);
+const courseLine = L.polyline([], { color: ZT.cssVar('--accent'), weight: 4 }).addTo(adminMap);
+window.addEventListener('themechange', () => courseLine.setStyle({ color: ZT.cssVar('--accent') }));
 const aidLayer = L.layerGroup().addTo(adminMap);
 
 function openEditor(id, scroll = true) {

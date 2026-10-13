@@ -5,7 +5,7 @@ Suivi GPS en direct pour les courses à pied.
 - **Page publique** (`/`) : tes proches suivent ta position sur la carte en temps réel, avec la distance parcourue et restante, le chrono, l'allure moyenne et récente, l'heure d'arrivée estimée, le profil d'altitude, tes messages et tes infos (photo, présentation, objectif, records…).
 - **Admin** (`/admin`, protégé par mot de passe) : tu prépares autant de courses que tu veux à l'avance (infos, parcours GPX, ravitaillements), tu choisis celle qui est affichée sur la page publique, tu donnes le départ et tu publies des messages.
 
-Tout fonctionne dans le navigateur du téléphone, sans appli à installer. Avec « Ajouter à l'écran d'accueil », le site s'ouvre ensuite comme une appli.
+Tout fonctionne dans le navigateur du téléphone, sans appli à installer. Le thème clair ou sombre suit le réglage du téléphone et se change avec le bouton lune/soleil. Avec « Ajouter à l'écran d'accueil », le site s'ouvre ensuite comme une appli.
 
 ## Démarrage rapide
 
