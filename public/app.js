@@ -13,7 +13,7 @@ const race = () => state.race || {};
 // ---------------------------------------------------------------- carte
 
 const map = L.map('map', { zoomControl: true }).setView([46.6, 2.4], 6);
-ZT.tileLayer().addTo(map);
+ZT.addTiles(map);
 const layers = {
   course: L.polyline([], { color: '#6b7a99', weight: 5, opacity: 0.6 }).addTo(map),
   done: L.polyline([], { color: '#ff5a1f', weight: 6 }).addTo(map),

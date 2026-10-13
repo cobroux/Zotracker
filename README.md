@@ -36,7 +36,7 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `VAPID_SUBJECT` | Contact pour les notifications push | `mailto:zotracker@example.com` |
 | `TRACK_RETENTION_DAYS` | Positions GPS effacées N jours après la course (0 = jamais) | `90` |
 | `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client | `loopback, linklocal, uniquelocal` |
-| `TILE_URL` / `TILE_ATTRIBUTION` | Fournisseur du fond de carte | OpenStreetMap |
+| `TILE_URL` / `TILE_ATTRIBUTION` | Fournisseur du fond de carte | CARTO (repli automatique sur OpenStreetMap) |
 | `PUSH_ALLOWED_HOSTS` | Services push supplémentaires autorisés (séparés par des virgules) | — |
 
 ## Préparer ses courses
@@ -148,6 +148,7 @@ lib/alerts.js      règles d'alerte (ravitos, mi-course, arrivée, perte de sign
 lib/push.js        envoi des notifications Web Push
 lib/safety.js      alertes de sécurité privées (immobilité, signal, batterie…)
 lib/security.js    mots de passe, sessions, anti-CSRF, limites de débit, en-têtes, anti-SSRF
+lib/totp.js        double authentification (TOTP RFC 6238, codes de secours)
 public/sos.html    page SOS du coureur (appui long)
 public/sw.js       service worker qui affiche les notifications
 lib/store.js       stockage JSON + secrets

@@ -17,6 +17,7 @@
   "dependencies": {
     "express": "^4.22.3",
     "leaflet": "^1.9.4",
+    "qrcode-generator": "^2.0.4",
     "web-push": "^3.6.7"
   }
 }

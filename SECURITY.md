@@ -29,6 +29,10 @@ Zotracker manipule des données sensibles : ta **position en temps réel**, ton 
   - mot de passe haché avec scrypt ;
   - session dans un cookie `HttpOnly` + `Secure` + `SameSite=Strict`, signée et valable 7 jours, inaccessible au JavaScript ;
   - bouton « Déconnecter tous les appareils ».
+- **Double authentification (TOTP)** optionnelle et recommandée :
+  - code à 6 chiffres d'une appli (Google Authenticator, 1Password, Bitwarden…), refusé s'il est rejoué ;
+  - 8 codes de secours à usage unique, stockés hachés ;
+  - en dernier recours : `docker compose run --rm app node server.js --disable-2fa` sur le serveur.
 - **Anti force brute** : 10 tentatives par 15 minutes et par IP, avec un ralentissement progressif. L'IP du client ne peut pas être falsifiée, car seul le reverse proxy local est cru.
 - **Anti-CSRF** : toute modification doit venir de l'origine du site, en plus de `SameSite=Strict`.
 - **En-têtes de sécurité** :
@@ -84,13 +88,14 @@ Zotracker manipule des données sensibles : ta **position en temps réel**, ton 
 - **Le canal ntfy est un secret partagé** : quiconque le connaît reçoit tes alertes de sécurité. Change-le si tu as un doute.
 - **Les données ne sont pas chiffrées sur le disque du serveur**, en dehors des sauvegardes. Si tu veux ce niveau de protection, choisis un hébergeur qui chiffre les disques.
 - **Les limites de débit sont en mémoire** et repartent à zéro au redémarrage.
-- **Un seul compte admin.**
+- **Un seul compte admin.** L'admin est à l'adresse `/admin`. Cacher cette adresse n'apporterait pas de vraie sécurité : la protection repose sur le mot de passe, la double authentification et les limites de tentatives.
 
 ## En cas de problème
 
 **Téléphone perdu ou volé**
-1. Admin → 🔒 *Régénérer la clé du traceur*. L'ancien lien SOS et l'ancienne config Traccar deviennent inutilisables.
+1. Admin → ⚙️ Paramètres → *Régénérer la clé du traceur*. L'ancien lien SOS et l'ancienne config Traccar deviennent inutilisables.
 2. *Déconnecter tous les appareils*, puis change ton mot de passe.
+3. Si c'était aussi ton téléphone d'authentification : connecte-toi avec un **code de secours**, désactive puis réactive la double authentification avec ton nouveau téléphone.
 
 **Lien privé ou canal ntfy diffusé par erreur**
 - Admin → *Créer un nouveau lien* : les anciens abonnés aux notifications sont aussi révoqués.

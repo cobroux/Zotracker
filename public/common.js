@@ -232,19 +232,35 @@ const ZT = {
     return seg[seg.length - 1];
   },
 
-  /** Fond de carte configuré par le serveur (/tiles.js), OpenStreetMap par défaut. */
-  tileLayer() {
+  /**
+   * Ajoute le fond de carte configuré par le serveur (/tiles.js). Si ses tuiles échouent toutes
+   * (fournisseur bloqué ou indisponible), bascule automatiquement sur le fond de secours.
+   */
+  addTiles(map) {
     const cfg = window.ZT_TILES || {
       url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     };
-    return L.tileLayer(cfg.url, {
-      maxZoom: cfg.maxZoom,
-      attribution: cfg.attribution,
+    const make = (c) => L.tileLayer(c.url, {
+      maxZoom: c.maxZoom || 19,
+      attribution: c.attribution,
       // seule l'origine du site est envoyée au serveur de tuiles (exigé par OpenStreetMap)
       referrerPolicy: 'strict-origin-when-cross-origin',
     });
+    const layer = make(cfg).addTo(map);
+    if (!cfg.fallback) return layer;
+    let loaded = 0;
+    let failed = 0;
+    layer.on('tileload', () => { loaded++; });
+    layer.on('tileerror', () => {
+      failed++;
+      if (failed >= 4 && loaded === 0 && map.hasLayer(layer)) {
+        map.removeLayer(layer);
+        make(cfg.fallback).addTo(map);
+      }
+    });
+    return layer;
   },
 
   runnerIcon(photo) {

@@ -12,6 +12,7 @@ const safety = require('./lib/safety');
 const { Push } = require('./lib/push');
 const sec = require('./lib/security');
 const { safeEqual } = sec;
+const totp = require('./lib/totp');
 
 const PORT = process.env.PORT || 3000;
 const store = new Store(process.env.DATA_DIR || path.join(__dirname, 'data'));
@@ -33,14 +34,16 @@ app.disable('x-powered-by');
 // Ne faire confiance à X-Forwarded-For que pour le reverse proxy local (Caddy) : sinon un
 // attaquant pourrait changer d'IP à volonté et contourner les limites de débit.
 app.set('trust proxy', process.env.TRUST_PROXY || 'loopback, linklocal, uniquelocal');
-// Fond de carte : OpenStreetMap par défaut. Pour un usage intensif, utilise un fournisseur
-// dédié (MapTiler, Stadia, Thunderforest… souvent gratuits pour un petit usage).
+// Fond de carte : CARTO (sans clé, données OpenStreetMap) par défaut, avec bascule automatique
+// vers les tuiles OpenStreetMap si le premier fournisseur ne répond pas. Configurable avec TILE_URL.
+const OSM_ATTRIBUTION = '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 const TILES = {
-  url: process.env.TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  attribution: process.env.TILE_ATTRIBUTION || '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  url: process.env.TILE_URL || 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  attribution: process.env.TILE_ATTRIBUTION || (process.env.TILE_URL ? '' : `${OSM_ATTRIBUTION} &copy; <a href="https://carto.com/attributions">CARTO</a>`),
   maxZoom: Number(process.env.TILE_MAX_ZOOM || 19),
+  fallback: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: OSM_ATTRIBUTION, maxZoom: 19 },
 };
-app.use(sec.securityHeaders({ tileHosts: sec.tileHostsFor(TILES.url) }));
+app.use(sec.securityHeaders({ tileHosts: [...sec.tileHostsFor(TILES.url), ...sec.tileHostsFor(TILES.fallback.url)] }));
 app.get('/tiles.js', (req, res) => {
   res.type('application/javascript').set('Cache-Control', 'no-cache');
   res.send(`window.ZT_TILES = ${JSON.stringify(TILES).replace(/</g, '\\u003c')};\n`);
@@ -184,10 +187,37 @@ app.post('/api/login', loginLimiter, async (req, res) => {
     console.warn(`${new Date().toISOString()} échec de connexion admin depuis ${req.ip}`);
     return res.status(401).json({ error: 'Mot de passe incorrect.' });
   }
+  // double authentification : code de l'appli (ou code de secours) en plus du mot de passe
+  if (secrets.totp && secrets.totp.enabled) {
+    const code = String((req.body && req.body.code) || '').trim();
+    if (!code) return res.status(401).json({ error: 'Saisis le code de ton appli d’authentification.', need2fa: true });
+    if (!checkSecondFactor(code)) {
+      failedLogins.set(req.ip, fails + 1);
+      console.warn(`${new Date().toISOString()} code de double authentification invalide depuis ${req.ip}`);
+      return res.status(401).json({ error: 'Code incorrect ou déjà utilisé.', need2fa: true });
+    }
+  }
   failedLogins.delete(req.ip);
   res.set('Set-Cookie', sec.sessionCookie(req, sec.signSession(secrets.tokenSecret, secrets.sessionVersion), sec.SESSION_TTL));
   res.json({ ok: true });
 });
+
+/** Vérifie un code TOTP (anti-rejeu) ou consomme un code de secours. */
+function checkSecondFactor(code) {
+  const t = secrets.totp;
+  const step = totp.verifyTotp(t.secret, code, { lastStep: t.lastStep || -1 });
+  if (step) {
+    secrets.update({ totp: { ...t, lastStep: step } });
+    return true;
+  }
+  const i = totp.matchRecovery(code, t.recovery);
+  if (i >= 0) {
+    secrets.update({ totp: { ...t, recovery: t.recovery.filter((_, j) => j !== i) } });
+    console.warn(`${new Date().toISOString()} connexion avec un code de secours (${t.recovery.length - 1} restants)`);
+    return true;
+  }
+  return false;
+}
 
 app.post('/api/logout', (req, res) => {
   res.set('Set-Cookie', sec.sessionCookie(req, '', 0));
@@ -244,6 +274,7 @@ function adminConfig() {
     safetySettings: state.safetySettings,
     privacy: state.privacy,
     passwordFromEnv: secrets.passwordFromEnv,
+    twoFactor: { enabled: !!(secrets.totp && secrets.totp.enabled), recoveryLeft: secrets.totp && secrets.totp.enabled ? secrets.totp.recovery.length : 0 },
     trackerKeyFromEnv: secrets.trackerKeyFromEnv,
     retentionDays: RETENTION_DAYS,
     ntfyServer: NTFY_SERVER,
@@ -664,6 +695,45 @@ admin.put('/password', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- double authentification
+let pendingTotp = null; // secret en cours d'activation (non encore confirmé)
+
+admin.post('/2fa/setup', (req, res) => {
+  if (secrets.totp && secrets.totp.enabled) return res.status(409).json({ error: 'La double authentification est déjà active.' });
+  const secret = totp.generateSecret();
+  pendingTotp = { secret, expires: Date.now() + 10 * 60_000 };
+  const url = totp.otpauthUrl(secret, state.runner.name || 'admin');
+  res.json({ secret: secret.replace(/(.{4})/g, '$1 ').trim(), qr: totp.qrDataUrl(url) });
+});
+
+admin.post('/2fa/enable', (req, res) => {
+  if (!pendingTotp || pendingTotp.expires < Date.now()) return res.status(409).json({ error: 'Configuration expirée, recommence.' });
+  const step = totp.verifyTotp(pendingTotp.secret, (req.body || {}).code);
+  if (!step) return res.status(400).json({ error: 'Code incorrect : vérifie l’heure de ton téléphone et réessaie.' });
+  const codes = totp.generateRecoveryCodes();
+  secrets.update({ totp: { secret: pendingTotp.secret, enabled: true, lastStep: step, recovery: codes.map(totp.hashRecovery) } });
+  pendingTotp = null;
+  res.json({ ...adminConfig(), recoveryCodes: codes });
+});
+
+admin.post('/2fa/disable', async (req, res) => {
+  if (!secrets.totp || !secrets.totp.enabled) return res.json(adminConfig());
+  const { password, code } = req.body || {};
+  if (!(await sec.verifyPasswordAsync(String(password || ''), secrets.passwordHash))) return res.status(403).json({ error: 'Mot de passe incorrect.' });
+  if (!checkSecondFactor(String(code || ''))) return res.status(403).json({ error: 'Code incorrect.' });
+  secrets.update({ totp: null });
+  res.json(adminConfig());
+});
+
+admin.post('/2fa/recovery', async (req, res) => {
+  const { code } = req.body || {};
+  if (!secrets.totp || !secrets.totp.enabled) return res.status(409).json({ error: 'Double authentification inactive.' });
+  if (!checkSecondFactor(String(code || ''))) return res.status(403).json({ error: 'Code incorrect.' });
+  const codes = totp.generateRecoveryCodes();
+  secrets.update({ totp: { ...secrets.totp, recovery: codes.map(totp.hashRecovery) } });
+  res.json({ ...adminConfig(), recoveryCodes: codes });
+});
+
 admin.post('/logout-all', (req, res) => {
   secrets.update({ sessionVersion: secrets.sessionVersion + 1 });
   res.set('Set-Cookie', sec.sessionCookie(req, '', 0));
@@ -751,6 +821,15 @@ function start(port = PORT) {
   return server;
 }
 
-if (require.main === module) start();
+if (require.main === module) {
+  // secours : téléphone d'authentification perdu et plus de codes de secours
+  //   docker compose run --rm app node server.js --disable-2fa
+  if (process.argv.includes('--disable-2fa')) {
+    secrets.update({ totp: null, sessionVersion: secrets.sessionVersion + 1 });
+    console.log('Double authentification désactivée et sessions déconnectées. Reconnecte-toi puis réactive-la.');
+    process.exit(0);
+  }
+  start();
+}
 
 module.exports = { app, start, store, secrets, state };

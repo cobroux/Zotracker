@@ -13,59 +13,183 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="admin">
+  <!-- ================================================================ connexion -->
   <section id="login" class="login" hidden>
-    <form id="loginForm" class="card">
-      <h1>Zotracker · Admin</h1>
-      <label>Mot de passe <input type="password" name="password" autocomplete="current-password" required></label>
+    <form id="loginForm" class="card login-card">
+      <img src="/icon.svg" alt="" class="login-logo">
+      <h1>Zotracker</h1>
+      <p class="muted small">Espace administrateur</p>
+      <label id="passwordField">Mot de passe <input type="password" name="password" autocomplete="current-password" required></label>
+      <label id="codeField" hidden>Code de ton appli d'authentification
+        <input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123 456" maxlength="11">
+        <span class="muted small">Téléphone perdu ? Saisis un de tes codes de secours (ex. ABCD-EFGH).</span>
+      </label>
       <button class="primary" type="submit">Se connecter</button>
       <p id="loginError" class="error"></p>
     </form>
   </section>
 
-  <div id="app" hidden>
-    <header class="admin-bar">
-      <strong>Zotracker · Admin</strong>
-      <span class="bar-actions">
-        <a href="/" target="_blank" rel="noopener">Page publique ↗</a>
-        <button id="logoutBtn" type="button" class="link">Déconnexion</button>
-      </span>
-    </header>
+  <div id="app" class="admin-shell" hidden>
+    <!-- ================================================================ menu -->
+    <aside id="sidebar" class="sidebar" aria-label="Menu principal">
+      <div class="brand"><img src="/icon.svg" alt=""> <span>Zotracker</span></div>
+      <nav class="nav">
+        <a href="#/direct" data-view="direct"><span class="ico">📡</span> Tableau de bord <span id="navLiveDot" class="nav-dot" hidden></span></a>
+        <a href="#/courses" data-view="courses"><span class="ico">🏁</span> Mes courses</a>
+        <a href="#/profil" data-view="profil"><span class="ico">👤</span> Mon profil</a>
+        <a href="#/gps" data-view="gps"><span class="ico">📍</span> Mon GPS</a>
+        <a href="#/alertes" data-view="alertes"><span class="ico">🔔</span> Alertes supporters</a>
+        <a href="#/securite" data-view="securite"><span class="ico">🛟</span> Sécurité <span id="navSosDot" class="nav-dot danger" hidden></span></a>
+        <a href="#/parametres" data-view="parametres"><span class="ico">⚙️</span> Paramètres</a>
+      </nav>
+      <div class="sidebar-foot">
+        <a href="/" target="_blank" rel="noopener" class="btn-link">👀 Voir la page publique ↗</a>
+        <button id="logoutBtn" type="button" class="link">Se déconnecter</button>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
 
-    <main class="admin-main">
-      <!-- ------------------------------------------------ Course en ligne -->
-      <section class="card live-card">
-        <h2>Course en ligne : <span id="liveName"></span></h2>
-        <p id="noLive" class="muted">Aucune course en ligne. Choisis-en une dans « Mes courses » avec <strong>Mettre en ligne</strong>.</p>
-        <div id="liveControls">
-          <p>Statut : <span id="sessionBadge" class="badge">…</span> <span id="sessionInfo" class="muted"></span></p>
-          <div class="row-buttons">
-            <button id="startBtn" class="primary" type="button">▶ Donner le départ</button>
-            <button id="finishBtn" type="button">🏁 Terminer</button>
-            <button id="resumeBtn" type="button">↺ Reprendre</button>
-            <button id="resetBtn" class="danger" type="button">Réinitialiser le suivi</button>
+    <div class="content">
+      <header class="topbar">
+        <button id="menuBtn" type="button" class="menu-btn" aria-label="Ouvrir le menu" aria-controls="sidebar" aria-expanded="false">☰</button>
+        <h1 id="viewTitle">Tableau de bord</h1>
+        <span id="topStatus" class="badge"></span>
+      </header>
+
+      <main class="admin-main">
+        <!-- ============================================================ TABLEAU DE BORD -->
+        <section class="view" data-view="direct" data-title="Tableau de bord">
+          <div id="sosBanner" class="sos-active" hidden>
+            <strong>🆘 Un SOS est en cours</strong>
+            <a href="#/securite" class="btn-link">Voir les détails</a>
           </div>
-          <details>
-            <summary>Corriger l'heure de départ</summary>
-            <div class="inline-form">
-              <input type="datetime-local" id="startAt" step="1">
-              <button id="startAtBtn" type="button">Appliquer</button>
+
+          <section class="card" id="checklistCard">
+            <div class="card-head"><h2>Prêt pour la course ?</h2><span id="checklistScore" class="badge"></span></div>
+            <ul id="checklist" class="checklist"></ul>
+          </section>
+
+          <section class="card live-card">
+            <h2>Course en ligne : <span id="liveName"></span></h2>
+            <p id="noLive" class="muted">Aucune course en ligne. Va dans <a href="#/courses">Mes courses</a> et clique sur <strong>Mettre en ligne</strong>.</p>
+            <div id="liveControls">
+              <p>Statut : <span id="sessionBadge" class="badge">…</span> <span id="sessionInfo" class="muted"></span></p>
+              <div class="row-buttons">
+                <button id="startBtn" class="primary big" type="button">▶ Donner le départ</button>
+                <button id="finishBtn" class="big" type="button">🏁 Terminer</button>
+                <button id="resumeBtn" type="button">↺ Reprendre</button>
+                <button id="resetBtn" class="danger" type="button">Réinitialiser le suivi</button>
+              </div>
+              <details>
+                <summary>Corriger l'heure de départ</summary>
+                <div class="inline-form">
+                  <input type="datetime-local" id="startAt" step="1">
+                  <button id="startAtBtn" type="button">Appliquer</button>
+                </div>
+              </details>
             </div>
-          </details>
+          </section>
 
-          <details>
-            <summary>Envoyer ma position avec Traccar Client (recommandé)</summary>
-            <p class="small">Dans l'appli <strong>Traccar Client</strong> : précision haute, fréquence 10 s, et :</p>
-            <dl class="facts small">
+          <section class="card" id="messagesSection">
+            <h2>💬 Messages aux supporters</h2>
+            <form id="messageForm" class="inline-form">
+              <input name="text" maxlength="500" placeholder="Ex : Ravito du 10e km, tout va bien !" required>
+              <button class="primary" type="submit">Publier</button>
+            </form>
+            <ul id="adminMessages" class="messages"></ul>
+          </section>
+        </section>
+
+        <!-- ============================================================ COURSES -->
+        <section class="view" data-view="courses" data-title="Mes courses" hidden>
+          <section class="card">
+            <div class="card-head">
+              <h2>Mes courses</h2>
+              <button id="newRaceBtn" class="primary" type="button">+ Nouvelle course</button>
+            </div>
+            <p class="muted small">Prépare tes courses à l'avance. Celle qui est <strong>en ligne</strong> s'affiche sur la page publique.</p>
+            <ul id="raceList" class="race-list"></ul>
+          </section>
+
+          <section class="card" id="raceEditor" hidden>
+            <div class="card-head">
+              <h2 id="editorTitle">Modifier la course</h2>
+              <button id="editorClose" class="link" type="button">✕ Fermer</button>
+            </div>
+            <form id="raceForm" class="grid-form">
+              <label>Nom de la course <input name="name" maxlength="120" required></label>
+              <label>Lieu <input name="location" maxlength="120"></label>
+              <label>Départ prévu <input name="plannedStart" type="datetime-local"></label>
+              <label>Distance officielle (km) <input name="distanceKm" type="number" step="0.001" min="0"></label>
+              <label class="full">Description <textarea name="description" rows="3" maxlength="3000"></textarea></label>
+
+              <div class="full">
+                <h3>Ravitaillements</h3>
+                <p class="muted small">Ajoute-les ici ou clique sur le parcours dans la carte ci-dessous pour en placer un. Si ton fichier GPX contient des points (waypoints), ils sont importés automatiquement.</p>
+                <div id="aidList" class="aid-list"></div>
+                <button id="aidAdd" type="button">+ Ajouter un ravitaillement</button>
+              </div>
+
+              <button class="primary" type="submit">Enregistrer la course</button>
+            </form>
+
+            <h3>Parcours (fichier GPX)</h3>
+            <p class="muted small">Exporte le tracé depuis le site de l'organisateur, Strava, Garmin Connect, Komoot, OpenRunner ou gpx.studio. Importer un nouveau parcours efface le suivi GPS de cette course.</p>
+            <div class="inline-form">
+              <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml">
+              <button id="courseDelete" type="button" class="danger">Supprimer le parcours</button>
+            </div>
+            <p id="courseInfo" class="small"></p>
+            <div id="adminMap" class="admin-map"></div>
+          </section>
+        </section>
+
+        <!-- ============================================================ PROFIL -->
+        <section class="view" data-view="profil" data-title="Mon profil" hidden>
+          <section class="card">
+            <h2>Ce que voient tes supporters</h2>
+            <form id="runnerForm" class="grid-form">
+              <div class="photo-field">
+                <div class="avatar" id="photoPreview"></div>
+                <div>
+                  <input type="file" id="photoInput" accept="image/*">
+                  <button type="button" id="photoRemove" class="link">Retirer la photo</button>
+                </div>
+              </div>
+              <label>Nom affiché <input name="name" maxlength="80"></label>
+              <label>Dossard <input name="bib" maxlength="20"></label>
+              <label>Club <input name="club" maxlength="80"></label>
+              <label>Objectif <input name="goal" maxlength="120" placeholder="Ex : finir sous 3h30"></label>
+              <label class="full">Présentation <textarea name="bio" rows="4" maxlength="2000"></textarea></label>
+              <label class="full">Infos en plus <span class="muted small">(une par ligne, au format « Titre : valeur »)</span>
+                <textarea name="facts" rows="4" placeholder="Âge : 32 ans&#10;Record marathon : 3h41&#10;Instagram : @moi"></textarea>
+              </label>
+              <button class="primary" type="submit">Enregistrer</button>
+            </form>
+          </section>
+        </section>
+
+        <!-- ============================================================ GPS -->
+        <section class="view" data-view="gps" data-title="Mon GPS" hidden>
+          <section class="card">
+            <div class="card-head"><h2>📱 Traccar Client</h2><span class="badge live">Recommandé</span></div>
+            <p class="small">Fonctionne écran verrouillé et consomme peu de batterie. Installe l'appli gratuite <strong>Traccar Client</strong> (iPhone / Android), puis renseigne :</p>
+            <dl class="facts">
               <dt>URL du serveur</dt><dd><code id="ingestTraccar" class="copy"></code></dd>
-              <dt>Identifiant</dt><dd><code id="trackerKey" class="copy"></code></dd>
+              <dt>Identifiant de l'appareil</dt><dd><code id="trackerKey" class="copy"></code></dd>
+              <dt>Précision</dt><dd>Haute</dd>
+              <dt>Fréquence</dt><dd>10 secondes</dd>
             </dl>
-            <p class="small"><strong>OsmAnd</strong> / <strong>GPSLogger</strong> (URL personnalisée) :</p>
-            <code id="ingestOsmand" class="copy"></code>
-          </details>
+            <p class="muted small">Touche un champ pour le copier. Autorise la localisation « Toujours » et retire l'appli du mode économie d'énergie.</p>
+            <details>
+              <summary>OsmAnd ou GPSLogger (URL personnalisée)</summary>
+              <code id="ingestOsmand" class="copy"></code>
+            </details>
+          </section>
 
-          <details>
-            <summary>Ou utiliser le GPS de ce navigateur (écran allumé)</summary>
-            <p class="muted small">Fonctionne seulement si cette page reste ouverte et l'écran allumé. À éviter si tu utilises déjà Traccar.</p>
+          <section class="card">
+            <h2>🌐 GPS de ce navigateur</h2>
+            <p class="muted small">Solution de dépannage : fonctionne seulement si cette page reste ouverte et l'écran allumé. À éviter si tu utilises déjà Traccar.</p>
             <div class="row-buttons"><button id="gpsBtn" type="button">Activer le GPS</button></div>
             <dl class="facts small">
               <dt>Dernière position</dt><dd id="gpsFix">–</dd>
@@ -73,198 +197,180 @@
               <dt>En attente d'envoi</dt><dd id="gpsQueue">0</dd>
               <dt>Écran maintenu allumé</dt><dd id="gpsWake">–</dd>
             </dl>
-          </details>
+          </section>
+        </section>
 
-          <h3>Messages aux supporters</h3>
-          <form id="messageForm" class="inline-form">
-            <input name="text" maxlength="500" placeholder="Ex : Ravito du 10e km, tout va bien !" required>
-            <button class="primary" type="submit">Publier</button>
-          </form>
-          <ul id="adminMessages" class="messages"></ul>
-        </div>
-      </section>
-
-      <!-- ------------------------------------------------ Sécurité (privé) -->
-      <section class="card safety-card" id="safetyCard">
-        <div class="card-head">
-          <h2>🛟 Sécurité</h2>
-          <span class="badge">Privé</span>
-        </div>
-        <div id="sosActive" class="sos-active" hidden>
-          <strong id="sosActiveTitle"></strong>
-          <span id="sosActiveBody"></span>
-          <div class="row-buttons">
-            <a id="sosActiveMap" class="btn-link" target="_blank" rel="noopener">📍 Voir la position</a>
-            <button id="sosResolve" type="button">✅ Lever l'alerte</button>
-          </div>
-        </div>
-        <p class="muted small">Alertes réservées à toi et à tes contacts de confiance, jamais visibles par les supporters.</p>
-
-        <h3>1. Tes contacts de confiance</h3>
-        <ol class="steps small">
-          <li>Ils installent l'appli gratuite <strong>ntfy</strong> (<a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank" rel="noopener">iPhone</a> · <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener">Android</a>), sans compte.</li>
-          <li>Ils touchent <strong>+</strong> et s'abonnent au canal ci-dessous, ou ouvrent <a id="ntfyLink" target="_blank" rel="noopener">ce lien</a> sur leur téléphone.</li>
-        </ol>
-        <code id="ntfyTopic" class="copy big-code"></code>
-        <div class="row-buttons">
-          <button id="safetyTest" type="button">Envoyer un test aux contacts</button>
-          <button id="newChannel" type="button" class="link">Changer de canal</button>
-        </div>
-
-        <h3>2. Ton bouton SOS</h3>
-        <p class="small">Ouvre ce lien sur <strong>ton</strong> téléphone et ajoute-le à l'écran d'accueil. En course, un appui de 2 s envoie ta position à tes contacts, sans mot de passe.</p>
-        <code id="sosLink" class="copy"></code>
-        <div class="row-buttons">
-          <a id="sosOpen" class="btn-link" target="_blank" rel="noopener">Ouvrir la page SOS</a>
-          <button id="sosNow" type="button" class="danger">🆘 Envoyer un SOS maintenant</button>
-        </div>
-
-        <h3>3. Détections automatiques</h3>
-        <form id="safetyForm" class="alerts-form">
-          <label class="check"><input type="checkbox" name="stopped"> ⚠️ Immobile depuis <input type="number" name="stoppedMinutes" min="1" max="60" class="mini"> min</label>
-          <label class="check"><input type="checkbox" name="signalLost"> 📡 Plus de position depuis <input type="number" name="signalLostMinutes" min="2" max="60" class="mini"> min</label>
-          <label class="check"><input type="checkbox" name="offCourse"> 🧭 Hors parcours depuis <input type="number" name="offCourseMinutes" min="1" max="60" class="mini"> min</label>
-          <label class="check"><input type="checkbox" name="lowBattery"> 🔋 Batterie sous <input type="number" name="lowBatteryPercent" min="5" max="50" class="mini"> %</label>
-          <label class="check"><input type="checkbox" name="slowdown"> 🐢 Fort ralentissement</label>
-          <div class="row-buttons"><button class="primary" type="submit">Enregistrer</button></div>
-        </form>
-
-        <h3>Historique</h3>
-        <ul id="safetyLog" class="messages"></ul>
-      </section>
-
-      <!-- ------------------------------------------------ Alertes -->
-      <section class="card">
-        <div class="card-head">
-          <h2>Alertes aux supporters</h2>
-          <span id="subscribers" class="badge"></span>
-        </div>
-        <p class="muted small">Envoyées automatiquement à tes supporters : notification sur leur téléphone s'ils ont touché « 🔔 Être alerté », et bandeau sur la page publique.</p>
-        <form id="alertsForm" class="alerts-form">
-          <label class="check"><input type="checkbox" name="start"> 🏃 Départ donné</label>
-          <label class="check"><input type="checkbox" name="aidApproach"> 📍 Approche d'un ravito</label>
-          <label class="check"><input type="checkbox" name="aidPass"> 🥤 Passage à un ravito</label>
-          <label class="check"><input type="checkbox" name="halfway"> ⏱️ Mi-course</label>
-          <label class="check"><input type="checkbox" name="finishApproach"> 🏁 Arrivée imminente</label>
-          <label class="check"><input type="checkbox" name="finish"> 🎉 Arrivée (avec le temps final)</label>
-          <label class="check"><input type="checkbox" name="messages"> 💬 Mes messages</label>
-          <label class="check"><input type="checkbox" name="signalLost"> 📡 Plus de position reçue</label>
-          <div class="alerts-nums">
-            <label>Prévenir avant un ravito / l'arrivée (min) <input type="number" name="approachMinutes" min="1" max="30"></label>
-            <label>Alerte « plus de position » après (min) <input type="number" name="signalLostMinutes" min="2" max="60"></label>
-          </div>
-          <div class="row-buttons">
-            <button class="primary" type="submit">Enregistrer</button>
-            <button id="alertTest" type="button">Envoyer une alerte de test</button>
-          </div>
-        </form>
-        <h3>Historique de la course en ligne</h3>
-        <ul id="alertLog" class="messages"></ul>
-      </section>
-
-      <!-- ------------------------------------------------ Mes courses -->
-      <section class="card">
-        <div class="card-head">
-          <h2>Mes courses</h2>
-          <button id="newRaceBtn" class="primary" type="button">+ Nouvelle course</button>
-        </div>
-        <ul id="raceList" class="race-list"></ul>
-      </section>
-
-      <!-- ------------------------------------------------ Édition d'une course -->
-      <section class="card" id="raceEditor" hidden>
-        <div class="card-head">
-          <h2 id="editorTitle">Modifier la course</h2>
-          <button id="editorClose" class="link" type="button">Fermer</button>
-        </div>
-        <form id="raceForm" class="grid-form">
-          <label>Nom de la course <input name="name" maxlength="120" required></label>
-          <label>Lieu <input name="location" maxlength="120"></label>
-          <label>Départ prévu <input name="plannedStart" type="datetime-local"></label>
-          <label>Distance officielle (km) <input name="distanceKm" type="number" step="0.001" min="0"></label>
-          <label class="full">Description <textarea name="description" rows="3" maxlength="3000"></textarea></label>
-
-          <div class="full">
-            <h3>Ravitaillements</h3>
-            <p class="muted small">Ajoute-les ici ou clique sur le parcours dans la carte ci-dessous pour en placer un. Si ton fichier GPX contient des points (waypoints), ils sont importés automatiquement.</p>
-            <div id="aidList" class="aid-list"></div>
-            <button id="aidAdd" type="button">+ Ajouter un ravitaillement</button>
-          </div>
-
-          <button class="primary" type="submit">Enregistrer la course</button>
-        </form>
-
-        <h3>Parcours (fichier GPX)</h3>
-        <p class="muted small">Exporte le tracé depuis le site de l'organisateur, Strava, Garmin Connect, Komoot, OpenRunner ou gpx.studio. Importer un nouveau parcours efface le suivi GPS de cette course.</p>
-        <div class="inline-form">
-          <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml">
-          <button id="courseDelete" type="button" class="danger">Supprimer le parcours</button>
-        </div>
-        <p id="courseInfo" class="small"></p>
-        <div id="adminMap" class="admin-map"></div>
-      </section>
-
-      <!-- ------------------------------------------------ Compte & confidentialité -->
-      <section class="card">
-        <h2>🔒 Compte & confidentialité</h2>
-
-        <h3>Qui peut suivre la course ?</h3>
-        <form id="privacyForm" class="alerts-form">
-          <label class="check"><input type="radio" name="mode" value="public"> 🌍 Tout le monde avec l'adresse du site</label>
-          <label class="check"><input type="radio" name="mode" value="link"> 🔑 Seulement les personnes à qui je donne le lien privé</label>
-        </form>
-        <div id="publicLinkBox"><p class="small">Lien à partager :</p><code id="publicLink" class="copy"></code></div>
-        <div id="privateLinkBox" hidden>
-          <p class="small">Lien privé à partager (cliquer pour copier) :</p>
-          <code id="privateLink" class="copy"></code>
-          <div class="row-buttons"><button id="newLinkBtn" type="button">Créer un nouveau lien (révoque l'ancien)</button></div>
-        </div>
-        <p id="retentionInfo" class="muted small"></p>
-
-        <h3>Mot de passe</h3>
-        <p id="passwordEnv" class="muted small" hidden>Le mot de passe est défini sur le serveur (variable ADMIN_PASSWORD).</p>
-        <form id="passwordForm" class="grid-form">
-          <input type="text" name="username" value="admin" autocomplete="username" hidden>
-          <label>Mot de passe actuel <input type="password" name="current" autocomplete="current-password" required></label>
-          <label>Nouveau (12 caractères min.) <input type="password" name="next" minlength="12" autocomplete="new-password" required></label>
-          <label>Confirmer <input type="password" name="confirm" minlength="12" autocomplete="new-password" required></label>
-          <button class="primary" type="submit">Changer le mot de passe</button>
-        </form>
-
-        <h3>Sessions et clés</h3>
-        <div class="row-buttons">
-          <button id="logoutAllBtn" type="button">Déconnecter tous les appareils</button>
-          <button id="rotateKey" type="button" class="danger">Régénérer la clé du traceur</button>
-        </div>
-        <p class="muted small">En cas de perte du téléphone ou de lien diffusé par erreur : régénère la clé du traceur (Traccar + lien SOS) et déconnecte tous les appareils.</p>
-      </section>
-
-      <!-- ------------------------------------------------ Coureur -->
-      <section class="card">
-        <h2>Le coureur</h2>
-        <form id="runnerForm" class="grid-form">
-          <div class="photo-field">
-            <div class="avatar" id="photoPreview"></div>
-            <div>
-              <input type="file" id="photoInput" accept="image/*">
-              <button type="button" id="photoRemove" class="link">Retirer la photo</button>
+        <!-- ============================================================ ALERTES -->
+        <section class="view" data-view="alertes" data-title="Alertes supporters" hidden>
+          <section class="card">
+            <div class="card-head">
+              <h2>Ce que reçoivent tes supporters</h2>
+              <span id="subscribers" class="badge"></span>
             </div>
-          </div>
-          <label>Nom affiché <input name="name" maxlength="80"></label>
-          <label>Dossard <input name="bib" maxlength="20"></label>
-          <label>Club <input name="club" maxlength="80"></label>
-          <label>Objectif <input name="goal" maxlength="120" placeholder="Ex : finir sous 3h30"></label>
-          <label class="full">Présentation <textarea name="bio" rows="4" maxlength="2000"></textarea></label>
-          <label class="full">Infos en plus <span class="muted small">(une par ligne, au format « Titre : valeur »)</span>
-            <textarea name="facts" rows="4" placeholder="Âge : 32 ans&#10;Record marathon : 3h41&#10;Instagram : @moi"></textarea>
-          </label>
-          <button class="primary" type="submit">Enregistrer</button>
-        </form>
-      </section>
-    </main>
+            <p class="muted small">Notification sur leur téléphone s'ils ont touché « 🔔 Être alerté », et bandeau sur la page publique.</p>
+            <form id="alertsForm" class="alerts-form">
+              <label class="check"><input type="checkbox" name="start"> 🏃 Départ donné</label>
+              <label class="check"><input type="checkbox" name="aidApproach"> 📍 Approche d'un ravito</label>
+              <label class="check"><input type="checkbox" name="aidPass"> 🥤 Passage à un ravito</label>
+              <label class="check"><input type="checkbox" name="halfway"> ⏱️ Mi-course</label>
+              <label class="check"><input type="checkbox" name="finishApproach"> 🏁 Arrivée imminente</label>
+              <label class="check"><input type="checkbox" name="finish"> 🎉 Arrivée (avec le temps final)</label>
+              <label class="check"><input type="checkbox" name="messages"> 💬 Mes messages</label>
+              <label class="check"><input type="checkbox" name="signalLost"> 📡 Plus de position reçue</label>
+              <div class="alerts-nums">
+                <label>Prévenir avant un ravito / l'arrivée (min) <input type="number" name="approachMinutes" min="1" max="30"></label>
+                <label>Alerte « plus de position » après (min) <input type="number" name="signalLostMinutes" min="2" max="60"></label>
+              </div>
+              <div class="row-buttons">
+                <button class="primary" type="submit">Enregistrer</button>
+                <button id="alertTest" type="button">Envoyer une alerte de test</button>
+              </div>
+            </form>
+          </section>
+          <section class="card">
+            <h2>Historique de la course en ligne</h2>
+            <ul id="alertLog" class="messages"></ul>
+          </section>
+        </section>
+
+        <!-- ============================================================ SÉCURITÉ -->
+        <section class="view" data-view="securite" data-title="Sécurité" hidden>
+          <section class="card safety-card" id="safetyCard">
+            <div class="card-head">
+              <h2>🛟 En cas de problème</h2>
+              <span class="badge">Privé</span>
+            </div>
+            <div id="sosActive" class="sos-active" hidden>
+              <strong id="sosActiveTitle"></strong>
+              <span id="sosActiveBody"></span>
+              <div class="row-buttons">
+                <a id="sosActiveMap" class="btn-link" target="_blank" rel="noopener">📍 Voir la position</a>
+                <button id="sosResolve" type="button">✅ Lever l'alerte</button>
+              </div>
+            </div>
+            <p class="muted small">Alertes réservées à toi et à tes contacts de confiance, jamais visibles par les supporters.</p>
+
+            <h3>1. Tes contacts de confiance</h3>
+            <ol class="steps small">
+              <li>Ils installent l'appli gratuite <strong>ntfy</strong> (<a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank" rel="noopener">iPhone</a> · <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener">Android</a>), sans compte.</li>
+              <li>Ils touchent <strong>+</strong> et s'abonnent au canal ci-dessous, ou ouvrent <a id="ntfyLink" target="_blank" rel="noopener">ce lien</a> sur leur téléphone.</li>
+            </ol>
+            <code id="ntfyTopic" class="copy big-code"></code>
+            <div class="row-buttons">
+              <button id="safetyTest" type="button">Envoyer un test aux contacts</button>
+              <button id="newChannel" type="button" class="link">Changer de canal</button>
+            </div>
+
+            <h3>2. Ton bouton SOS</h3>
+            <p class="small">Ouvre ce lien sur <strong>ton</strong> téléphone et ajoute-le à l'écran d'accueil. En course, un appui de 2 s envoie ta position à tes contacts, sans mot de passe.</p>
+            <code id="sosLink" class="copy"></code>
+            <div class="row-buttons">
+              <a id="sosOpen" class="btn-link" target="_blank" rel="noopener">Ouvrir la page SOS</a>
+              <button id="sosNow" type="button" class="danger">🆘 Envoyer un SOS maintenant</button>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Détections automatiques</h2>
+            <form id="safetyForm" class="alerts-form">
+              <label class="check"><input type="checkbox" name="stopped"> ⚠️ Immobile depuis <input type="number" name="stoppedMinutes" min="1" max="60" class="mini"> min</label>
+              <label class="check"><input type="checkbox" name="signalLost"> 📡 Plus de position depuis <input type="number" name="signalLostMinutes" min="2" max="60" class="mini"> min</label>
+              <label class="check"><input type="checkbox" name="offCourse"> 🧭 Hors parcours depuis <input type="number" name="offCourseMinutes" min="1" max="60" class="mini"> min</label>
+              <label class="check"><input type="checkbox" name="lowBattery"> 🔋 Batterie sous <input type="number" name="lowBatteryPercent" min="5" max="50" class="mini"> %</label>
+              <label class="check"><input type="checkbox" name="slowdown"> 🐢 Fort ralentissement</label>
+              <div class="row-buttons"><button class="primary" type="submit">Enregistrer</button></div>
+            </form>
+          </section>
+
+          <section class="card">
+            <h2>Historique</h2>
+            <ul id="safetyLog" class="messages"></ul>
+          </section>
+        </section>
+
+        <!-- ============================================================ PARAMÈTRES -->
+        <section class="view" data-view="parametres" data-title="Paramètres" hidden>
+          <section class="card">
+            <h2>👀 Qui peut suivre la course ?</h2>
+            <form id="privacyForm" class="alerts-form">
+              <label class="check"><input type="radio" name="mode" value="public"> 🌍 Tout le monde avec l'adresse du site</label>
+              <label class="check"><input type="radio" name="mode" value="link"> 🔑 Seulement les personnes à qui je donne le lien privé</label>
+            </form>
+            <div id="publicLinkBox"><p class="small">Lien à partager :</p><code id="publicLink" class="copy"></code></div>
+            <div id="privateLinkBox" hidden>
+              <p class="small">Lien privé à partager (touche pour copier) :</p>
+              <code id="privateLink" class="copy"></code>
+              <div class="row-buttons"><button id="newLinkBtn" type="button">Créer un nouveau lien (révoque l'ancien)</button></div>
+            </div>
+            <p id="retentionInfo" class="muted small"></p>
+          </section>
+
+          <section class="card" id="twoFactorCard">
+            <div class="card-head"><h2>🔐 Double authentification</h2><span id="twoFactorBadge" class="badge"></span></div>
+            <div id="tfOff">
+              <p class="small">En plus du mot de passe, un code à 6 chiffres affiché par une appli sur ton téléphone (Google Authenticator, Microsoft Authenticator, 1Password, Bitwarden…). Même si quelqu'un découvre ton mot de passe, il ne peut pas se connecter. <strong>Fortement recommandé.</strong></p>
+              <div class="row-buttons"><button id="tfSetupBtn" class="primary" type="button">Activer la double authentification</button></div>
+            </div>
+            <div id="tfSetup" hidden>
+              <ol class="steps small">
+                <li>Ouvre ton appli d'authentification et scanne ce QR code (ou saisis la clé à la main).</li>
+                <li>Entre le code à 6 chiffres qu'elle affiche.</li>
+              </ol>
+              <div class="tf-qr"><img id="tfQr" alt="QR code à scanner avec l'appli d'authentification"><code id="tfSecret" class="copy"></code></div>
+              <form id="tfEnableForm" class="inline-form">
+                <input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="6" required>
+                <button class="primary" type="submit">Valider</button>
+                <button id="tfCancel" type="button" class="link">Annuler</button>
+              </form>
+            </div>
+            <div id="tfCodes" hidden>
+              <p class="small"><strong>Codes de secours</strong> : chacun permet de te connecter <strong>une seule fois</strong> si tu perds ton téléphone. Note-les dans un endroit sûr (gestionnaire de mots de passe, papier). Ils ne seront plus affichés.</p>
+              <ul id="tfCodeList" class="code-list"></ul>
+              <div class="row-buttons"><button id="tfCopyCodes" type="button">Copier</button><button id="tfCodesDone" class="primary" type="button">C'est noté</button></div>
+            </div>
+            <div id="tfOn" hidden>
+              <p class="small">✅ Active. <span id="tfRecoveryLeft"></span></p>
+              <details>
+                <summary>Nouveaux codes de secours / désactiver</summary>
+                <form id="tfRegenForm" class="inline-form">
+                  <input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Code actuel" required>
+                  <button type="submit">Générer de nouveaux codes de secours</button>
+                </form>
+                <form id="tfDisableForm" class="inline-form">
+                  <input type="password" name="password" autocomplete="current-password" placeholder="Mot de passe" required>
+                  <input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Code" required>
+                  <button type="submit" class="danger">Désactiver</button>
+                </form>
+              </details>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>🔑 Mot de passe</h2>
+            <p id="passwordEnv" class="muted small" hidden>Le mot de passe est défini sur le serveur (variable ADMIN_PASSWORD).</p>
+            <form id="passwordForm" class="grid-form">
+              <input type="text" name="username" value="admin" autocomplete="username" hidden>
+              <label>Mot de passe actuel <input type="password" name="current" autocomplete="current-password" required></label>
+              <label>Nouveau (12 caractères min.) <input type="password" name="next" minlength="12" autocomplete="new-password" required></label>
+              <label>Confirmer <input type="password" name="confirm" minlength="12" autocomplete="new-password" required></label>
+              <button class="primary" type="submit">Changer le mot de passe</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <h2>🧯 Sessions et clés</h2>
+            <div class="row-buttons">
+              <button id="logoutAllBtn" type="button">Déconnecter tous les appareils</button>
+              <button id="rotateKey" type="button" class="danger">Régénérer la clé du traceur</button>
+            </div>
+            <p class="muted small">En cas de perte du téléphone ou de lien diffusé par erreur : régénère la clé du traceur (Traccar + lien SOS) et déconnecte tous les appareils.</p>
+          </section>
+        </section>
+      </main>
+    </div>
   </div>
 
-  <div id="toast" class="toast" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script src="/tiles.js"></script>

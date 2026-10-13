@@ -142,7 +142,15 @@ Au premier lancement sans `ADMIN_PASSWORD`, le mot de passe admin généré s'af
 docker compose logs app | grep "Mot de passe"
 ```
 
-Connecte-toi sur `https://suivi.mondomaine.fr/admin` et **change-le** tout de suite (section 🔒 Compte & confidentialité, 12 caractères minimum).
+Connecte-toi sur `https://suivi.mondomaine.fr/admin`, puis va dans ⚙️ **Paramètres** :
+1. **Change le mot de passe** (12 caractères minimum).
+2. **Active la double authentification** et range les codes de secours en lieu sûr.
+
+Si tu perds à la fois ton téléphone d'authentification et tes codes de secours, désactive la double authentification depuis le serveur :
+
+```bash
+docker compose run --rm app node server.js --disable-2fa
+```
 
 ### Protection de la branche main (recommandé)
 

@@ -63,6 +63,8 @@ function setConfig(c) {
   if (editId && !editedRace()) closeEditor();
   renderRaceList();
   renderLive();
+  renderChecklist();
+  renderTwoFactor();
 }
 
 // ---------------------------------------------------------------- connexion
@@ -81,13 +83,28 @@ async function logout(all) {
 $('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('loginError').textContent = '';
-  try {
-    await api('POST', '/api/login', { password: e.target.password.value });
-    e.target.reset();
+  const f = e.target;
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ password: f.password.value, code: f.code.value }),
+  }).catch(() => null);
+  if (!res) { $('loginError').textContent = 'Serveur injoignable'; return; }
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) {
+    f.reset();
+    $('codeField').hidden = true;
     start();
-  } catch (err) {
-    $('loginError').textContent = err.message;
+    return;
   }
+  if (data.need2fa) {
+    // mot de passe correct : deuxième étape, le code de l'appli d'authentification
+    $('codeField').hidden = false;
+    f.code.required = true;
+    f.code.focus();
+  }
+  $('loginError').textContent = data.error || `Erreur ${res.status}`;
 });
 
 let streamsStarted = false;
@@ -113,9 +130,148 @@ async function start() {
   }
 }
 
+// ---------------------------------------------------------------- navigation (menus)
+
+let currentView = 'direct';
+const VIEWS = ['direct', 'courses', 'profil', 'gps', 'alertes', 'securite', 'parametres'];
+
+function showView() {
+  const name = (location.hash.match(/^#\/([a-z]+)/) || [])[1];
+  currentView = VIEWS.includes(name) ? name : 'direct';
+  for (const v of document.querySelectorAll('.view')) v.hidden = v.dataset.view !== currentView;
+  for (const a of document.querySelectorAll('.nav a')) {
+    const on = a.dataset.view === currentView;
+    a.classList.toggle('active', on);
+    if (on) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  }
+  const view = document.querySelector(`.view[data-view="${currentView}"]`);
+  $('viewTitle').textContent = view.dataset.title;
+  document.title = `${view.dataset.title} · Zotracker`;
+  closeMenu();
+  window.scrollTo(0, 0);
+  // la carte de l'éditeur était masquée : recalcul de sa taille
+  if (currentView === 'courses' && editId) setTimeout(() => { adminMap.invalidateSize(); renderEditorCourse(true); }, 50);
+}
+
+function openMenu() {
+  document.body.classList.add('menu-open');
+  $('backdrop').hidden = false;
+  $('menuBtn').setAttribute('aria-expanded', 'true');
+}
+function closeMenu() {
+  document.body.classList.remove('menu-open');
+  $('backdrop').hidden = true;
+  $('menuBtn').setAttribute('aria-expanded', 'false');
+}
+$('menuBtn').addEventListener('click', () => (document.body.classList.contains('menu-open') ? closeMenu() : openMenu()));
+$('backdrop').addEventListener('click', closeMenu);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+window.addEventListener('hashchange', showView);
+
+/** « Prêt pour la course ? » : les étapes de configuration, avec un lien vers chaque menu. */
+function renderChecklist() {
+  const active = config.races.find((r) => r.id === config.activeRaceId);
+  const items = [
+    [!!config.runner.name, 'Renseigner ton profil (nom, photo…)', '#/profil'],
+    [config.races.length > 0, 'Créer ta course', '#/courses'],
+    [!!(active && active.course), 'Importer le parcours GPX de la course en ligne', '#/courses'],
+    [!!active, 'Mettre une course en ligne', '#/courses'],
+    [!!(active && (active.trackCount || active.session.status !== 'idle')), 'Tester l’envoi de ta position (Traccar)', '#/gps'],
+    [!!config.twoFactor.enabled, 'Activer la double authentification', '#/parametres'],
+  ];
+  const done = items.filter(([ok]) => ok).length;
+  $('checklistScore').textContent = `${done}/${items.length}`;
+  $('checklistScore').className = `badge ${done === items.length ? 'finished' : ''}`;
+  $('checklist').replaceChildren(...items.map(([ok, label, href]) =>
+    el('li', { class: ok ? 'done' : '' },
+      el('span', { class: 'check-ico', 'aria-hidden': 'true' }, ok ? '✓' : ''),
+      ok ? el('span', {}, label) : el('a', { href }, label),
+    )));
+  $('checklistCard').hidden = done === items.length && !!active && active.session.status === 'running';
+}
+
+// ---------------------------------------------------------------- double authentification
+
+function renderTwoFactor() {
+  const tf = config.twoFactor;
+  $('twoFactorBadge').textContent = tf.enabled ? 'Active' : 'Inactive';
+  $('twoFactorBadge').className = `badge ${tf.enabled ? 'finished' : ''}`;
+  if (!$('tfCodes').hidden || !$('tfSetup').hidden) return; // configuration en cours
+  $('tfOff').hidden = tf.enabled;
+  $('tfOn').hidden = !tf.enabled;
+  $('tfRecoveryLeft').textContent = `${tf.recoveryLeft} code${tf.recoveryLeft > 1 ? 's' : ''} de secours restant${tf.recoveryLeft > 1 ? 's' : ''}.`;
+}
+
+function showRecoveryCodes(codes) {
+  $('tfSetup').hidden = true;
+  $('tfOff').hidden = true;
+  $('tfOn').hidden = true;
+  $('tfCodes').hidden = false;
+  $('tfCodeList').replaceChildren(...codes.map((c) => el('li', {}, el('code', {}, c))));
+  $('tfCopyCodes').onclick = () => navigator.clipboard?.writeText(codes.join('\n')).then(() => toast('Codes copiés'));
+}
+
+$('tfSetupBtn').addEventListener('click', action(async () => {
+  const r = await api('POST', '/api/admin/2fa/setup');
+  $('tfQr').src = r.qr;
+  $('tfSecret').textContent = r.secret;
+  $('tfOff').hidden = true;
+  $('tfSetup').hidden = false;
+  $('tfEnableForm').code.focus();
+}));
+$('tfSecret').addEventListener('click', () => navigator.clipboard?.writeText($('tfSecret').textContent.replace(/\s/g, '')).then(() => toast('Clé copiée')));
+$('tfCancel').addEventListener('click', () => { $('tfSetup').hidden = true; renderTwoFactor(); });
+
+$('tfEnableForm').addEventListener('submit', action(async (e) => {
+  e.preventDefault();
+  const r = await api('POST', '/api/admin/2fa/enable', { code: e.target.code.value });
+  e.target.reset();
+  config.twoFactor = r.twoFactor;
+  showRecoveryCodes(r.recoveryCodes);
+  renderChecklist();
+  toast('Double authentification activée');
+}));
+
+$('tfCodesDone').addEventListener('click', () => {
+  if (!confirm('As-tu bien noté tes codes de secours ? Ils ne seront plus affichés.')) return;
+  $('tfCodes').hidden = true;
+  renderTwoFactor();
+});
+
+$('tfRegenForm').addEventListener('submit', action(async (e) => {
+  e.preventDefault();
+  const r = await api('POST', '/api/admin/2fa/recovery', { code: e.target.code.value });
+  e.target.reset();
+  config.twoFactor = r.twoFactor;
+  showRecoveryCodes(r.recoveryCodes);
+}));
+
+$('tfDisableForm').addEventListener('submit', action(async (e) => {
+  e.preventDefault();
+  if (!confirm('Désactiver la double authentification ? Ton compte sera moins protégé.')) return;
+  const c = await api('POST', '/api/admin/2fa/disable', { password: e.target.password.value, code: e.target.code.value });
+  e.target.reset();
+  setConfig(c);
+  toast('Double authentification désactivée');
+}));
+
 // ---------------------------------------------------------------- course en ligne
 
+function renderTopStatus() {
+  const race = config.races.find((r) => r.id === config.activeRaceId);
+  const status = live && live.race ? live.session.status : race ? race.session.status : null;
+  const top = $('topStatus');
+  top.className = `badge ${status || ''}`;
+  top.textContent = !race ? 'Aucune course en ligne' : status === 'running' ? '● En course' : status === 'finished' ? 'Terminée' : 'En ligne';
+  $('navLiveDot').hidden = status !== 'running';
+  const sos = config.safety && config.safety.sos;
+  $('navSosDot').hidden = !sos;
+  $('sosBanner').hidden = !sos;
+}
+
 function renderLive() {
+  renderTopStatus();
   const race = config.races.find((r) => r.id === config.activeRaceId);
   $('noLive').hidden = !!race;
   $('liveControls').hidden = !race;
@@ -254,6 +410,7 @@ for (const id of ['ntfyTopic', 'sosLink']) {
 }
 
 function renderSafety() {
+  if (config.races) renderTopStatus();
   const sf = config.safety || { alerts: [], sos: null };
   const sos = sf.sos;
   $('sosActive').hidden = !sos;
@@ -442,11 +599,12 @@ $('newRaceBtn').addEventListener('click', action(async () => {
 // ---------------------------------------------------------------- édition d'une course
 
 const adminMap = L.map('adminMap').setView([46.6, 2.4], 5);
-ZT.tileLayer().addTo(adminMap);
+ZT.addTiles(adminMap);
 const courseLine = L.polyline([], { color: '#6b7a99', weight: 4 }).addTo(adminMap);
 const aidLayer = L.layerGroup().addTo(adminMap);
 
 function openEditor(id, scroll = true) {
+  if (currentView !== 'courses') location.hash = '#/courses';
   editId = id;
   const r = editedRace();
   editAid = r.aidStations.map((a) => ({ ...a }));
@@ -461,7 +619,7 @@ function openEditor(id, scroll = true) {
   renderAidList();
   renderEditorCourse(false);
   renderRaceList();
-  if (scroll) $('raceEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (scroll) setTimeout(() => $('raceEditor').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   // la carte était masquée : on recalcule sa taille avant de cadrer le parcours
   setTimeout(() => { adminMap.invalidateSize(); renderEditorCourse(true); }, 50);
 }
@@ -742,4 +900,5 @@ function connectStream() {
 }
 
 setInterval(() => config && renderLive(), 15_000);
+showView();
 start();
