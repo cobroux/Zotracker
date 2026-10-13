@@ -10,9 +10,13 @@ const { addPosition } = require('./lib/tracker');
 const alerts = require('./lib/alerts');
 const safety = require('./lib/safety');
 const { Push } = require('./lib/push');
+const sec = require('./lib/security');
+const { safeEqual } = sec;
 
 const PORT = process.env.PORT || 3000;
 const store = new Store(process.env.DATA_DIR || path.join(__dirname, 'data'));
+const RETENTION_DAYS = Number(process.env.TRACK_RETENTION_DAYS || 90); // 0 = conserver indéfiniment
+const PUSH_EXTRA_HOSTS = (process.env.PUSH_ALLOWED_HOSTS || '').split(',').map((h) => h.trim()).filter(Boolean);
 const secrets = store.secrets();
 const state = store.state;
 const push = new Push(state, secrets.vapid, process.env.VAPID_SUBJECT || 'mailto:zotracker@example.com', () => store.save());
@@ -20,13 +24,43 @@ const alertSettings = () => alerts.normalizeSettings(state.alertSettings);
 const NTFY_SERVER = (process.env.NTFY_SERVER || 'https://ntfy.sh').replace(/\/+$/, '');
 // génère et mémorise le canal privé des contacts au premier lancement
 state.safetySettings = safety.normalizeSafety({}, state.safetySettings || {});
+// confidentialité de la page publique : ouverte à tous ou réservée aux détenteurs du lien privé
+state.privacy = { mode: state.privacy && state.privacy.mode === 'link' ? 'link' : 'public', viewKey: (state.privacy && state.privacy.viewKey) || sec.randomKey(12) };
 store.save();
 
 const app = express();
-app.set('trust proxy', true);
-app.use(express.json({ limit: '15mb' }));
-app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.disable('x-powered-by');
+// Ne faire confiance à X-Forwarded-For que pour le reverse proxy local (Caddy) : sinon un
+// attaquant pourrait changer d'IP à volonté et contourner les limites de débit.
+app.set('trust proxy', process.env.TRUST_PROXY || 'loopback, linklocal, uniquelocal');
+app.use(sec.securityHeaders());
+
+// Journal d'accès minimal : jamais de query string (elle peut contenir des clés).
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    if (req.method === 'GET' && res.statusCode < 400) return;
+    if (req.path === '/api/ingest' && res.statusCode < 400) return;
+    console.log(`${new Date().toISOString()} ${req.method} ${req.path} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
+});
+
+// Taille maximale des requêtes selon la route (gros fichiers GPX seulement côté admin).
+const jsonSmall = express.json({ limit: '64kb' });
+const jsonLarge = {
+  '/api/admin/runner': express.json({ limit: '1mb' }),
+  '/api/admin/positions': express.json({ limit: '2mb' }),
+};
+const jsonGpx = express.json({ limit: '15mb' });
+app.use((req, res, next) => {
+  if (/^\/api\/admin\/races\/[^/]+\/course$/.test(req.path)) return jsonGpx(req, res, next);
+  return (jsonLarge[req.path] || jsonSmall)(req, res, next);
+});
+app.use(express.urlencoded({ extended: false, limit: '16kb' }));
+
+app.get('/healthz', (req, res) => res.json({ ok: true }));
+app.use(express.static(path.join(__dirname, 'public'), { index: 'index.html' }));
 app.use('/vendor/leaflet', express.static(path.dirname(require.resolve('leaflet/dist/leaflet.js'))));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/sos', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sos.html')));
@@ -47,7 +81,7 @@ function broadcast(event, data) {
 
 setInterval(() => {
   for (const res of clients) res.write(': ping\n\n');
-}, 25_000);
+}, 25_000).unref();
 
 const compactPoint = (p) => [p.lat, p.lon, p.t, p.along];
 
@@ -61,6 +95,9 @@ const raceInfo = (r) => ({
   aidStations: r.aidStations,
 });
 
+/** Session sans les détails internes (batterie, horodatages techniques) : minimisation des données. */
+const publicSession = (s) => ({ status: s.status, startedAt: s.startedAt, finishedAt: s.finishedAt, progress: s.progress, offCourse: s.offCourse });
+
 /** Ce que voit la page publique : le profil + la course actuellement en ligne. */
 function publicState() {
   const race = activeRace();
@@ -68,7 +105,7 @@ function publicState() {
     runner: state.runner,
     race: race ? raceInfo(race) : null,
     course: race ? race.course : null,
-    session: race ? race.session : defaultSession(),
+    session: race ? publicSession(race.session) : defaultSession(),
     track: race ? race.track.map(compactPoint) : [],
     messages: race ? race.messages : [],
     alerts: race ? race.alerts.slice(0, 50) : [],
@@ -83,7 +120,29 @@ function notifyIfActive(race, event = 'full') {
   }
 }
 
-app.get('/api/stream', (req, res) => {
+/** Page publique en mode « lien privé » : la clé du lien est exigée. */
+function requireViewer(req, res, next) {
+  if (state.privacy.mode !== 'link' || isAdmin(req)) return next();
+  const k = req.query.k || (req.body && req.body.k);
+  if (safeEqual(String(k || ''), state.privacy.viewKey)) return next();
+  res.status(403).json({ error: 'private', message: 'Ce suivi est privé : il faut le lien partagé par le coureur.' });
+}
+
+// limite les connexions temps réel simultanées par IP (évite l'épuisement des ressources)
+const streamsByIp = new Map();
+function limitStreams(req, res, next) {
+  const n = streamsByIp.get(req.ip) || 0;
+  if (n >= 20 || clients.size >= 5000) return res.status(429).end();
+  streamsByIp.set(req.ip, n + 1);
+  res.on('close', () => {
+    const left = (streamsByIp.get(req.ip) || 1) - 1;
+    if (left <= 0) streamsByIp.delete(req.ip);
+    else streamsByIp.set(req.ip, left);
+  });
+  next();
+}
+
+app.get('/api/stream', limitStreams, requireViewer, (req, res) => {
   res.set({
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
@@ -97,47 +156,46 @@ app.get('/api/stream', (req, res) => {
   req.on('close', () => clients.delete(res));
 });
 
-app.get('/api/state', (req, res) => res.json(publicState()));
+app.get('/api/state', requireViewer, (req, res) => res.json(publicState()));
+app.get('/api/access', (req, res) => res.json({ mode: state.privacy.mode }));
 
 // ---------------------------------------------------------------- authentification
 
-const adminToken = crypto
-  .createHmac('sha256', secrets.tokenSecret)
-  .update('admin:' + secrets.adminPassword)
-  .digest('hex');
+const loginLimiter = sec.rateLimit({ windowMs: 15 * 60_000, max: 10, message: 'Trop de tentatives de connexion, réessaie dans 15 minutes.' });
+const failedLogins = new Map(); // IP -> échecs consécutifs (ralentissement progressif)
 
-function safeEqual(a, b) {
-  const ba = Buffer.from(String(a));
-  const bb = Buffer.from(String(b));
-  return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
-}
-
-const loginAttempts = new Map();
-app.post('/api/login', (req, res) => {
-  const ip = req.ip;
-  const entry = loginAttempts.get(ip) || { count: 0, until: 0 };
-  if (entry.until > Date.now()) return res.status(429).json({ error: 'Trop de tentatives, réessaie dans une minute.' });
-
-  if (!safeEqual(req.body.password || '', secrets.adminPassword)) {
-    entry.count++;
-    if (entry.count >= 5) Object.assign(entry, { count: 0, until: Date.now() + 60_000 });
-    loginAttempts.set(ip, entry);
+app.post('/api/login', loginLimiter, async (req, res) => {
+  const fails = failedLogins.get(req.ip) || 0;
+  if (fails) await new Promise((r) => setTimeout(r, Math.min(5000, 250 * 2 ** fails)));
+  const ok = await sec.verifyPasswordAsync(String((req.body && req.body.password) || ''), secrets.passwordHash);
+  if (!ok) {
+    failedLogins.set(req.ip, fails + 1);
+    console.warn(`${new Date().toISOString()} échec de connexion admin depuis ${req.ip}`);
     return res.status(401).json({ error: 'Mot de passe incorrect.' });
   }
-  loginAttempts.delete(ip);
-  res.json({ token: adminToken });
+  failedLogins.delete(req.ip);
+  res.set('Set-Cookie', sec.sessionCookie(req, sec.signSession(secrets.tokenSecret, secrets.sessionVersion), sec.SESSION_TTL));
+  res.json({ ok: true });
 });
 
+app.post('/api/logout', (req, res) => {
+  res.set('Set-Cookie', sec.sessionCookie(req, '', 0));
+  res.json({ ok: true });
+});
+
+const isAdmin = (req) => sec.verifySession(sec.parseCookies(req.get('cookie'))[sec.SESSION_COOKIE], secrets.tokenSecret, secrets.sessionVersion);
+
 function requireAdmin(req, res, next) {
-  const token = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!safeEqual(token, adminToken)) return res.status(401).json({ error: 'Non autorisé' });
+  if (!isAdmin(req)) return res.status(401).json({ error: 'Non autorisé' });
+  // anti-CSRF : toute modification doit venir de nos propres pages
+  if (req.method !== 'GET' && !sec.sameOrigin(req)) return res.status(403).json({ error: 'Origine refusée' });
   next();
 }
 
-// Flux privé de l'admin (alertes de sécurité). EventSource ne permet pas d'en-tête : jeton en paramètre.
+// Flux privé de l'admin (alertes de sécurité), authentifié par le cookie de session.
 const adminClients = new Set();
 app.get('/api/admin/stream', (req, res) => {
-  if (!safeEqual(String(req.query.token || ''), adminToken)) return res.status(401).end();
+  if (!isAdmin(req)) return res.status(401).end();
   res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
   res.flushHeaders();
   res.write('retry: 3000\n\n');
@@ -146,7 +204,7 @@ app.get('/api/admin/stream', (req, res) => {
 });
 setInterval(() => {
   for (const res of adminClients) res.write(': ping\n\n');
-}, 25_000);
+}, 25_000).unref();
 
 function broadcastAdmin(event, data) {
   for (const res of adminClients) send(res, event, data);
@@ -173,6 +231,10 @@ function adminConfig() {
     trackerKey: secrets.trackerKey,
     alertSettings: alertSettings(),
     safetySettings: state.safetySettings,
+    privacy: state.privacy,
+    passwordFromEnv: secrets.passwordFromEnv,
+    trackerKeyFromEnv: secrets.trackerKeyFromEnv,
+    retentionDays: RETENTION_DAYS,
     ntfyServer: NTFY_SERVER,
     safety: activeRace() ? safety.ensureSafety(activeRace()) : { alerts: [], sos: null },
     subscribers: push.count,
@@ -346,7 +408,7 @@ admin.post('/session/finish', requireActive, (req, res) => {
     race.session.status = 'finished';
     race.session.finishedAt = Date.now();
     store.save();
-    broadcast('session', race.session);
+    broadcast('session', publicSession(race.session));
     checkAlerts();
   }
   res.json(race.session);
@@ -358,7 +420,7 @@ admin.post('/session/resume', requireActive, (req, res) => {
     race.session.status = 'running';
     race.session.finishedAt = null;
     store.save();
-    broadcast('session', race.session);
+    broadcast('session', publicSession(race.session));
   }
   res.json(race.session);
 });
@@ -386,7 +448,7 @@ function ingest(points) {
   }
   if (added.length) {
     store.save();
-    broadcast('positions', { points: added.map(compactPoint), session: race.session });
+    broadcast('positions', { points: added.map(compactPoint), session: publicSession(race.session) });
     checkAlerts();
   }
   return { received: points.length, added: added.length, status: race.session.status };
@@ -420,7 +482,8 @@ admin.delete('/messages/:id', requireActive, (req, res) => {
 
 // ------------------------------------------- applis GPS externes (OsmAnd, GPSLogger, Traccar Client…)
 
-app.all('/api/ingest', (req, res) => {
+const ingestLimiter = sec.rateLimit({ windowMs: 60_000, max: 120 });
+app.all('/api/ingest', ingestLimiter, (req, res) => {
   const q = { ...req.query, ...(typeof req.body === 'object' ? req.body : {}) };
   // Traccar Client (versions récentes) envoie {location: {coords: {...}, timestamp}}
   const loc = q.location && q.location.coords ? q.location : null;
@@ -513,7 +576,7 @@ function triggerSos({ lat, lon, acc, note, source, cancel }) {
 }
 
 // Page SOS du coureur : protégée par la clé du traceur (pas besoin de se connecter en pleine course)
-app.post('/api/sos', async (req, res) => {
+app.post('/api/sos', sec.rateLimit({ windowMs: 60_000, max: 10 }), async (req, res) => {
   const b = req.body || {};
   if (!safeEqual(String(b.key || ''), secrets.trackerKey)) return res.status(401).json({ error: 'Lien SOS invalide' });
   const { alert, delivered } = triggerSos({ lat: Number(b.lat), lon: Number(b.lon), acc: Number(b.acc), note: b.note, source: b.source, cancel: !!b.cancel });
@@ -542,20 +605,24 @@ admin.post('/safety/test', async (req, res) => {
   const a = safety.makeAlert(null, 'test', '🔔 Test des alertes de sécurité', `Tu recevras ici les alertes privées concernant ${safety.firstName(state.runner)} pendant ses courses.`, null);
   res.json({ delivered: await dispatchSafety(a) });
 });
-setInterval(checkAlerts, 20_000); // ETA et perte de signal évoluent avec le temps
+setInterval(checkAlerts, 20_000).unref(); // ETA et perte de signal évoluent avec le temps
 
-app.get('/api/push/key', (req, res) => res.json({ publicKey: push.publicKey }));
+app.get('/api/push/key', requireViewer, (req, res) => res.json({ publicKey: push.publicKey }));
 
-app.post('/api/push/subscribe', (req, res) => {
+const pushLimiter = sec.rateLimit({ windowMs: 60 * 60_000, max: 20 });
+app.post('/api/push/subscribe', pushLimiter, requireViewer, (req, res) => {
   try {
-    push.subscribe(req.body && req.body.subscription);
+    const sub = req.body && req.body.subscription;
+    // anti-SSRF : on n'enverra des notifications qu'aux services push des navigateurs
+    if (!sub || !sec.isAllowedPushEndpoint(sub.endpoint, PUSH_EXTRA_HOSTS)) throw new Error('Service de notification non reconnu');
+    push.subscribe(sub);
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-app.post('/api/push/unsubscribe', (req, res) => {
+app.post('/api/push/unsubscribe', pushLimiter, (req, res) => {
   push.unsubscribe(String((req.body && req.body.endpoint) || ''));
   res.json({ ok: true });
 });
@@ -573,22 +640,103 @@ admin.post('/alerts/test', async (req, res) => {
   res.json(result);
 });
 
-// ---------------------------------------------------------------- démarrage
+// ---------------------------------------------------------------- admin : compte et confidentialité
 
-const server = app.listen(PORT, () => {
-  console.log(`Zotracker démarré sur http://localhost:${PORT}`);
-  console.log(`  Page publique : http://localhost:${PORT}/`);
-  console.log(`  Admin         : http://localhost:${PORT}/admin`);
-  if (secrets.generatedPassword) {
-    console.log(`  Mot de passe admin (généré, défini ADMIN_PASSWORD pour le changer) : ${secrets.adminPassword}`);
-  }
+admin.put('/password', async (req, res) => {
+  if (secrets.passwordFromEnv) return res.status(409).json({ error: 'Le mot de passe est défini par la variable ADMIN_PASSWORD du serveur.' });
+  const { current, next } = req.body || {};
+  if (!(await sec.verifyPasswordAsync(String(current || ''), secrets.passwordHash))) return res.status(403).json({ error: 'Mot de passe actuel incorrect.' });
+  if (typeof next !== 'string' || next.length < 12) return res.status(400).json({ error: 'Le nouveau mot de passe doit faire au moins 12 caractères.' });
+  // nouveau mot de passe + déconnexion de toutes les autres sessions
+  secrets.update({ adminPasswordHash: sec.hashPassword(next), sessionVersion: secrets.sessionVersion + 1 });
+  res.set('Set-Cookie', sec.sessionCookie(req, sec.signSession(secrets.tokenSecret, secrets.sessionVersion), sec.SESSION_TTL));
+  res.json({ ok: true });
 });
 
-function shutdown() {
-  store.flush();
-  server.close(() => process.exit(0));
-  for (const res of clients) res.end();
-  setTimeout(() => process.exit(0), 2000).unref();
+admin.post('/logout-all', (req, res) => {
+  secrets.update({ sessionVersion: secrets.sessionVersion + 1 });
+  res.set('Set-Cookie', sec.sessionCookie(req, '', 0));
+  res.json({ ok: true });
+});
+
+admin.post('/tracker-key/rotate', (req, res) => {
+  if (secrets.trackerKeyFromEnv) return res.status(409).json({ error: 'La clé est définie par la variable TRACKER_KEY du serveur.' });
+  secrets.update({ trackerKey: sec.randomKey(18) });
+  res.json(adminConfig());
+});
+
+admin.put('/privacy', (req, res) => {
+  const mode = req.body && req.body.mode === 'link' ? 'link' : 'public';
+  // passage en privé : les abonnés aux notifications qui n'avaient pas le lien sont retirés
+  if (mode === 'link' && state.privacy.mode !== 'link') state.pushSubscriptions = [];
+  state.privacy.mode = mode;
+  store.save();
+  if (mode === 'link') for (const c of clients) c.end();
+  // les pages ouvertes sans le lien sont déconnectées au prochain rechargement
+  res.json(adminConfig());
+});
+
+admin.post('/privacy/new-link', (req, res) => {
+  state.privacy.viewKey = sec.randomKey(12);
+  state.pushSubscriptions = []; // révoque aussi les notifications de l'ancien lien
+  store.save();
+  for (const c of clients) c.end(); // coupe les flux ouverts avec l'ancien lien
+  res.json(adminConfig());
+});
+
+// ---------------------------------------------------------------- conservation des données
+
+/** Efface les positions GPS des courses terminées depuis plus de RETENTION_DAYS jours. */
+function purgeOldTracks(now = Date.now()) {
+  if (!RETENTION_DAYS) return;
+  let changed = false;
+  for (const race of state.races) {
+    const done = race.session.finishedAt;
+    if (race.session.status === 'finished' && done && now - done > RETENTION_DAYS * 86_400_000 && race.track.length) {
+      race.track = [];
+      race.trackPurgedAt = now;
+      race.safety = { alerts: [], fired: {}, sos: null };
+      changed = true;
+    }
+  }
+  if (changed) store.save();
 }
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+purgeOldTracks();
+setInterval(purgeOldTracks, 6 * 3600_000).unref();
+
+// ---------------------------------------------------------------- erreurs
+
+app.use('/api', (req, res) => res.status(404).json({ error: 'Introuvable' }));
+
+// Réponses d'erreur génériques : jamais de pile d'appels ni de détail interne côté client.
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 600 ? err.status : 500;
+  if (status >= 500) console.error(`${new Date().toISOString()} ${req.method} ${req.path}`, err);
+  const messages = { 400: 'Requête invalide', 413: 'Requête trop volumineuse', 415: 'Format non pris en charge' };
+  res.status(status).json({ error: messages[status] || (status >= 500 ? 'Erreur serveur' : 'Requête refusée') });
+});
+
+// ---------------------------------------------------------------- démarrage
+
+function start(port = PORT) {
+  const server = app.listen(port, () => {
+    console.log(`Zotracker démarré sur le port ${server.address().port}`);
+    if (secrets.generatedPassword) {
+      console.log(`  Mot de passe admin généré (affiché une seule fois, change-le dans l'admin) : ${secrets.generatedPassword}`);
+    }
+    if (!secrets.passwordFromEnv && !secrets.generatedPassword) console.log('  Mot de passe admin : celui défini dans l’admin (stocké haché).');
+  });
+  const shutdown = () => {
+    store.flush();
+    server.close(() => process.exit(0));
+    for (const res of [...clients, ...adminClients]) res.end();
+    setTimeout(() => process.exit(0), 2000).unref();
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+  return server;
+}
+
+if (require.main === module) start();
+
+module.exports = { app, start, store, secrets, state };

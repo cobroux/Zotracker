@@ -16,7 +16,7 @@ ADMIN_PASSWORD=monMotDePasse npm start
 
 Ensuite, ouvre http://localhost:3000/admin pour la configuration et http://localhost:3000 pour la page publique.
 
-Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et affiché dans la console. Il est conservé dans `data/secrets.json`.
+Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et affiché **une seule fois** dans la console. Il est stocké haché (scrypt) dans `data/secrets.json`, et tu peux le changer depuis l'admin (section 🔒 Compte & confidentialité).
 
 | Variable | Rôle | Défaut |
 | --- | --- | --- |
@@ -26,6 +26,9 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `DATA_DIR` | Dossier de stockage (état JSON) | `./data` |
 | `NTFY_SERVER` | Serveur ntfy des alertes de sécurité | `https://ntfy.sh` |
 | `VAPID_SUBJECT` | Contact pour les notifications push | `mailto:zotracker@example.com` |
+| `TRACK_RETENTION_DAYS` | Positions GPS effacées N jours après la course (0 = jamais) | `90` |
+| `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client | `loopback, linklocal, uniquelocal` |
+| `PUSH_ALLOWED_HOSTS` | Services push supplémentaires autorisés (séparés par des virgules) | — |
 
 ## Préparer ses courses
 
@@ -108,21 +111,20 @@ Pour une course longue, utilise plutôt une appli de suivi qui fonctionne en arr
 - Sans parcours GPX, la distance est cumulée directement à partir des points GPS.
 - L'heure d'arrivée estimée fait la moyenne entre l'allure moyenne et l'allure des 5 dernières minutes.
 
-## Mise en ligne
+## Mise en ligne et sécurité
 
-C'est une simple application Node.js (Node 18 ou plus) qui stocke ses données dans un fichier JSON. Pour la mettre en ligne :
+- **[docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md)** : mise en ligne pas à pas sur un petit serveur. Elle couvre Docker durci, le HTTPS automatique avec Caddy, le déploiement continu depuis GitHub avec retour arrière automatique, et les sauvegardes chiffrées.
+- **[SECURITY.md](SECURITY.md)** : les données stockées, les protections en place et la marche à suivre en cas de problème (téléphone perdu, lien diffusé…).
 
-- **VPS** : `npm ci --omit=dev && ADMIN_PASSWORD=… npm start`, derrière un reverse proxy HTTPS (Caddy, nginx).
-- **Docker** : `docker build -t zotracker . && docker run -p 3000:3000 -e ADMIN_PASSWORD=… -v zotracker-data:/app/data zotracker`
-- **Render / Railway / Fly.io** : il faut un **disque persistant** monté sur `DATA_DIR`, sinon les données sont perdues à chaque redémarrage.
-
-Le **HTTPS est obligatoire** pour que le navigateur du téléphone accepte de donner sa position.
+Le **HTTPS est obligatoire** pour que le navigateur du téléphone accepte de donner sa position et pour recevoir les notifications.
 
 ## Développement
 
 ```bash
 npm run dev   # redémarre automatiquement à chaque modification
-npm test      # tests du calcul de progression et du parsing GPX
+npm test      # tests : calculs, alertes, sécurité (en-têtes, sessions, CSRF, SSRF…)
+npm run check # vérification de syntaxe
+npm run audit # vulnérabilités connues des dépendances
 ```
 
 Structure :
@@ -136,8 +138,11 @@ lib/stats.js       allure et heures de passage estimées
 lib/alerts.js      règles d'alerte (ravitos, mi-course, arrivée, perte de signal)
 lib/push.js        envoi des notifications Web Push
 lib/safety.js      alertes de sécurité privées (immobilité, signal, batterie…)
+lib/security.js    mots de passe, sessions, anti-CSRF, limites de débit, en-têtes, anti-SSRF
 public/sos.html    page SOS du coureur (appui long)
 public/sw.js       service worker qui affiche les notifications
 lib/store.js       stockage JSON + secrets
 public/            page publique (index.html, app.js), admin (admin.html, admin.js)
+deploy/            production : docker-compose, Caddyfile, scripts de déploiement et de sauvegarde
+.github/           CI (tests, audit, secrets, scan d'image), CodeQL, déploiement continu, Dependabot
 ```

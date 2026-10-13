@@ -1,3 +1,7 @@
-node_modules
-data
-.git
+# Uniquement le nécessaire dans le contexte de build (jamais de secrets ni de données)
+*
+!package.json
+!package-lock.json
+!server.js
+!lib/
+!public/

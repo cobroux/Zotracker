@@ -25,7 +25,10 @@
   <div id="app" hidden>
     <header class="admin-bar">
       <strong>Zotracker · Admin</strong>
-      <a href="/" target="_blank" rel="noopener">Page publique ↗</a>
+      <span class="bar-actions">
+        <a href="/" target="_blank" rel="noopener">Page publique ↗</a>
+        <button id="logoutBtn" type="button" class="link">Déconnexion</button>
+      </span>
     </header>
 
     <main class="admin-main">
@@ -199,6 +202,41 @@
         </div>
         <p id="courseInfo" class="small"></p>
         <div id="adminMap" class="admin-map"></div>
+      </section>
+
+      <!-- ------------------------------------------------ Compte & confidentialité -->
+      <section class="card">
+        <h2>🔒 Compte & confidentialité</h2>
+
+        <h3>Qui peut suivre la course ?</h3>
+        <form id="privacyForm" class="alerts-form">
+          <label class="check"><input type="radio" name="mode" value="public"> 🌍 Tout le monde avec l'adresse du site</label>
+          <label class="check"><input type="radio" name="mode" value="link"> 🔑 Seulement les personnes à qui je donne le lien privé</label>
+        </form>
+        <div id="publicLinkBox"><p class="small">Lien à partager :</p><code id="publicLink" class="copy"></code></div>
+        <div id="privateLinkBox" hidden>
+          <p class="small">Lien privé à partager (cliquer pour copier) :</p>
+          <code id="privateLink" class="copy"></code>
+          <div class="row-buttons"><button id="newLinkBtn" type="button">Créer un nouveau lien (révoque l'ancien)</button></div>
+        </div>
+        <p id="retentionInfo" class="muted small"></p>
+
+        <h3>Mot de passe</h3>
+        <p id="passwordEnv" class="muted small" hidden>Le mot de passe est défini sur le serveur (variable ADMIN_PASSWORD).</p>
+        <form id="passwordForm" class="grid-form">
+          <input type="text" name="username" value="admin" autocomplete="username" hidden>
+          <label>Mot de passe actuel <input type="password" name="current" autocomplete="current-password" required></label>
+          <label>Nouveau (12 caractères min.) <input type="password" name="next" minlength="12" autocomplete="new-password" required></label>
+          <label>Confirmer <input type="password" name="confirm" minlength="12" autocomplete="new-password" required></label>
+          <button class="primary" type="submit">Changer le mot de passe</button>
+        </form>
+
+        <h3>Sessions et clés</h3>
+        <div class="row-buttons">
+          <button id="logoutAllBtn" type="button">Déconnecter tous les appareils</button>
+          <button id="rotateKey" type="button" class="danger">Régénérer la clé du traceur</button>
+        </div>
+        <p class="muted small">En cas de perte du téléphone ou de lien diffusé par erreur : régénère la clé du traceur (Traccar + lien SOS) et déconnecte tous les appareils.</p>
       </section>
 
       <!-- ------------------------------------------------ Coureur -->

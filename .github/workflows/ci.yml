@@ -1,0 +1,111 @@
+# Intégration continue : tests, audit des dépendances, recherche de secrets,
+# construction et scan de vulnérabilités de l'image Docker.
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  schedule:
+    - cron: "23 4 * * 1" # chaque lundi : détecte les nouvelles vulnérabilités même sans changement
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+
+jobs:
+  test:
+    name: Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm test
+
+  audit:
+    name: Audit des dépendances
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Vulnérabilités connues (prod)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Signatures et provenance des paquets npm
+        run: npm audit signatures
+
+  secrets:
+    name: Recherche de secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  image:
+    name: Image Docker (build, scan, test de démarrage)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: zotracker:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Scan de vulnérabilités (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: zotracker:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Démarrage avec le durcissement de production
+        run: |
+          docker run -d --name zt --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges:true -e ADMIN_PASSWORD=ci-password-123456 \
+            -p 127.0.0.1:3000:3000 zotracker:ci
+          for i in $(seq 1 30); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' zt)" = healthy ] && break
+            sleep 2
+          done
+          docker inspect -f '{{.State.Health.Status}}' zt | grep -q healthy
+          curl -fsS http://127.0.0.1:3000/healthz
+          test "$(docker exec zt id -u)" = 1000
+          ! docker exec zt sh -c 'touch /app/x' 2>/dev/null
+      - if: failure()
+        run: docker logs zt || true

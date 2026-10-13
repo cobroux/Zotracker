@@ -1,0 +1,11 @@
+# Recherche de secrets : règles par défaut de gitleaks.
+# Seules exceptions : les valeurs factices des tests et du test de démarrage en CI.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Mots de passe et clés factices utilisés uniquement par les tests"
+paths = [
+  '''^test/''',
+  '''^\.github/workflows/ci\.yml$''',
+]

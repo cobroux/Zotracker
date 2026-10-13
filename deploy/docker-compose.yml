@@ -1,0 +1,72 @@
+# Déploiement de production : Zotracker derrière Caddy (HTTPS automatique Let's Encrypt).
+# Sur le serveur : /opt/zotracker/{docker-compose.yml,Caddyfile,.env,deploy.sh,backup.sh,restore.sh}
+name: zotracker
+
+services:
+  app:
+    image: ${ZOTRACKER_IMAGE:-ghcr.io/cobroux/zotracker}:${ZOTRACKER_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      # seul Caddy (réseau Docker privé) est autorisé à fournir l'IP du client
+      TRUST_PROXY: uniquelocal
+    volumes:
+      - data:/app/data
+    # ---- durcissement du conteneur
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    pids_limit: 200
+    mem_limit: 512m
+    cpus: 1.0
+    # pas de port publié : uniquement joignable par Caddy
+    expose: ["3000"]
+    networks: [web]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Renseigne DOMAIN dans .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Renseigne ACME_EMAIL dans .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    mem_limit: 256m
+    networks: [web]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  web: {}
+
+volumes:
+  data: {}
+  caddy_data: {}
+  caddy_config: {}

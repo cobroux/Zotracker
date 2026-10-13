@@ -10,7 +10,7 @@ const storage = {
   del(k) { try { localStorage.removeItem(k); } catch { /* stockage indisponible */ } },
 };
 
-let token = storage.get('zt-token');
+storage.del('zt-token'); // ancien jeton (avant le passage au cookie HttpOnly)
 let config = null; // { trackerKey, runner, activeRaceId, races }
 let live = null; // état public de la course en ligne (flux temps réel)
 let editId = null; // course en cours d'édition
@@ -21,10 +21,11 @@ let editAid = []; // copie de travail des ravitaillements
 async function api(method, url, body) {
   const res = await fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin', // session dans un cookie HttpOnly, inaccessible au JavaScript
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (res.status === 401 && url !== '/api/login') { logout(); throw new Error('Session expirée'); }
+  if (res.status === 401 && url !== '/api/login') { showLogin(); throw new Error('Session expirée'); }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
   return data;
@@ -66,20 +67,22 @@ function setConfig(c) {
 
 // ---------------------------------------------------------------- connexion
 
-function logout() {
-  token = null;
-  storage.del('zt-token');
+function showLogin() {
   $('app').hidden = true;
   $('login').hidden = false;
+}
+
+async function logout(all) {
+  if (all && !confirm('Déconnecter tous les appareils (y compris celui-ci) ?')) return;
+  await fetch(all ? '/api/admin/logout-all' : '/api/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+  location.reload();
 }
 
 $('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('loginError').textContent = '';
   try {
-    const { token: t } = await api('POST', '/api/login', { password: e.target.password.value });
-    token = t;
-    storage.set('zt-token', t);
+    await api('POST', '/api/login', { password: e.target.password.value });
     e.target.reset();
     start();
   } catch (err) {
@@ -87,8 +90,8 @@ $('loginForm').addEventListener('submit', async (e) => {
   }
 });
 
+let streamsStarted = false;
 async function start() {
-  if (!token) return logout();
   try {
     const c = await api('GET', '/api/admin/config');
     $('login').hidden = true;
@@ -99,10 +102,14 @@ async function start() {
     fillSafetyForm(c.safetySettings);
     setupSafetyHelp(c);
     setConfig(c);
-    connectStream();
-    connectAdminStream();
+    fillAccount(c);
+    if (!streamsStarted) {
+      streamsStarted = true;
+      connectStream();
+      connectAdminStream();
+    }
   } catch {
-    logout();
+    showLogin();
   }
 }
 
@@ -308,7 +315,7 @@ $('sosResolve').addEventListener('click', action(async () => {
 
 /** Flux privé : alertes de sécurité en temps réel. */
 function connectAdminStream() {
-  const es = new EventSource(`/api/admin/stream?token=${encodeURIComponent(token)}`);
+  const es = new EventSource('/api/admin/stream');
   es.addEventListener('safety', (e) => {
     const a = JSON.parse(e.data);
     if (a.level === 'test') return;
@@ -323,6 +330,60 @@ function connectAdminStream() {
     }
   });
 }
+
+// ---------------------------------------------------------------- compte et confidentialité
+
+function fillAccount(c) {
+  const f = $('privacyForm');
+  f.mode.value = c.privacy.mode;
+  $('privateLink').textContent = `${location.origin}/?k=${encodeURIComponent(c.privacy.viewKey)}`;
+  $('privateLinkBox').hidden = c.privacy.mode !== 'link';
+  $('publicLinkBox').hidden = c.privacy.mode === 'link';
+  $('publicLink').textContent = `${location.origin}/`;
+  $('passwordForm').hidden = c.passwordFromEnv;
+  $('passwordEnv').hidden = !c.passwordFromEnv;
+  $('rotateKey').disabled = c.trackerKeyFromEnv;
+  $('retentionInfo').textContent = c.retentionDays
+    ? `Les positions GPS des courses terminées sont effacées automatiquement après ${c.retentionDays} jours.`
+    : 'Les positions GPS sont conservées sans limite de durée (TRACK_RETENTION_DAYS=0).';
+}
+
+for (const id of ['privateLink', 'publicLink']) {
+  $(id).addEventListener('click', () => navigator.clipboard?.writeText($(id).textContent).then(() => toast('Lien copié')));
+}
+
+$('privacyForm').addEventListener('change', action(async (e) => {
+  const c = await api('PUT', '/api/admin/privacy', { mode: e.currentTarget.mode.value });
+  fillAccount(c);
+  toast(c.privacy.mode === 'link' ? 'Suivi réservé aux personnes ayant le lien privé' : 'Suivi ouvert à tous');
+}));
+
+$('newLinkBtn').addEventListener('click', action(async () => {
+  if (!confirm('Créer un nouveau lien privé ? L’ancien lien ne fonctionnera plus.')) return;
+  fillAccount(await api('POST', '/api/admin/privacy/new-link'));
+  toast('Nouveau lien créé : partage-le à nouveau');
+}));
+
+$('passwordForm').addEventListener('submit', action(async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.next.value !== f.confirm.value) throw new Error('Les deux nouveaux mots de passe ne correspondent pas');
+  await api('PUT', '/api/admin/password', { current: f.current.value, next: f.next.value });
+  f.reset();
+  toast('Mot de passe changé, les autres appareils sont déconnectés');
+}));
+
+$('logoutBtn').addEventListener('click', () => logout(false));
+$('logoutAllBtn').addEventListener('click', () => logout(true));
+
+$('rotateKey').addEventListener('click', action(async () => {
+  if (!confirm('Régénérer la clé du traceur ? Il faudra mettre à jour Traccar Client et ton lien SOS.')) return;
+  const c = await api('POST', '/api/admin/tracker-key/rotate');
+  setupIngestHelp(c.trackerKey);
+  setupSafetyHelp(c);
+  setConfig(c);
+  toast('Nouvelle clé générée : mets à jour ton appli GPS et ton lien SOS');
+}));
 
 // ---------------------------------------------------------------- liste des courses
 

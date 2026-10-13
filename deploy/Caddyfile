@@ -1,0 +1,30 @@
+# Reverse proxy HTTPS (certificat Let's Encrypt automatique et renouvelé).
+{
+	email {$ACME_EMAIL}
+	# Pas de journal d'accès : certaines URL contiennent des clés privées
+	# (lien de suivi privé, appli GPS, page SOS).
+}
+
+{$DOMAIN} {
+	# compression, sauf pour les flux temps réel (Server-Sent Events)
+	@compressible not path /api/stream /api/admin/stream
+	encode @compressible zstd gzip
+
+	request_body {
+		max_size 16MB
+	}
+
+	header {
+		-Server
+	}
+
+	reverse_proxy app:3000 {
+		# transmet immédiatement les événements temps réel
+		flush_interval -1
+	}
+}
+
+# www → domaine principal
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}

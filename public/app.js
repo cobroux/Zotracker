@@ -233,10 +233,45 @@ window.addEventListener('resize', () => state && drawProfile());
 
 // ---------------------------------------------------------------- flux temps réel
 
-function connect() {
-  const es = new EventSource('/api/stream');
+// ---------------------------------------------------------------- accès (lien privé)
+
+/** Clé du lien privé : dans l'URL (?k=…) ou mémorisée lors d'une visite précédente. */
+const viewKey = (() => {
+  const k = new URLSearchParams(location.search).get('k');
+  try {
+    if (k) localStorage.setItem('zt-view-key', k);
+    return k || localStorage.getItem('zt-view-key') || '';
+  } catch {
+    return k || '';
+  }
+})();
+const withKey = (url) => (viewKey ? `${url}${url.includes('?') ? '&' : '?'}k=${encodeURIComponent(viewKey)}` : url);
+
+function showPrivate() {
+  state = null; // arrête les rafraîchissements périodiques
+  document.querySelector('main').replaceChildren(el('section', { class: 'private-gate card' },
+    el('h2', {}, '🔒 Suivi privé'),
+    el('p', {}, 'Ce suivi en direct est réservé aux proches du coureur. Ouvre le lien privé qu’il t’a envoyé.'),
+  ));
+  $('statusBadge').hidden = true;
+  $('raceLine').textContent = '';
+}
+
+async function connect() {
+  // en mode privé, une clé absente ou révoquée donne un 403 : on l'explique au lieu de boucler
+  try {
+    const res = await fetch(withKey('/api/state'));
+    if (res.status === 403) return showPrivate();
+  } catch { /* hors ligne : EventSource réessaiera */ }
+
+  const es = new EventSource(withKey('/api/stream'));
   es.onopen = () => { $('offline').hidden = true; };
-  es.onerror = () => { $('offline').hidden = false; };
+  es.onerror = async () => {
+    $('offline').hidden = false;
+    // lien révoqué pendant la visite ?
+    const res = await fetch(withKey('/api/state')).catch(() => null);
+    if (res && res.status === 403) { es.close(); showPrivate(); }
+  };
 
   es.addEventListener('full', (e) => {
     const next = JSON.parse(e.data);
@@ -302,6 +337,7 @@ const alertsUi = {
   supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
 
   async init() {
+    if (!$('alertStatus')) return; // page « suivi privé » : pas d'alertes
     const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
     if (!this.supported) {
@@ -313,14 +349,16 @@ const alertsUi = {
     try {
       this.reg = await navigator.serviceWorker.register('/sw.js');
       const sub = await this.reg.pushManager.getSubscription();
+      if (!$('alertBtn')) return; // la page est passée en « suivi privé » entre-temps
       this.render(!!sub);
       $('alertBtn').hidden = false;
     } catch {
-      $('alertStatus').textContent = 'Les alertes s’affichent sur cette page.';
+      if ($('alertStatus')) $('alertStatus').textContent = 'Les alertes s’affichent sur cette page.';
     }
   },
 
   render(on, note) {
+    if (!$('alertBtn')) return;
     $('alertBtn').textContent = on ? '🔕 Couper les alertes' : '🔔 Être alerté';
     $('alertBtn').classList.toggle('primary', !on);
     $('alertStatus').textContent = note || (on
@@ -340,9 +378,9 @@ const alertsUi = {
       }
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') return this.render(false, 'Notifications refusées : autorise-les dans les réglages du navigateur pour ce site.');
-      const { publicKey } = await fetch('/api/push/key').then((r) => r.json());
+      const { publicKey } = await fetch(withKey('/api/push/key')).then((r) => r.json());
       const sub = await this.reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(publicKey) });
-      const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON() }) });
+      const res = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), k: viewKey }) });
       if (!res.ok) throw new Error();
       this.render(true);
     } catch {
