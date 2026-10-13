@@ -9,6 +9,14 @@ Tout fonctionne dans le navigateur du téléphone, sans appli à installer. Avec
 
 ## Démarrage rapide
 
+**Avec Docker** (rien d'autre à installer), à la racine du projet :
+
+```bash
+docker compose up --build
+```
+
+**Ou avec Node.js 22+** :
+
 ```bash
 npm install
 ADMIN_PASSWORD=monMotDePasse npm start

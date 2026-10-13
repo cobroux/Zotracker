@@ -75,6 +75,20 @@ L'image est publiée sur GitHub Container Registry, en privé par défaut. Pour 
 docker login ghcr.io -u TON_PSEUDO_GITHUB     # colle le jeton comme mot de passe
 ```
 
+### Variante sans GitHub Actions : construire l'image sur le serveur
+
+Tant que la CI n'a pas encore publié d'image (premier déploiement, dépôt pas encore fusionné sur `main`…), `docker compose up` échoue avec `denied`. Tu peux alors construire l'image directement sur le serveur :
+
+```bash
+git clone https://github.com/cobroux/zotracker.git ~/zotracker-src
+docker build -t zotracker:local ~/zotracker-src
+cd /opt/zotracker
+sed -i 's/^ZOTRACKER_IMAGE=.*/ZOTRACKER_IMAGE=zotracker/; s/^ZOTRACKER_TAG=.*/ZOTRACKER_TAG=local/' .env
+docker compose up -d
+```
+
+Pour une mise à jour : `git -C ~/zotracker-src pull && docker build -t zotracker:local ~/zotracker-src && docker compose up -d`.
+
 ## 3. Déploiement automatique depuis GitHub
 
 ### Clé SSH dédiée à la CI (limitée au déploiement)
@@ -161,6 +175,17 @@ Si le serveur disparaît, les sauvegardes locales disparaissent avec lui. Config
 ### Surveillance
 
 L'application expose `https://suivi.mondomaine.fr/healthz`. Branche-la sur un service gratuit comme UptimeRobot ou Better Stack, qui t'alertera si le site tombe, surtout la veille d'une course.
+
+## Dépannage
+
+| Message | Cause | Solution |
+| --- | --- | --- |
+| `no configuration file provided: not found` | Tu n'es pas dans le bon dossier | Sur ton ordinateur, lance la commande à la racine du projet (`docker compose up --build`). Sur le serveur, lance-la dans `/opt/zotracker`. |
+| `required variable DOMAIN is missing a value` | Le fichier `.env` est absent ou incomplet | `cp .env.example .env`, puis renseigne `DOMAIN` et `ACME_EMAIL`. |
+| `error from registry: denied` | L'image n'est pas encore publiée, ou le serveur n'est pas connecté à ghcr.io | Fais `docker login ghcr.io` (voir plus haut) ou construis l'image sur le serveur (variante ci-dessus). |
+| `toomanyrequests` / `429` | Limite de téléchargement de Docker Hub | Attends quelques minutes, ou connecte-toi avec `docker login` (compte Docker Hub gratuit). |
+| Caddy n'obtient pas de certificat | Le DNS ne pointe pas encore vers le serveur, ou les ports 80/443 sont fermés | Vérifie avec `dig +short suivi.mondomaine.fr` et `sudo ufw status`, puis consulte `docker compose logs caddy`. |
+| `app` reste `unhealthy` | L'application ne démarre pas | `docker compose logs app` |
 
 ## 5. Avant chaque course
 
