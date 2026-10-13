@@ -434,8 +434,9 @@ function renderStats() {
   const status = state.session.status;
 
   const badge = $('statusBadge');
-  badge.className = `badge ${state.race ? status : ''}`;
-  badge.textContent = !state.race ? 'Hors course' : status === 'running' ? 'En course' : status === 'finished' ? 'Arrivé' : 'Pas encore parti';
+  const simulated = state.session.simulated && status !== 'idle';
+  badge.className = `badge ${state.race ? (simulated ? 'sim' : status) : ''}`;
+  badge.textContent = !state.race ? 'Hors course' : simulated ? '🧪 Simulation' : status === 'running' ? 'En course' : status === 'finished' ? 'Arrivé' : 'Pas encore parti';
 
   const planned = race().plannedStart && Date.parse(race().plannedStart);
   const cd = $('countdown');

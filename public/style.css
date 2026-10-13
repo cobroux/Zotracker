@@ -446,6 +446,14 @@ code.copy { display: block; padding: 10px; cursor: copy; }
 .big-code { font-size: 1rem; font-weight: 700; text-align: center; }
 
 .alerts-form { display: flex; flex-direction: column; gap: 6px; }
+select {
+  width: 100%; padding: 11px 12px; border-radius: 12px; font: inherit;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text);
+}
+.sim-card { border-style: dashed; }
+.sim-info { margin: 0; font-weight: 600; }
+.sim-modes button.on { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-text); }
+.badge.sim { background: var(--warn-bg); color: var(--warn-text); }
 label.check { flex-direction: row; align-items: center; gap: 10px; font-weight: 600; padding: 4px 0; }
 label.check input[type=checkbox], label.check input[type=radio] { width: 20px; height: 20px; accent-color: var(--accent-btn); flex: none; }
 label.check input.mini { width: 60px; padding: 6px 8px; display: inline-block; }

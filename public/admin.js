@@ -296,6 +296,7 @@ function renderTopStatus() {
 
 function renderLive() {
   renderTopStatus();
+  renderSim();
   const race = config.races.find((r) => r.id === config.activeRaceId);
   $('noLive').hidden = !!race;
   $('liveControls').hidden = !race;
@@ -304,8 +305,8 @@ function renderLive() {
 
   const s = live.session;
   const b = $('sessionBadge');
-  b.className = `badge ${s.status}`;
-  b.textContent = s.status === 'running' ? 'En course' : s.status === 'finished' ? 'Terminée' : 'Pas démarrée';
+  b.className = `badge ${s.simulated ? 'sim' : s.status}`;
+  b.textContent = (s.status === 'running' ? 'En course' : s.status === 'finished' ? 'Terminée' : 'Pas démarrée') + (s.simulated ? ' (simulation)' : '');
   const stats = ZT.computeStats(live, Date.now());
   $('sessionInfo').textContent = s.startedAt
     ? `départ ${ZT.fmtClock(s.startedAt)} · ${ZT.fmtKm(stats.progress)} · ${live.track.length} points${s.battery ? ` · 🔋 ${Math.round(s.battery.level)} %` : ''}`
@@ -318,6 +319,72 @@ function renderLive() {
   renderMessages();
   renderAlertLog();
 }
+
+// ---------------------------------------------------------------- simulation
+
+const SIM_MODES = {
+  detour: ['🧭 Sortir du parcours', '🧭 Revenir sur le parcours'],
+  stopped: ["⏸ S'arrêter", '▶ Repartir'],
+  signalLost: ['📵 Couper le signal', '📶 Rétablir le signal'],
+};
+
+function renderSim() {
+  const sim = config.sim || { active: false };
+  const race = config.races.find((r) => r.id === config.activeRaceId);
+  const realRun = live && live.session.status === 'running' && !live.session.simulated;
+  const why = !race ? 'Mets une course en ligne pour la simuler.'
+    : !race.course ? 'Ajoute un parcours GPX à la course en ligne pour la simuler.'
+    : realRun ? 'Une vraie course est en cours : termine-la (🏁 Terminer, plus haut) pour pouvoir lancer une simulation.' : '';
+  $('simUnavailable').hidden = !why || sim.active;
+  $('simUnavailable').textContent = why;
+  $('simForm').hidden = sim.active || !!why;
+  $('simSpeedNote').hidden = sim.active || !!why;
+  $('simRun').hidden = !sim.active;
+  $('simBadge').hidden = !sim.active;
+  $('simLeftover').hidden = sim.active || !sim.leftover;
+  if (race && !sim.active && document.activeElement !== $('simForm').pace && !$('simForm').pace.value && race.targetPace) {
+    $('simForm').pace.placeholder = ZT.fmtPace(race.targetPace).replace('/km', '');
+  }
+  if (!sim.active) return;
+  const total = race && race.course ? race.course.length / 1000 : null;
+  $('simInfo').textContent = `Km ${sim.km.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}${total ? ` / ${total.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}` : ''}`
+    + ` · allure ${ZT.fmtPace(sim.pace)}${sim.speed > 1 ? ` · × ${sim.speed}` : ''}`
+    + (sim.notify ? ' · notifications réelles' : ' · sans notification');
+  for (const btn of document.querySelectorAll('[data-sim-mode]')) {
+    const k = btn.dataset.simMode;
+    btn.textContent = SIM_MODES[k][sim.modes[k] ? 1 : 0];
+    btn.classList.toggle('on', !!sim.modes[k]);
+  }
+}
+
+$('simForm').addEventListener('submit', action(async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (live && live.track.length && !live.session.simulated
+    && !confirm('Le suivi actuel de cette course (positions, alertes) sera remplacé par la simulation. Continuer ?')) return;
+  config.sim = await api('POST', '/api/admin/sim/start', {
+    pace: f.pace.value, startKm: f.startKm.value, speed: f.speed.value, notify: f.notify.checked,
+  });
+  renderSim();
+  toast('Simulation lancée');
+}));
+
+for (const btn of document.querySelectorAll('[data-sim-mode]')) {
+  btn.addEventListener('click', action(async () => {
+    const k = btn.dataset.simMode;
+    config.sim = await api('POST', '/api/admin/sim/mode', { [k]: !(config.sim.modes && config.sim.modes[k]) });
+    renderSim();
+  }));
+}
+
+const clearSim = action(async () => {
+  config.sim = await api('POST', '/api/admin/sim/stop');
+  renderSim();
+  refreshConfigSoon();
+  toast('Simulation arrêtée et effacée');
+});
+$('simStop').addEventListener('click', clearSim);
+$('simClear').addEventListener('click', clearSim);
 
 function renderMessages() {
   $('adminMessages').replaceChildren(
@@ -497,6 +564,12 @@ $('sosResolve').addEventListener('click', action(async () => {
 /** Flux privé : alertes de sécurité en temps réel. */
 function connectAdminStream() {
   const es = new EventSource('/api/admin/stream');
+  es.addEventListener('sim', (e) => {
+    const wasActive = config.sim && config.sim.active;
+    config.sim = JSON.parse(e.data);
+    renderSim();
+    if (wasActive && !config.sim.active) refreshConfigSoon();
+  });
   es.addEventListener('safety', (e) => {
     const a = JSON.parse(e.data);
     if (a.level === 'test') return;

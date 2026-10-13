@@ -95,6 +95,46 @@
             </div>
           </section>
 
+          <section class="card sim-card" id="simCard">
+            <div class="card-head"><h2>🧪 Simulation</h2><span id="simBadge" class="badge" hidden>En cours</span></div>
+            <p class="muted small">Un coureur virtuel parcourt le tracé de la course en ligne : carte, estimations, ravitos et alertes se comportent comme le jour J. La page publique affiche un badge « Simulation ».</p>
+            <p id="simUnavailable" class="warning" hidden></p>
+
+            <form id="simForm" class="grid-form">
+              <label>Allure simulée (min/km) <input name="pace" placeholder="5:30" maxlength="8" autocomplete="off"></label>
+              <label>Partir du km <input name="startKm" type="number" min="0" step="any" value="0"></label>
+              <label>Vitesse
+                <select name="speed">
+                  <option value="1">Temps réel</option>
+                  <option value="5">× 5</option>
+                  <option value="10" selected>× 10</option>
+                  <option value="30">× 30</option>
+                </select>
+              </label>
+              <label class="check full"><input type="checkbox" name="notify"> Envoyer aussi les vraies notifications (supporters abonnés et contacts de sécurité, marquées « Test »)</label>
+              <button class="primary" type="submit">▶ Lancer la simulation</button>
+            </form>
+            <p id="simSpeedNote" class="muted small">En accéléré, le coureur virtuel court vraiment plus vite : les allures et heures affichées le sont aussi.</p>
+
+            <div id="simRun" hidden>
+              <p id="simInfo" class="sim-info"></p>
+              <p class="muted small">Déclenche un incident pour tester les alertes :</p>
+              <div class="row-buttons sim-modes">
+                <button type="button" data-sim-mode="detour">🧭 Sortir du parcours</button>
+                <button type="button" data-sim-mode="stopped">⏸ S'arrêter</button>
+                <button type="button" data-sim-mode="signalLost">📵 Couper le signal</button>
+              </div>
+              <div class="row-buttons">
+                <a class="btn-link" href="/" target="_blank" rel="noopener">👀 Voir la page publique</a>
+                <button id="simStop" class="danger" type="button">■ Arrêter et effacer</button>
+              </div>
+            </div>
+            <div id="simLeftover" hidden>
+              <p class="small">Une simulation précédente a laissé des données sur cette course.</p>
+              <button id="simClear" class="danger" type="button">Effacer la simulation</button>
+            </div>
+          </section>
+
           <section class="card" id="messagesSection">
             <h2>💬 Messages aux supporters</h2>
             <form id="messageForm" class="inline-form">

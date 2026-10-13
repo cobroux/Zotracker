@@ -103,6 +103,16 @@ Le canal ntfy fait office de mot de passe : ne le partage qu'avec tes proches. L
 
 ⚠️ Zotracker ne remplace pas les secours : en cas d'urgence vitale, appelle le **112**.
 
+## Tester sans courir : la simulation
+
+Dans l'admin, **Tableau de bord → 🧪 Simulation** fait courir un coureur virtuel sur le parcours de la course en ligne. Carte, estimations, ravitos et alertes se comportent comme le jour J :
+
+- **Allure** (par défaut ton allure prévue), **départ au km N** (l'historique est reconstitué) et **vitesse** (temps réel, ×5, ×10, ×30). En accéléré, c'est le temps qui défile plus vite : chrono, allures et heures estimées restent réalistes.
+- **Incidents** à déclencher pendant la simulation : sortir du parcours, s'arrêter, couper le signal. Les alertes de sécurité correspondantes apparaissent dans l'admin.
+- **Aucune vraie notification** n'est envoyée (supporters, contacts de sécurité), sauf si tu coches l'option ; elles sont alors marquées « 🧪 Test ».
+- La page publique affiche un badge **🧪 Simulation**. Les positions de ton vrai GPS sont ignorées pendant ce temps ; le bouton SOS, lui, fonctionne toujours.
+- **Arrêter et effacer** remet la course à zéro. La simulation est indisponible pendant une vraie course.
+
 ## Le jour de la course
 
 1. **Avant** : vérifie que la bonne course est **en ligne** et partage le lien de la page publique.

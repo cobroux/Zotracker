@@ -8,6 +8,7 @@ const { parseGpx, parseWaypoints } = require('./lib/gpx');
 const { buildCourse, projectOnCourse } = require('./lib/geo');
 const { addPosition } = require('./lib/tracker');
 const { parsePace } = require('./lib/stats');
+const simulator = require('./lib/simulator');
 const alerts = require('./lib/alerts');
 const safety = require('./lib/safety');
 const { Push } = require('./lib/push');
@@ -137,7 +138,7 @@ const raceInfo = (r) => ({
 });
 
 /** Session sans les détails internes (batterie, horodatages techniques) : minimisation des données. */
-const publicSession = (s) => ({ status: s.status, startedAt: s.startedAt, finishedAt: s.finishedAt, progress: s.progress, offCourse: s.offCourse, offCourseBy: s.offCourse ? s.offCourseBy || 0 : 0 });
+const publicSession = (s) => ({ status: s.status, startedAt: s.startedAt, finishedAt: s.finishedAt, progress: s.progress, offCourse: s.offCourse, offCourseBy: s.offCourse ? s.offCourseBy || 0 : 0, simulated: !!s.simulated });
 
 /** Ce que voit la page publique : le profil + la course actuellement en ligne. */
 function publicState() {
@@ -311,6 +312,7 @@ function adminConfig() {
     runner: state.runner,
     activeRaceId: state.activeRaceId,
     races: state.races.map(adminRace),
+    sim: simStatus(),
   };
 }
 
@@ -458,6 +460,7 @@ function requireActive(req, res, next) {
 
 admin.post('/session/start', requireActive, (req, res) => {
   const race = req.race;
+  if (race.session.simulated) { stopSim(); race.session.status = 'idle'; }
   const at = req.body.at ? Date.parse(req.body.at) : NaN;
   const startedAt = Number.isFinite(at) ? at : Date.now();
   if (race.session.status !== 'running') {
@@ -475,6 +478,7 @@ admin.post('/session/start', requireActive, (req, res) => {
 
 admin.post('/session/finish', requireActive, (req, res) => {
   const race = req.race;
+  stopSim();
   if (race.session.status === 'running') {
     race.session.status = 'finished';
     race.session.finishedAt = Date.now();
@@ -497,6 +501,7 @@ admin.post('/session/resume', requireActive, (req, res) => {
 });
 
 admin.post('/session/reset', requireActive, (req, res) => {
+  stopSim();
   req.race.session = defaultSession();
   req.race.track = [];
   alerts.resetAlerts(req.race);
@@ -508,6 +513,8 @@ admin.post('/session/reset', requireActive, (req, res) => {
 function ingest(points) {
   const race = activeRace();
   if (!race) return { received: points.length, added: 0, status: 'no_race' };
+  // pendant une simulation, les vraies positions sont ignorées (le SOS, lui, passe toujours)
+  if (race.session.simulated) return { received: points.length, added: 0, status: 'simulation' };
   const added = [];
   const sorted = points
     .filter((p) => p && typeof p === 'object')
@@ -584,12 +591,123 @@ function checkAlerts() {
   const fresh = alerts.evaluate(race, state.runner, alertSettings());
   const risky = safety.evaluateSafety(race, state.runner, state.safetySettings);
   if (fresh.length || risky.length) store.save();
+  // simulation : pas de vraie notification, sauf si l'admin l'a demandé (titre marqué « Test »)
+  const simulated = !!race.session.simulated;
+  const quiet = simulated && !race.session.simNotify;
+  const label = (t) => (simulated ? `🧪 Test · ${t}` : t);
   for (const a of fresh) {
     broadcast('alert', a);
-    sendPush({ title: a.title, body: a.body, tag: a.id });
+    if (!quiet) sendPush({ title: label(a.title), body: a.body, tag: a.id });
   }
-  for (const a of risky) dispatchSafety(a);
+  for (const a of risky) {
+    if (quiet) broadcastAdmin('safety', a);
+    else dispatchSafety(simulated ? { ...a, title: label(a.title) } : a);
+  }
 }
+
+// ---------------------------------------------------------------- simulation (test sans courir)
+
+let sim = null; // { raceId, timer, notify, ...état du coureur virtuel }
+const SIM_TICK = 3000;
+
+function simStatus() {
+  const race = activeRace();
+  const leftover = !!(race && race.session.simulated && !(sim && sim.raceId === race.id));
+  if (!sim) return { active: false, leftover };
+  return {
+    active: true,
+    raceId: sim.raceId,
+    pace: sim.pace,
+    speed: sim.speed,
+    notify: sim.notify,
+    modes: sim.modes,
+    km: Math.round(sim.dist) / 1000,
+    leftover: false,
+  };
+}
+
+function stopSim() {
+  if (!sim) return;
+  clearInterval(sim.timer);
+  sim = null;
+  broadcastAdmin('sim', simStatus());
+}
+
+function simTick() {
+  const race = activeRace();
+  // course changée, session relancée ou terminée : la simulation s'arrête d'elle-même
+  if (!sim || !race || race.id !== sim.raceId || !race.session.simulated || race.session.status !== 'running' || !race.course) {
+    stopSim();
+    return;
+  }
+  const p = simulator.step(sim, race.course);
+  // accéléré : le départ et les positions déjà reçues reculent dans le temps
+  const shift = sim.startedAt - race.session.startedAt;
+  if (shift) {
+    const s = race.session;
+    s.startedAt += shift;
+    if (s.armedAt) s.armedAt += shift;
+    if (s.offCourseSince) s.offCourseSince += shift;
+    for (const pt of race.track) pt.t += shift;
+  }
+  if (p) addPosition(race, p);
+  store.save();
+  // tout l'historique a pu changer d'heure : on renvoie l'état complet
+  broadcast('full', publicState());
+  checkAlerts();
+  broadcastAdmin('sim', simStatus());
+}
+
+admin.post('/sim/start', requireActive, (req, res) => {
+  const race = req.race;
+  const b = req.body || {};
+  if (!race.course) return res.status(409).json({ error: 'Ajoute un parcours GPX à cette course pour la simuler.' });
+  if (race.session.status === 'running' && !race.session.simulated) {
+    return res.status(409).json({ error: 'Une vraie course est en cours : termine-la ou réinitialise le suivi avant de simuler.' });
+  }
+  const pace = parsePace(b.pace) || race.targetPace || 330;
+  const speed = [1, 5, 10, 30].includes(Number(b.speed)) ? Number(b.speed) : 10;
+  const startKm = Math.max(0, Number(b.startKm) || 0);
+
+  stopSim();
+  const runner = simulator.createSim({ course: race.course, pace, speed, startKm });
+  race.session = { ...defaultSession(), status: 'running', startedAt: runner.startedAt, armedAt: Date.now(), simulated: true, simNotify: !!b.notify };
+  race.track = [];
+  alerts.resetAlerts(race);
+  sim = { ...runner, raceId: race.id, notify: !!b.notify };
+  const history = simulator.backfill(sim, race.course);
+  for (const p of history) addPosition(race, p);
+  // les alertes déjà « passées » dans l'historique ne sont pas rejouées
+  if (history.length) alerts.evaluate(race, state.runner, alertSettings());
+  store.save();
+  broadcast('full', publicState());
+  sim.timer = setInterval(simTick, SIM_TICK);
+  sim.timer.unref();
+  simTick();
+  res.json(simStatus());
+});
+
+admin.post('/sim/mode', (req, res) => {
+  if (!sim) return res.status(409).json({ error: 'Aucune simulation en cours.' });
+  const b = req.body || {};
+  for (const k of ['detour', 'stopped', 'signalLost']) if (typeof b[k] === 'boolean') sim.modes[k] = b[k];
+  simTick();
+  res.json(simStatus());
+});
+
+/** Arrête la simulation et efface tout ce qu'elle a produit (positions, alertes). */
+admin.post('/sim/stop', (req, res) => {
+  stopSim();
+  const race = activeRace();
+  if (race && race.session.simulated) {
+    race.session = defaultSession();
+    race.track = [];
+    alerts.resetAlerts(race);
+    store.save();
+    broadcast('full', publicState());
+  }
+  res.json(simStatus());
+});
 
 // ---------------------------------------------------------------- sécurité (privé : admin + contacts de confiance)
 
