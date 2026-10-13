@@ -20,7 +20,9 @@ services:
       TILE_URL: ${TILE_URL:-}
       TILE_ATTRIBUTION: ${TILE_ATTRIBUTION:-}
     ports:
-      - "127.0.0.1:3000:3000"
+      # par défaut, joignable uniquement depuis cet ordinateur ; pour tester avec ton téléphone
+      # sur le même réseau : BIND_ADDR=0.0.0.0 docker compose up --build
+      - "${BIND_ADDR:-127.0.0.1}:3000:3000"
     volumes:
       - data:/app/data
     # même durcissement qu'en production
