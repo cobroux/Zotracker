@@ -7,6 +7,7 @@ const { Store, defaultSession, newRace } = require('./lib/store');
 const { parseGpx, parseWaypoints } = require('./lib/gpx');
 const { buildCourse, projectOnCourse } = require('./lib/geo');
 const { addPosition } = require('./lib/tracker');
+const { parsePace } = require('./lib/stats');
 const alerts = require('./lib/alerts');
 const safety = require('./lib/safety');
 const { Push } = require('./lib/push');
@@ -130,6 +131,7 @@ const raceInfo = (r) => ({
   location: r.location,
   plannedStart: r.plannedStart,
   distanceKm: r.distanceKm,
+  targetPace: r.targetPace || null,
   description: r.description,
   aidStations: r.aidStations,
 });
@@ -365,6 +367,7 @@ function applyRaceFields(race, b) {
   race.location = str(b.location, 120);
   race.plannedStart = b.plannedStart && Number.isFinite(Date.parse(b.plannedStart)) ? new Date(b.plannedStart).toISOString() : '';
   race.distanceKm = Number.isFinite(km) && km > 0 ? km : null;
+  if (b.targetPace !== undefined) race.targetPace = parsePace(b.targetPace);
   race.description = str(b.description, 3000);
   if (b.aidStations !== undefined) race.aidStations = sanitizeAidStations(b.aidStations);
 }

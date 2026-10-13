@@ -13,6 +13,8 @@ const race = () => state.race || {};
 // ---------------------------------------------------------------- carte
 
 // zoom en bas à droite : le haut de la carte porte la carte d'identité du coureur
+// les info-bulles se décalent sous la carte d'identité du coureur, jamais derrière
+L.Popup.mergeOptions({ autoPanPaddingTopLeft: L.point(12, 96), autoPanPaddingBottomRight: L.point(12, 36), maxWidth: 280 });
 const map = L.map('map', { zoomControl: false }).setView([46.6, 2.4], 6);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 // bouton « me situer » au-dessus du zoom (même action que dans le panneau)
@@ -89,25 +91,68 @@ layers.hit.on('click', (e) => {
   L.popup().setLatLng([lat, lon]).setContent(spotPopup(`Km ${ZT.fmtPk(spot.along / 1000)}`, spot.along, stats)).openOn(map);
 });
 
-/** Contenu d'une info-bulle « endroit du parcours » : passage + itinéraire. */
+/** Info-bulle « endroit du parcours » : estimations de passage et itinéraire. */
 function spotPopup(title, dist, stats, extra) {
   const [lat, lon] = ZT.courseAt(state.course, dist);
-  const when = passageText(ZT.passageAt(state, stats, dist));
-  return el('div', { class: 'aid-popup' },
-    el('strong', {}, title),
-    extra && el('div', {}, extra),
-    when && el('div', { class: 'muted' }, when),
-    directionLinks(lat, lon),
+  const e = ZT.spotEstimate(state, stats, dist);
+  const name = firstName();
+  const facts = [];
+  const fact = (k, v) => v && facts.push(el('dt', {}, k), el('dd', {}, v));
+
+  if (e.ahead != null) fact(`${name} en est à`, ZT.fmtDist(e.ahead));
+  if (e.chrono != null) fact(e.passed ? 'Chrono à ce point' : 'Chrono estimé', ZT.fmtDuration(e.chrono));
+  if (e.climb && (e.climb.up || e.climb.down)) fact(e.ahead != null ? 'Dénivelé d’ici là' : 'Dénivelé depuis le départ', [e.climb.up && `+${e.climb.up} m`, e.climb.down && `−${e.climb.down} m`].filter(Boolean).join(' / '));
+  if (e.ele != null) fact('Altitude', `${Math.round(e.ele)} m`);
+  if (me) fact('De toi', `${ZT.fmtDist(ZT.distance(me.lat, me.lon, lat, lon))} à vol d’oiseau`);
+  fact('Puis jusqu’à l’arrivée', e.after > 50 ? ZT.fmtDist(e.after) : 'c’est l’arrivée');
+
+  let basis = '';
+  if (!e.passed && e.at) {
+    basis = e.planned
+      ? `Estimation sur l’allure prévue (${ZT.fmtPace(stats.targetPace)})${state.session.status === 'idle' ? ', si le départ est donné à l’heure' : ''}.`
+      : `Selon son allure actuelle (${ZT.fmtPace(stats.pace)}).`;
+  }
+
+  return el('div', { class: 'spot-popup' },
+    el('strong', { class: 'spot-title' }, title),
+    extra && el('div', { class: 'muted' }, extra),
+    el('div', { class: 'spot-when' }, passageHeadline(e)),
+    facts.length && el('dl', { class: 'spot-facts' }, ...facts),
+    basis && el('small', { class: 'muted' }, basis),
+    !e.passed && directionLinks(lat, lon),
   );
 }
 
-function renderAidMarkers(schedule, stats) {
+/** Ligne principale de l'info-bulle : heure de passage (réelle, estimée ou prévue). */
+function passageHeadline(e) {
+  if (e.passed) {
+    return [el('span', { class: 'ok' }, '✓ Passé à '), el('b', {}, ZT.fmtClock(e.at)), el('span', { class: 'muted' }, ` · ${ZT.fmtAgo(now() - e.at)}`)];
+  }
+  if (!e.at) {
+    return el('span', { class: 'muted' }, state.session.status === 'idle'
+      ? 'Heure de passage estimée dès le départ.'
+      : 'Heure de passage estimée après quelques minutes de course.');
+  }
+  const min = Math.round((e.at - now()) / 60_000);
+  return [
+    el('span', {}, e.planned && state.session.status === 'idle' ? 'Passage prévu vers ' : 'Passage vers '),
+    el('b', {}, ZT.fmtClock(e.at)),
+    el('span', { class: 'muted' }, min > 0 ? ` · dans ${fmtMinutes(min)}` : ' · imminent'),
+  ];
+}
+
+let aidKey = '';
+function renderAidMarkers(schedule) {
+  // reconstruit les marqueurs seulement s'ils changent : une info-bulle ouverte reste ouverte
+  const key = JSON.stringify([state.course && state.course.length, schedule.map((a) => [a.km, a.name, a.info, a.passed])]);
+  if (key === aidKey) return;
+  aidKey = key;
   layers.aid.clearLayers();
   if (!state.course) return;
   for (const a of schedule) {
-    const popup = spotPopup(`${a.name || 'Ravitaillement'} · km ${ZT.fmtPk(a.km)}`, a.dist, stats, a.info);
+    // contenu calculé à l'ouverture : estimations toujours à jour
     L.marker(ZT.courseAt(state.course, a.dist), { icon: ZT.aidIcon(a.passed), zIndexOffset: 500 })
-      .bindPopup(popup)
+      .bindPopup(() => spotPopup(`${a.name || 'Ravitaillement'} · km ${ZT.fmtPk(a.km)}`, a.dist, ZT.computeStats(state, now()), a.info))
       .addTo(layers.aid);
   }
 }
@@ -187,7 +232,7 @@ function renderFeed() {
 function renderAid() {
   const stats = ZT.computeStats(state, now());
   const schedule = ZT.aidSchedule(state, stats);
-  renderAidMarkers(schedule, stats);
+  renderAidMarkers(schedule);
 
   $('aidCard').hidden = !schedule.length;
   $('aidList').replaceChildren(...schedule.map((a) => {
@@ -221,7 +266,8 @@ function passageText(p) {
   if (!p.at) return '';
   if (p.passed) return `Déjà passé à ${ZT.fmtClock(p.at)}`;
   const min = Math.round((p.at - now()) / 60_000);
-  return `Passage vers ${ZT.fmtClock(p.at)}${min > 0 ? ` · dans ${fmtMinutes(min)}` : ' · imminent'}`;
+  const word = p.planned && state.session.status === 'idle' ? 'Prévu vers' : 'Passage vers';
+  return `${word} ${ZT.fmtClock(p.at)}${min > 0 ? ` · dans ${fmtMinutes(min)}` : ' · imminent'}`;
 }
 
 function fmtMinutes(min) {
@@ -405,7 +451,7 @@ function renderStats() {
   $('sTime').textContent = s.elapsed != null ? ZT.fmtDuration(s.elapsed) : '–';
   $('sAvg').textContent = ZT.fmtPace(s.avgPace);
   $('sRecent').textContent = status === 'running' ? ZT.fmtPace(s.recentPace) : '–';
-  $('sEtaLabel').textContent = status === 'finished' ? 'Temps final' : 'Arrivée estimée';
+  $('sEtaLabel').textContent = status === 'finished' ? 'Temps final' : status === 'idle' ? 'Arrivée prévue' : 'Arrivée estimée';
   $('sEta').textContent = status === 'finished' ? ZT.fmtDuration(s.elapsed) : s.eta ? ZT.fmtClock(s.eta) : '–';
 
   const pct = s.total ? Math.min(100, (s.progress / s.total) * 100) : 0;

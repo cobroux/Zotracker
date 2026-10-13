@@ -139,3 +139,16 @@ test('les waypoints GPX sont placés sur le parcours', () => {
   assert.ok(Math.abs(r.along - 1500) < 10 || Math.abs(r.along - 2500) < 10);
   assert.ok(r.offset < 40);
 });
+
+test('parsePace accepte « 5:30 », « 5\'30" » et « 5.5 », refuse le reste', () => {
+  const { parsePace, raceStats } = require('../lib/stats');
+  assert.strictEqual(parsePace('5:30'), 330);
+  assert.strictEqual(parsePace("5'30\""), 330);
+  assert.strictEqual(parsePace('5’30'), 330);
+  assert.strictEqual(parsePace('5,5'), 330);
+  assert.strictEqual(parsePace('12'), 720);
+  for (const bad of ['', 'abc', '5:75', '0:30', '45:00', '<b>']) assert.strictEqual(parsePace(bad), null, bad);
+  // sans allure mesurée, l'allure prévue sert aux estimations
+  const race = newRace({ targetPace: 330 });
+  assert.strictEqual(raceStats(race).pace, 330);
+});

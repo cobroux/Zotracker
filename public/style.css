@@ -276,6 +276,16 @@ body.public { min-height: 100vh; }
 .dir-links .btn-link.primary { background: var(--accent-btn); border-color: var(--accent-btn); color: #fff; }
 .aid-popup .dir-links { margin-top: 6px; }
 .aid-popup .dir-links .btn-link.primary { color: #fff; }
+.spot-popup { display: flex; flex-direction: column; gap: 6px; font-size: .85rem; min-width: 210px; }
+.spot-popup .spot-title { font-size: .95rem; }
+.spot-when { font-size: .95rem; }
+.spot-when b { font-family: var(--font-num); font-size: 1.15rem; color: var(--accent); }
+.spot-when .ok { color: var(--ok); font-weight: 700; }
+.spot-facts { display: grid; grid-template-columns: auto auto; gap: 3px 12px; margin: 2px 0 0; padding-top: 6px; border-top: 1px solid var(--line); }
+.spot-facts dt { color: var(--muted); }
+.spot-facts dd { margin: 0; font-family: var(--font-num); font-weight: 600; text-align: right; white-space: nowrap; }
+.spot-popup .dir-links { margin-top: 4px; }
+.spot-popup .dir-links .btn-link.primary { color: #fff; }
 
 .goal { font-weight: 700; margin: 0 0 .5rem; }
 .bio { white-space: pre-line; margin: 0 0 .5rem; }

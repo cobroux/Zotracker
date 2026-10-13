@@ -638,6 +638,7 @@ function openEditor(id, scroll = true) {
   f.location.value = r.location || '';
   f.plannedStart.value = toLocalInput(r.plannedStart);
   f.distanceKm.value = r.distanceKm ?? '';
+  f.targetPace.value = r.targetPace ? ZT.fmtPace(r.targetPace).replace('/km', '').replace("'", ':').replace('"', '') : '';
   f.description.value = r.description || '';
   $('editorTitle').textContent = `Modifier : ${r.name || 'course'}`;
   $('raceEditor').hidden = false;
@@ -733,11 +734,13 @@ $('raceForm').addEventListener('submit', action(async (e) => {
     location: f.location.value,
     plannedStart: fromLocalInput(f.plannedStart.value),
     distanceKm: f.distanceKm.value,
+    targetPace: f.targetPace.value,
     description: f.description.value,
     aidStations: editAid,
   }));
+  const paceTyped = f.targetPace.value.trim();
   openEditor(editId, false);
-  toast('Course enregistrée');
+  toast(paceTyped && !editedRace().targetPace ? 'Course enregistrée, mais allure non reconnue (ex. 5:30)' : 'Course enregistrée');
 }));
 
 $('gpxInput').addEventListener('change', action(async (e) => {

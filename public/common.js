@@ -89,13 +89,21 @@ const ZT = {
     }
 
     // allure de prévision : moyenne entre l'allure globale et l'allure récente
-    const pace = avgPace ? (recentPace ? (avgPace + recentPace) / 2 : avgPace) : null;
+    // sans allure mesurée (avant le départ, premiers km) : allure prévue par le coureur
+    const targetPace = (state.race && state.race.targetPace) || null;
+    const livePace = avgPace ? (recentPace ? (avgPace + recentPace) / 2 : avgPace) : null;
+    const pace = livePace || targetPace;
+    const plannedStart = state.race && state.race.plannedStart ? Date.parse(state.race.plannedStart) : null;
     let eta = null;
     const remaining = total != null ? Math.max(0, total - progress) : null;
     if (s.status === 'finished') eta = s.finishedAt;
-    else if (remaining != null && pace && last) eta = last[2] + (remaining / 1000) * pace * 1000;
+    else if (remaining != null && pace) {
+      // point de départ de la projection : dernière position, sinon heure de départ (réelle ou prévue)
+      const base = last ? last[2] : s.status === 'running' ? s.startedAt : plannedStart;
+      if (base) eta = base + (remaining / 1000) * pace * 1000;
+    }
 
-    return { total, progress, remaining, elapsed, avgPace, recentPace, pace, eta, lastTime: last ? last[2] : null, last };
+    return { total, progress, remaining, elapsed, avgPace, recentPace, pace, livePace, targetPace, plannedStart, eta, lastTime: last ? last[2] : null, last };
   },
 
   /**
@@ -121,10 +129,68 @@ const ZT = {
       const p = state.track.find((pt) => pt[3] >= dist);
       return { passed, at: p ? p[2] : s.startedAt, estimated: false };
     }
-    if (s.status === 'running' && stats.pace && stats.last) {
-      return { passed, at: stats.last[2] + ((dist - stats.progress) / 1000) * stats.pace * 1000, estimated: true };
+    if (s.status === 'running' && stats.pace) {
+      const base = stats.last ? stats.last[2] : s.startedAt;
+      return { passed, at: base + ((dist - stats.progress) / 1000) * stats.pace * 1000, estimated: true, planned: !stats.livePace };
+    }
+    if (s.status === 'idle' && stats.targetPace && stats.plannedStart) {
+      return { passed, at: stats.plannedStart + (dist / 1000) * stats.targetPace * 1000, estimated: true, planned: true };
     }
     return { passed, at: null, estimated: false };
+  },
+
+  /** Altitude du parcours à une distance donnée (m), ou null si le GPX n'en a pas. */
+  elevationAt(course, dist) {
+    const pts = course.points;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      if (b[3] < dist) continue;
+      if (a[2] == null || b[2] == null) return a[2] ?? b[2];
+      const t = (dist - a[3]) / (b[3] - a[3] || 1);
+      return a[2] + (b[2] - a[2]) * Math.max(0, Math.min(1, t));
+    }
+    return pts.length ? pts[pts.length - 1][2] : null;
+  },
+
+  /** Dénivelés positif et négatif entre deux distances du parcours (seuil de 3 m contre le bruit). */
+  climbBetween(course, from, to) {
+    let up = 0;
+    let down = 0;
+    let ref = null;
+    let any = false;
+    const step = (e) => {
+      if (e == null) return;
+      any = true;
+      if (ref == null) ref = e;
+      else if (e - ref >= 3) { up += e - ref; ref = e; }
+      else if (ref - e >= 3) { down += ref - e; ref = e; }
+    };
+    step(ZT.elevationAt(course, from));
+    for (const p of course.points) if (p[3] > from && p[3] < to) step(p[2]);
+    step(ZT.elevationAt(course, to));
+    return any ? { up: Math.round(up), down: Math.round(down) } : null;
+  },
+
+  /**
+   * Toutes les estimations pour un endroit du parcours : passage, chrono, écart avec le coureur,
+   * altitude, dénivelé d'ici là et distance restante ensuite.
+   */
+  spotEstimate(state, stats, dist) {
+    const c = state.course;
+    const s = state.session;
+    const p = ZT.passageAt(state, stats, dist);
+    const start = s.startedAt || stats.plannedStart;
+    const from = s.status === 'idle' ? 0 : stats.progress;
+    return {
+      ...p,
+      dist,
+      ele: ZT.elevationAt(c, dist),
+      chrono: p.at && start ? (p.at - start) / 1000 : null,
+      ahead: !p.passed && s.status === 'running' ? dist - stats.progress : null,
+      climb: !p.passed && dist > from ? ZT.climbBetween(c, from, dist) : null,
+      after: c.length - dist,
+    };
   },
 
   /**

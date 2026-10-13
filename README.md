@@ -54,6 +54,8 @@ Sur la page publique, chaque ravitaillement apparaît sur la carte et dans une l
 La carte **Venir encourager…** de la page publique aide tes supporters à te voir passer :
 
 - **Me situer** : leur position s'affiche sur la carte, avec leur distance par rapport à toi, l'endroit du parcours le plus proche d'eux et l'heure à laquelle tu y passeras. Cette position est calculée uniquement dans leur navigateur : elle n'est jamais envoyée au serveur. La localisation du navigateur exige une adresse en **https** (ou `localhost`).
+- **Toucher le tracé** (ou un ravito) ouvre les estimations pour cet endroit : heure de passage et compte à rebours, chrono estimé, distance qu'il te reste pour y arriver, dénivelé d'ici là, altitude et distance restante jusqu'à l'arrivée.
+- **Allure prévue** (facultative, dans l'éditeur de course, ex. `5:30`) : donne des heures de passage dès avant le départ (à partir du départ prévu) et pendant les premières minutes, avant que ton allure réelle soit mesurée.
 - **Itinéraire** vers un ravito, un point kilométrique choisi ou un endroit touché sur le tracé : ouvre Google Maps (et Plans sur iPhone), départ depuis la position du téléphone.
 
 ## Alertes
