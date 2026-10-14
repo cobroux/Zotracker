@@ -4,6 +4,7 @@
 (() => {
   const { $, el, state, api, toast, action } = ZTA;
 
+  const track = ZTA.trackForm($('runnerForm'));
   let pendingPhoto; // undefined = inchangée, '' = supprimée, data URL = nouvelle
   let savedRunner = {}; // profil tel qu'enregistré (pour l'aperçu du point)
 
@@ -20,6 +21,7 @@
     rf.markerSize.value = m.size;
     rf.markerPulse.checked = m.pulse;
     renderMarkerPreview();
+    track.clear();
   }
 
   function renderPhoto(photo) {
@@ -55,7 +57,7 @@
     input.nextElementSibling.style.setProperty('--sw', input.value);
   }
   for (const b of document.querySelectorAll('[data-emoji]')) {
-    b.addEventListener('click', () => { $('runnerForm').markerEmoji.value = b.dataset.emoji; renderMarkerPreview(); });
+    b.addEventListener('click', () => { $('runnerForm').markerEmoji.value = b.dataset.emoji; renderMarkerPreview(); track.dirty(); });
   }
 
   $('photoInput').addEventListener('change', action(async (e) => {
@@ -63,9 +65,10 @@
     if (!file) return;
     pendingPhoto = await resizeImage(file, 400);
     renderPhoto(pendingPhoto);
+    track.dirty();
   }));
 
-  $('photoRemove').addEventListener('click', () => { pendingPhoto = ''; renderPhoto(''); });
+  $('photoRemove').addEventListener('click', () => { pendingPhoto = ''; ZTA.resetFile($('photoInput')); renderPhoto(''); track.dirty(); });
 
   function resizeImage(file, size) {
     return new Promise((resolve, reject) => {
@@ -96,6 +99,7 @@
     state.config.runner = await api('PUT', '/api/admin/runner', body);
     savedRunner = state.config.runner;
     pendingPhoto = undefined;
+    track.saved();
     toast('Profil enregistré');
   }));
 

@@ -87,3 +87,33 @@ test('canal ntfy : 16 caractères minimum, canal généré toujours conforme', (
   assert.notStrictEqual(migrated.ntfyTopic, 'abcdef');
   assert.match(migrated.ntfyTopic, /^[A-Za-z0-9_-]{16,64}$/);
 });
+
+test('simulation accélérée : départ et positions décalés à chaque tick, l’incident n’alerte qu’une fois', () => {
+  const shiftAll = (r, d) => {
+    r.session.startedAt += d;
+    r.session.armedAt += d;
+    for (const p of r.track) p.t += d;
+  };
+  // signal perdu
+  const lost = race(5, 0);
+  let now = T0 + 12 * 60_000;
+  assert.strictEqual(evaluateSafety(lost, runner, settings, now).length, 1);
+  for (let i = 0; i < 5; i++) {
+    shiftAll(lost, -40_000);
+    now += 60_000;
+    assert.strictEqual(evaluateSafety(lost, runner, settings, now).length, 0, `perte de signal, tick ${i}`);
+  }
+  // hors parcours
+  const off = race(5, 0);
+  off.track.push({ lat: LAT, lon: lonAt(1000), t: T0 + 6 * 60_000, along: 1000 });
+  Object.assign(off.session, { offCourse: true, offCourseSince: T0 + 6 * 60_000 - 5 * 60_000 });
+  now = T0 + 6 * 60_000 + 10_000;
+  assert.ok(evaluateSafety(off, runner, normalizeSafety({ signalLost: false, stopped: false }), now).some((a) => /hors parcours/.test(a.title)));
+  for (let i = 0; i < 5; i++) {
+    shiftAll(off, -40_000);
+    off.session.offCourseSince -= 40_000;
+    now += 60_000;
+    const again = evaluateSafety(off, runner, normalizeSafety({ signalLost: false, stopped: false }), now);
+    assert.strictEqual(again.filter((a) => /hors parcours/.test(a.title)).length, 0, `hors parcours, tick ${i}`);
+  }
+});

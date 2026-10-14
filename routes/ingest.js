@@ -4,17 +4,35 @@
 const express = require('express');
 const sec = require('../lib/security');
 const { addPosition, parseTime } = require('../lib/tracker');
-const { asyncHandler } = require('../lib/http');
-const { store, secrets, activeRace } = require('../lib/context');
+const { asyncHandler, toNum } = require('../lib/http');
+const { store, secrets, state, activeRace } = require('../lib/context');
 const { isAdmin } = require('../lib/auth');
 const { broadcastPositions } = require('../lib/hub');
 const { checkAlerts, triggerSos } = require('../lib/notify');
 
 const { safeEqual } = sec;
 
+const FIX_SAVE_EVERY = 30_000; // ms : l'horodatage de dernière réception n'est réécrit sur disque qu'à ce rythme
+
+const isValidFix = (p) => !!p && typeof p === 'object' && Math.abs(toNum(p.lat, 90)) <= 90 && Math.abs(toNum(p.lon, 180)) <= 180;
+
+/**
+ * Mémorise l'heure de la dernière position valide d'un vrai appareil (jamais la position elle-même),
+ * pour que l'admin puisse tester l'envoi avant la course. La simulation passe par addPosition.
+ */
+function noteDeviceFix(race, now = Date.now()) {
+  const stale = (t) => !t || now - t > FIX_SAVE_EVERY;
+  const trackRace = race && !race.session.simulated;
+  if (!stale(state.lastDeviceFixAt) && !(trackRace && stale(race.lastDeviceFixAt))) return;
+  state.lastDeviceFixAt = now;
+  if (trackRace) race.lastDeviceFixAt = now;
+  store.save();
+}
+
 /** Ajoute des positions à la course en ligne et les diffuse. */
 function ingest(points) {
   const race = activeRace();
+  if (points.some(isValidFix)) noteDeviceFix(race);
   if (!race) return { received: points.length, added: 0, status: 'no_race' };
   // pendant une simulation, les vraies positions sont ignorées (le SOS, lui, passe toujours)
   if (race.session.simulated) return { received: points.length, added: 0, status: 'simulation' };
@@ -72,4 +90,4 @@ sosRouter.post('/api/sos', sec.rateLimit({ windowMs: 60_000, max: 10 }), asyncHa
   res.json({ ok: true, alert, delivered: await delivered, ...(byTracker ? { outdatedLink: true } : {}) });
 }));
 
-module.exports = { ingest, ingestRouter, sosRouter };
+module.exports = { noteDeviceFix, ingest, ingestRouter, sosRouter };

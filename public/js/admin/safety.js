@@ -23,6 +23,7 @@
   }
 
   for (const id of ['ntfyTopic', 'sosLink']) copyOnClick(id);
+  const track = ZTA.trackForm($('safetyForm'));
 
   function render() {
     const config = state.config;
@@ -45,7 +46,7 @@
           a.body && el('small', { class: 'muted' }, a.body),
           a.mapsUrl && el('a', { href: a.mapsUrl, target: '_blank', rel: 'noopener', class: 'small' }, 'Voir la position'),
         )))
-      : [el('li', { class: 'muted small' }, 'Aucune alerte de sécurité pour la course en ligne.')]));
+      : [el('li', { class: 'muted small' }, 'Rien pour l’instant. Les alertes de sécurité (immobilité, batterie faible, SOS…) apparaîtront ici.')]));
   }
 
   /** Alerte de sécurité reçue en temps réel (flux privé de l'admin). */
@@ -72,32 +73,47 @@
     const c = await api('PUT', '/api/admin/safety', body);
     fill(c.safetySettings);
     setConfig(c);
-    toast('Réglages de sécurité enregistrés');
+    track.saved();
+    toast('Détections enregistrées');
   }));
 
   $('safetyTest').addEventListener('click', action(async () => {
     const r = await api('POST', '/api/admin/safety/test');
-    toast(r.delivered ? 'Test envoyé : tes contacts abonnés au canal doivent le recevoir' : "Échec de l'envoi vers ntfy (connexion du serveur ?)", !r.delivered);
+    toast(r.delivered ? 'Test envoyé : tes contacts abonnés doivent le recevoir' : "Le test n'est pas parti : le serveur n'a pas pu joindre le service de notifications. Réessaie dans un instant.", !r.delivered);
   }));
 
   $('newChannel').addEventListener('click', action(async () => {
-    if (!confirm('Changer de canal ? Tes contacts devront s’abonner au nouveau canal.')) return;
+    if (!await ZTA.confirm({
+      title: 'Changer le code de diffusion ?',
+      body: 'Tes contacts ne recevront plus tes alertes tant qu’ils ne se seront pas abonnés au nouveau code.',
+      confirmLabel: 'Changer le code',
+      danger: true,
+    })) return;
     const c = await api('POST', '/api/admin/safety/new-channel');
     setupHelp(c);
     setConfig(c);
   }));
 
   $('sosNow').addEventListener('click', action(async () => {
-    if (!confirm('Envoyer une alerte SOS à tes contacts de confiance ?')) return;
+    if (!await ZTA.confirm({
+      title: 'Envoyer un vrai SOS ?',
+      body: 'Tes contacts de confiance reçoivent tout de suite une alerte d’urgence avec ta position.',
+      confirmLabel: 'Envoyer le SOS',
+      danger: true,
+    })) return;
     const pos = await new Promise((resolve) => navigator.geolocation
       ? navigator.geolocation.getCurrentPosition((p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }), () => resolve({}), { enableHighAccuracy: true, timeout: 8000 })
       : resolve({}));
     const r = await api('POST', '/api/admin/sos', pos);
-    toast(r.delivered ? 'SOS envoyé à tes contacts' : "SOS enregistré mais l'envoi a échoué", !r.delivered);
+    toast(r.delivered ? 'SOS envoyé à tes contacts' : "SOS enregistré, mais tes contacts ne l'ont pas reçu. Appelle-les directement.", !r.delivered);
   }));
 
   $('sosResolve').addEventListener('click', action(async () => {
-    if (!confirm('Lever l’alerte SOS et prévenir tes contacts que tout va bien ?')) return;
+    if (!await ZTA.confirm({
+      title: 'Lever l’alerte SOS ?',
+      body: 'Tes contacts sont prévenus que tout va bien.',
+      confirmLabel: 'Oui, tout va bien',
+    })) return;
     await api('POST', '/api/admin/sos', { cancel: true });
   }));
 

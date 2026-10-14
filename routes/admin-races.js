@@ -48,7 +48,8 @@ function applyRaceFields(race, b) {
 router.post('/races', (req, res) => {
   const race = newRace();
   applyRaceFields(race, req.body || {});
-  if (!race.name) race.name = 'Nouvelle course';
+  // pas de course « fantôme » : l'admin n'enregistre qu'une fois le nom saisi
+  if (!race.name) return res.status(400).json({ error: 'Donne un nom à la course.' });
   state.races.push(race);
   if (!state.activeRaceId) state.activeRaceId = race.id;
   store.save();

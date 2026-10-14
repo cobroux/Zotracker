@@ -6,18 +6,11 @@
 
   const activeRace = () => state.config.races.find((r) => r.id === state.config.activeRaceId);
 
-  /** « Prêt pour la course ? » : les étapes de configuration, avec un lien vers chaque menu. */
+  /** « Prêt pour la course ? » : les étapes de configuration (critères dans readiness.js), avec un lien vers chaque menu. */
   function renderChecklist() {
     const config = state.config;
     const active = activeRace();
-    const items = [
-      [!!config.runner.name, 'Renseigner ton profil (nom, photo…)', '#/profil'],
-      [config.races.length > 0, 'Créer ta course', '#/courses'],
-      [!!(active && active.course), 'Importer le parcours GPX de la course en ligne', '#/courses'],
-      [!!active, 'Mettre une course en ligne', '#/courses'],
-      [!!(active && (active.trackCount || active.session.status !== 'idle')), 'Tester l’envoi de ta position (Traccar)', '#/gps'],
-      [!!config.twoFactor.enabled, 'Activer la double authentification', '#/parametres'],
-    ];
+    const items = window.ZTReadiness.buildChecklist(config, Date.now());
     const done = items.filter(([ok]) => ok).length;
     $('checklistScore').textContent = `${done}/${items.length}`;
     $('checklistScore').className = `badge ${done === items.length ? 'finished' : ''}`;
@@ -115,7 +108,12 @@
     const f = e.target;
     const live = state.live;
     if (live && live.track.length && !live.session.simulated
-      && !confirm('Le suivi actuel de cette course (positions, alertes) sera remplacé par la simulation. Continuer ?')) return;
+      && !await ZTA.confirm({
+        title: 'Remplacer le suivi par la simulation ?',
+        body: 'Les positions et les alertes déjà enregistrées pour cette course seront effacées.',
+        confirmLabel: 'Lancer la simulation',
+        danger: true,
+      })) return;
     state.config.sim = await api('POST', '/api/admin/sim/start', {
       pace: f.pace.value, startKm: f.startKm.value, speed: f.speed.value, notify: f.notify.checked,
     });
@@ -144,6 +142,10 @@
   // ---------------------------------------------------------------- messages et commandes de course
 
   function renderMessages() {
+    if (!state.live.messages.length) {
+      $('adminMessages').replaceChildren(el('li', { class: 'muted small' }, 'Aucun message pour l’instant. Écris-en un pour rassurer tes supporters.'));
+      return;
+    }
     $('adminMessages').replaceChildren(
       ...state.live.messages.map((m) =>
         el('li', {},
@@ -159,17 +161,31 @@
   }
 
   $('startBtn').addEventListener('click', action(async () => {
-    if (state.live.session.status === 'finished' && !confirm('Démarrer à nouveau efface le suivi précédent de cette course. Continuer ?')) return;
+    if (state.live.session.status === 'finished' && !await ZTA.confirm({
+      title: 'Repartir de zéro ?',
+      body: 'Un nouveau départ efface le suivi précédent de cette course (positions et chrono).',
+      confirmLabel: 'Effacer et donner le départ',
+      danger: true,
+    })) return;
     await api('POST', '/api/admin/session/start', {});
     toast('Départ donné !');
   }));
   $('finishBtn').addEventListener('click', action(async () => {
-    if (!confirm('Déclarer la course terminée ?')) return;
+    if (!await ZTA.confirm({
+      title: 'Terminer la course ?',
+      body: 'Le chrono s’arrête et les supporters verront « Course terminée » (et non « arrivé »). Tu pourras la reprendre si besoin.',
+      confirmLabel: 'Terminer la course',
+    })) return;
     await api('POST', '/api/admin/session/finish');
   }));
   $('resumeBtn').addEventListener('click', action(() => api('POST', '/api/admin/session/resume')));
   $('resetBtn').addEventListener('click', action(async () => {
-    if (!confirm('Effacer tout le suivi (positions, chrono) de cette course ?')) return;
+    if (!await ZTA.confirm({
+      title: 'Effacer le suivi ?',
+      body: 'Toutes les positions et le chrono de cette course seront supprimés. Cette action est définitive.',
+      confirmLabel: 'Effacer le suivi',
+      danger: true,
+    })) return;
     await api('POST', '/api/admin/session/reset');
   }));
   $('startAtBtn').addEventListener('click', action(async () => {
@@ -187,7 +203,7 @@
   }));
 
   // chrono et estimations qui avancent même sans nouvelle position
-  setInterval(() => state.config && renderLive(), 15_000);
+  setInterval(() => { if (state.config) { renderLive(); renderChecklist(); } }, 15_000);
 
   ZTA.dashboard = { renderChecklist, renderTopStatus, renderLive, renderSim, renderMessages };
 })();

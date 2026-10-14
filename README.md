@@ -37,6 +37,7 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `VAPID_SUBJECT` | Contact pour les notifications push | `mailto:zotracker@example.com` |
 | `TRACK_RETENTION_DAYS` | Positions GPS effacées N jours après la course (0 = jamais) | `90` |
 | `PUBLIC_TRACK_MASK_M` | Confidentialité du domicile : sur la trace publique, points masqués à moins de N m du premier point GPS (et du dernier une fois la course terminée). Aucune exception pour la position actuelle : tant que le coureur est dans la zone du départ, le public ne voit ni trace ni marqueur (la progression reste affichée), le marqueur apparaît dès la sortie de la zone ; l'admin voit tout (0 = désactivé) | `300` |
+| `PUBLIC_URL` | Origine canonique du site (ex. `https://suivi.exemple.fr`), utilisée pour `og:url` et `og:image` de l'aperçu du lien partagé. `http(s)` seulement, sans chemin : sinon le serveur refuse de démarrer. À défaut, l'origine vient de la requête (en-tête `Host`, que le client peut forger : à définir en production) | — |
 | `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client (`X-Forwarded-For`). Derrière un proxy dans un réseau Docker privé (Caddy de `deploy/`) : `uniquelocal`. Ne l'élargis jamais si l'appli est joignable sans passer par ce proxy | `loopback` |
 | `TILE_URL` / `TILE_ATTRIBUTION` | Fond de carte imposé par le serveur. Sinon, il se choisit dans l'admin (⚙️ Paramètres → Fond de carte) | OpenStreetMap, avec repli sur OpenTopoMap |
 | `PUSH_ALLOWED_HOSTS` | Services push supplémentaires autorisés (séparés par des virgules) | — |
@@ -71,9 +72,9 @@ Les supporters sont prévenus automatiquement :
 - 🏃 départ donné ;
 - 📍 **approche d'un ravito** ou de l'arrivée, quelques minutes avant (5 par défaut, réglable) : idéal pour être au bon endroit ;
 - 🥤 passage à un ravito et ⏱️ mi-course ;
-- 🎉 arrivée, avec le temps final ;
+- 🎉 arrivée, avec le temps final (seulement quand l'arrivée est détectée sur le tracé ; si tu cliques sur « Terminer », l'alerte est neutre : « Course terminée ») ;
 - 💬 tes messages ;
-- 📡 plus de position reçue depuis X minutes (réseau ou batterie).
+- 📡 plus de position reçue depuis X minutes (réseau ou batterie). Une seule alerte par coupure, sans rappel (idem pour les alertes privées « hors parcours », « immobile » et « plus de position »), y compris en simulation accélérée.
 
 Elles s'affichent en bandeau et dans le fil « En direct » de la page publique. Les supporters qui touchent **🔔 Être alerté** reçoivent aussi une **notification sur leur téléphone**, même page fermée (Web Push).
 
@@ -183,7 +184,7 @@ lib/totp.js        double authentification (TOTP RFC 6238, codes de secours)
 public/sos.html    page SOS du coureur (appui long)
 public/sw.js       service worker qui affiche les notifications
 lib/store.js       stockage JSON + secrets
-public/            page publique (index.html, app.js), admin (admin.html, js/admin/*.js par vue)
+public/            page publique (index.html, js/public/*.js), admin (admin.html, js/admin/*.js par vue)
 deploy/            production : docker-compose, Caddyfile, scripts de déploiement et de sauvegarde
 .github/           CI (tests, audit, secrets, scan d'image), CodeQL, déploiement continu, Dependabot
 ```

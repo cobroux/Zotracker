@@ -49,6 +49,7 @@ test('arrivée imminente puis arrivée avec le temps', () => {
   assert.deepStrictEqual(titles(evaluate(race, runner, settings, T0 + 47 * 60_000)), ['Enzo arrive bientôt !']);
   race.session.status = 'finished';
   race.session.finishedAt = T0 + 50 * 60_000;
+  race.session.endedBy = 'finish';
   const out = evaluate(race, runner, settings, T0 + 50 * 60_000);
   assert.deepStrictEqual(titles(out), ['Enzo a terminé !']);
   assert.strictEqual(out[0].body, 'Temps : 50 min 00 s');
@@ -89,4 +90,44 @@ test('départ corrigé a posteriori : pas de fausse alerte « plus de position �
   const late = evaluate(race, runner, settings, now + 6 * 60_000);
   assert.deepStrictEqual(titles(late), ['Plus de position reçue']);
   assert.match(late[0].body, /d'Enzo il y a 6 min/);
+});
+
+test('arrêt manuel de l’admin : « Course terminée », jamais « a terminé » ; réglage finish respecté', () => {
+  const race = raceAt(20);
+  race.alertsFired = { start: 1, halfway: 1, 'pass:r1': 1, 'near:r1': 1, nearFinish: 1 };
+  race.session.status = 'finished';
+  race.session.finishedAt = T0 + 20 * 60_000;
+  race.session.endedBy = 'manual';
+  const out = evaluate(race, runner, settings, T0 + 20 * 60_000);
+  assert.deepStrictEqual(titles(out), ['Course terminée']);
+  assert.ok(!/arriv|a terminé/i.test(out[0].title + out[0].body));
+  const off = raceAt(20);
+  off.alertsFired = { start: 1, halfway: 1, 'pass:r1': 1, 'near:r1': 1, nearFinish: 1 };
+  Object.assign(off.session, { status: 'finished', finishedAt: T0 + 20 * 60_000, endedBy: 'manual' });
+  assert.strictEqual(evaluate(off, runner, normalizeSettings({ finish: false }), T0 + 20 * 60_000).length, 0);
+});
+
+test('perte de signal en simulation accélérée (heures décalées à chaque tick) : une seule alerte', () => {
+  const race = raceAt(10);
+  race.alertsFired = { start: 1 };
+  let now = T0 + 20 * 60_000;
+  const lost = (list) => list.filter((a) => a.title === 'Plus de position reçue').length;
+  assert.strictEqual(lost(evaluate(race, runner, settings, now)), 1);
+  for (let i = 0; i < 5; i++) {
+    const shift = -45_000; // la simulation recule départ et positions ensemble
+    race.session.startedAt += shift;
+    for (const p of race.track) p.t += shift;
+    now += 60_000;
+    assert.strictEqual(lost(evaluate(race, runner, settings, now)), 0, `tick ${i}`);
+  }
+});
+
+const { atAid } = require('../lib/alerts');
+
+test('atAid : nom vide, nom libre, « Ravito 2 »', () => {
+  assert.strictEqual(atAid({ name: '' }), 'au ravitaillement');
+  assert.strictEqual(atAid({}), 'au ravitaillement');
+  assert.strictEqual(atAid({ name: '  ' }), 'au ravitaillement');
+  assert.strictEqual(atAid({ name: 'Les Houches' }), 'au ravito « Les Houches »');
+  assert.strictEqual(atAid({ name: 'Ravito 2' }), 'au Ravito 2');
 });

@@ -11,6 +11,11 @@ const { Store } = require('../lib/store');
 const tmpDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'zt-store-'));
 const readState = (dir) => JSON.parse(fs.readFileSync(path.join(dir, 'state.json'), 'utf8'));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+/** Attend (sondage) que la condition soit vraie, au plus `max` ms : pas de délai fixe fragile. */
+async function until(cond, max = 3000) {
+  const end = Date.now() + max;
+  while (!cond() && Date.now() < end) await wait(5);
+}
 
 test('save() regroupe les modifications et écrit de façon asynchrone', async () => {
   const dir = tmpDir();
@@ -47,7 +52,7 @@ test('une seule écriture en vol : une modification pendant l’écriture en rel
   store.save();
   await wait(15);
   store.write(); // écriture demandée directement pendant la première : replanifiée, pas lancée en parallèle
-  await wait(150);
+  await until(() => calls >= 2);
   await store.writing;
   assert.strictEqual(maxInFlight, 1);
   assert.ok(calls >= 2, `au moins deux écritures (${calls})`);

@@ -183,8 +183,11 @@ test('retour au départ en course (ou course restée « en cours ») : position 
 
 test('purge : course restée « en cours » dont la dernière position est trop ancienne', async () => {
   const race = srv.state.races.find((r) => r.id === srv.state.activeRaceId);
+  assert.strictEqual(race.session.endedBy, 'manual', 'arrêt par l’admin');
+  assert.strictEqual((await (await fetch(base + '/api/state')).json()).session.endedBy, 'manual', 'exposé publiquement');
   await call('POST', '/api/admin/session/resume');
   assert.strictEqual(race.session.status, 'running');
+  assert.strictEqual(race.session.endedBy, null, 'reprise : remis à null');
   assert.ok(race.track.length);
   const last = race.track.at(-1).t;
   srv.purgeOldTracks(last + 89 * 86_400_000);

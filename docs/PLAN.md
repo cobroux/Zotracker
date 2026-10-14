@@ -9,7 +9,7 @@ flowchart LR
   subgraph Clients
     GPS[Traccar / OsmAnd<br>ou GPS navigateur]
     SOS[sos.html + sos.js]
-    PUB[index.html + app.js]
+    PUB[index.html + js/public/*.js<br>namespace ZTP]
     ADM[admin.html + admin.js]
   end
   subgraph server.js["server.js (≈1000 lignes)"]
@@ -48,7 +48,7 @@ Points structurels relevés par le graphe :
 
 - **`server.js` mélange 6 communautés** : routage, broadcast, ingestion, contrôle d'accès, simulation et assainissement des champs. C'est le premier candidat au découpage.
 - **`admin.js` est la communauté la moins cohésive** (cohésion 0,07, 59 nœuds), au point que le graphe suggère de la découper.
-- **Code dupliqué sans lien entre les copies** : `firstName`, `deName` et `fmtKm` existent dans `alerts.js`, `safety.js` et `app.js`. Les statistiques sont calculées deux fois (`lib/stats.js` côté serveur, `common.js → computeStats` côté client) et divergent déjà sur l'ETA avant le départ.
+- **Code dupliqué sans lien entre les copies** : `firstName`, `deName` et `fmtKm` existaient dans `alerts.js`, `safety.js` et l'ancien `app.js` (page publique, supprimé : elle vit dans `public/js/public/*.js`, namespace `ZTP`). Les statistiques sont calculées deux fois (`lib/stats.js` côté serveur, `common.js → computeStats` côté client) et divergent déjà sur l'ETA avant le départ.
 - Aucun cycle d'import.
 
 ## 2. Déjà corrigé (cette session)
@@ -86,7 +86,10 @@ Points structurels relevés par le graphe :
 Guidé par les communautés du graphe :
 
 ```
-server.js            →  app.js (montage) + start()
+server.js            →  montage Express + start() (fait)
+routes/page.js       ←  page publique `/` avec aperçu du lien partagé (Open Graph), origine = PUBLIC_URL
+lib/share-meta.js    ←  balises Open Graph insérées à la place du marqueur `<!-- zt:og -->` de index.html
+public/js/public/*.js ← ancien app.js, découpé (namespace window.ZTP)
 routes/public.js     ←  publicState, raceInfo, SSE public, push
 routes/ingest.js     ←  ingest(), /api/ingest, /api/sos
 routes/admin-*.js    ←  courses, session, profil, sécurité, compte/2FA
@@ -115,3 +118,14 @@ Par ordre de risque :
 - **Identité visuelle** : la palette suit encore les couleurs Tailwind par défaut (`#1d4ed8`, `#7c3aed`), ce qui fait « template ». Proposition : un accent orange cohérent avec le renard par défaut, ou une teinte propre au club. Mettre à jour en même temps `icon.svg`, les PNG, `theme-color` et le manifest.
 - Remplacer les emojis restants dans les **titres d'alertes envoyés par le serveur** (`lib/alerts.js`, `lib/safety.js`) si tu veux le même ton sobre dans les notifications.
 - Option produit : masquer les premiers et derniers 300 m de la trace publique (domicile).
+
+## Avancement (14/10/2026, passe de corrections après revues)
+
+- [x] Phase 3 : découpage en `routes/` et `lib/`, ESLint dans `npm run check`, `asyncHandler` et `toNum`.
+- [x] `session.endedBy` (`'finish'` arrivée détectée, `'manual'` bouton « Terminer », `null` sinon) : l'alerte d'arrivée n'annonce plus « a terminé » après un arrêt manuel.
+- [x] `PUBLIC_URL` validée au démarrage (origine canonique des balises Open Graph).
+- [x] `express.static` sans `index` : `//` et `/./` ne servent plus la page brute.
+- [x] `noteDeviceFix` n'écrit sur disque qu'une fois toutes les 30 s.
+- [x] Alertes « plus de position », « hors parcours », « immobile » : clés d'incident relatives au départ, une seule alerte par incident (la simulation accélérée décalait les heures et les répétait).
+- [x] Tests : attente active dans `store.test.js`, `atAid`, page `/` réelle.
+- [ ] Rappel espacé (ex. toutes les 15 min) d'un incident toujours en cours : non fait, à décider.

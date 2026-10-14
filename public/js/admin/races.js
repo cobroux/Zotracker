@@ -5,6 +5,7 @@
   const { $, el, state, api, toast, action, toLocalInput, fromLocalInput, setConfig } = ZTA;
 
   let editId = null; // course en cours d'édition
+  let isNew = false; // éditeur ouvert sur une course pas encore créée : rien n'existe côté serveur avant « Enregistrer »
   let editAid = []; // copie de travail des ravitaillements
 
   const editedRace = () => state.config && state.config.races.find((r) => r.id === editId);
@@ -21,7 +22,11 @@
     const config = state.config;
     const races = [...config.races].sort((a, b) => (Date.parse(a.plannedStart) || a.createdAt) - (Date.parse(b.plannedStart) || b.createdAt));
     if (!races.length) {
-      $('raceList').replaceChildren(el('li', { class: 'muted' }, 'Aucune course pour l’instant. Crée ta première course !'));
+      $('raceList').replaceChildren(el('li', { class: 'empty' },
+        el('p', {}, el('strong', {}, 'Aucune course pour l’instant.')),
+        el('p', { class: 'muted' }, 'Crée ta première course : nom, date, parcours GPX et ravitaillements.'),
+        el('button', { type: 'button', class: 'primary', onclick: action(openNewEditor) }, 'Créer ma première course'),
+      ));
       return;
     }
     $('raceList').replaceChildren(...races.map((r) => {
@@ -43,26 +48,28 @@
           el('div', { class: 'muted small' }, details),
         ),
         el('div', { class: 'race-actions' },
-          el('button', { type: 'button', onclick: () => openEditor(r.id) }, 'Modifier'),
+          el('button', { type: 'button', onclick: action(() => openEditor(r.id)) }, 'Modifier'),
           !isLive && el('button', { type: 'button', class: 'primary', onclick: action(async () => {
             setConfig(await api('POST', `/api/admin/races/${r.id}/activate`));
             toast(`« ${r.name} » est maintenant sur la page publique`);
           }) }, 'Mettre en ligne'),
           el('button', { type: 'button', class: 'link danger', onclick: action(async () => {
-            if (!confirm(`Supprimer « ${r.name} » et tout son suivi ?`)) return;
+            if (!await ZTA.confirm({
+              title: `Supprimer « ${r.name || 'cette course'} » ?`,
+              body: 'La course, son parcours et tout son suivi seront supprimés. Cette action est définitive.',
+              confirmLabel: 'Supprimer la course',
+              danger: true,
+            })) return;
             setConfig(await api('DELETE', `/api/admin/races/${r.id}`));
+            $('newRaceBtn').focus(); // le bouton « Supprimer » vient de disparaître avec la ligne
           }) }, 'Supprimer'),
         ),
       );
     }));
   }
 
-  $('newRaceBtn').addEventListener('click', action(async () => {
-    const before = new Set(state.config.races.map((r) => r.id));
-    setConfig(await api('POST', '/api/admin/races', { name: 'Nouvelle course' }));
-    const created = state.config.races.find((r) => !before.has(r.id));
-    if (created) openEditor(created.id);
-  }));
+  // aucun appel serveur à l'ouverture : la course n'est créée qu'au premier « Enregistrer »
+  $('newRaceBtn').addEventListener('click', action(openNewEditor));
 
   // ---------------------------------------------------------------- édition d'une course
 
@@ -72,11 +79,62 @@
   window.addEventListener('themechange', () => courseLine.setStyle({ color: ZT.cssVar('--track-done') }));
   const aidLayer = L.layerGroup().addTo(adminMap);
 
-  function openEditor(id, scroll = true) {
+  const raceTrack = ZTA.trackForm($('raceForm'));
+
+  /** Remplit le formulaire et affiche l'éditeur ; `r` vaut null pour une nouvelle course. */
+  function showEditor(r, scroll) {
+    isNew = !r;
+    editAid = r ? r.aidStations.map((a) => ({ ...a })) : [];
+    const f = $('raceForm');
+    if (!r) f.reset();
+    raceTrack.clear();
+    $('editorTitle').textContent = r ? `Modifier : ${r.name || 'course'}` : 'Nouvelle course';
+    $('adminMap').hidden = isNew;
+    // pas de parcours sans course : champ désactivé, l'explication reste affichée dessous (#courseInfo)
+    $('gpxInput').disabled = isNew;
+    $('courseDelete').disabled = isNew;
+    ZTA.resetFile($('gpxInput'));
+    $('raceEditor').hidden = false;
+    renderAidList();
+    renderEditorCourse(false);
+    renderRaceList();
+    if (scroll) {
+      setTimeout(() => {
+        $('raceEditor').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+        if (isNew) f.name.focus({ preventScroll: true });
+      }, 60);
+    }
+    if (r) setTimeout(() => { adminMap.invalidateSize(); renderEditorCourse(true); }, 50); // la carte était masquée
+  }
+
+  /** Ouvrir une autre course (ou une nouvelle) alors que l'éditeur a des modifications : on demande avant de les perdre. */
+  async function confirmDiscard() {
+    if ($('raceEditor').hidden || !raceTrack.isDirty()) return true;
+    return ZTA.confirm({
+      title: 'Abandonner les modifications ?',
+      body: isNew ? 'Cette course n’a pas encore été créée : ce que tu as saisi sera perdu.' : 'Les modifications non enregistrées de cette course seront perdues.',
+      confirmLabel: 'Abandonner',
+      danger: true,
+    });
+  }
+
+  async function openNewEditor() {
+    if (!await confirmDiscard()) return;
+    if (state.currentView !== 'courses') location.hash = '#/courses';
+    editId = null;
+    showEditor(null, true);
+  }
+
+  async function openEditor(id) {
+    if (!await confirmDiscard()) return;
+    loadEditor(id, true);
+  }
+
+  /** Remplit l'éditeur depuis la course enregistrée (sans demander : appelé après une sauvegarde ou un import). */
+  function loadEditor(id, scroll = true) {
     if (state.currentView !== 'courses') location.hash = '#/courses';
     editId = id;
     const r = editedRace();
-    editAid = r.aidStations.map((a) => ({ ...a }));
     const f = $('raceForm');
     f.name.value = r.name || '';
     f.location.value = r.location || '';
@@ -84,30 +142,36 @@
     f.distanceKm.value = r.distanceKm ?? '';
     f.targetPace.value = r.targetPace ? ZT.fmtPace(r.targetPace).replace('/km', '').replace("'", ':').replace('"', '') : '';
     f.description.value = r.description || '';
-    $('editorTitle').textContent = `Modifier : ${r.name || 'course'}`;
-    $('raceEditor').hidden = false;
-    renderAidList();
-    renderEditorCourse(false);
-    renderRaceList();
-    if (scroll) setTimeout(() => $('raceEditor').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-    // la carte était masquée : on recalcule sa taille avant de cadrer le parcours
-    setTimeout(() => { adminMap.invalidateSize(); renderEditorCourse(true); }, 50);
+    showEditor(r, scroll);
   }
 
   function closeEditor() {
     editId = null;
+    isNew = false;
     $('raceEditor').hidden = true;
   }
-  $('editorClose').addEventListener('click', () => { closeEditor(); renderRaceList(); });
+  $('editorClose').addEventListener('click', action(async () => {
+    if (raceTrack.isDirty() && !await ZTA.confirm({
+      title: 'Fermer sans enregistrer ?',
+      body: isNew ? 'Cette course n’a pas encore été créée : rien ne sera conservé.' : 'Tes modifications de cette course seront perdues.',
+      confirmLabel: 'Fermer sans enregistrer',
+      danger: true,
+    })) return;
+    closeEditor();
+    renderRaceList();
+    $('newRaceBtn').focus(); // l'éditeur et son bouton de fermeture viennent de disparaître
+  }));
 
   function renderEditorCourse(fit) {
     const r = editedRace();
     const c = r && r.course;
     courseLine.setLatLngs(c ? c.points.map((p) => [p[0], p[1]]) : []);
     if (c && fit) adminMap.fitBounds(courseLine.getBounds(), { padding: [16, 16] });
-    $('courseInfo').textContent = c
-      ? `Parcours chargé : ${ZT.fmtKm(c.length)}${c.elevationGain ? ` · ${c.elevationGain} m D+` : ''}`
-      : 'Aucun parcours : la distance sera calculée à partir des positions GPS.';
+    $('courseInfo').textContent = isNew
+      ? 'Enregistre d’abord la course : tu pourras ensuite importer son parcours GPX.'
+      : c
+        ? `Parcours chargé : ${ZT.fmtKm(c.length)}${c.elevationGain ? ` · ${c.elevationGain} m D+` : ''}`
+        : 'Aucun parcours : la distance sera calculée à partir des positions GPS.';
     $('courseDelete').hidden = !c;
     renderAidMarkers();
   }
@@ -146,10 +210,11 @@
           readAidRows();
           editAid.splice(i, 1);
           renderAidList();
+          raceTrack.dirty();
         } }, '✕'),
       ),
     ));
-    if (!editAid.length) $('aidList').append(el('p', { class: 'muted small' }, 'Aucun ravitaillement.'));
+    if (!editAid.length) $('aidList').append(el('p', { class: 'help' }, 'Aucun ravitaillement pour l’instant. Ajoute-en un, ou importe un GPX qui contient des points de passage.'));
     renderAidMarkers();
   }
 
@@ -157,6 +222,7 @@
     readAidRows();
     editAid.push({ id: '', km: km == null ? '' : Math.round(km * 10) / 10, name: `Ravito ${editAid.length + 1}`, info: '' });
     renderAidList();
+    raceTrack.dirty();
   }
 
   $('aidAdd').addEventListener('click', () => addAid(null));
@@ -174,7 +240,8 @@
     e.preventDefault();
     readAidRows();
     const f = e.target;
-    setConfig(await api('PUT', `/api/admin/races/${editId}`, {
+    if (!f.name.value.trim()) { f.name.focus(); throw new Error('Donne un nom à la course.'); }
+    const body = {
       name: f.name.value,
       location: f.location.value,
       plannedStart: fromLocalInput(f.plannedStart.value),
@@ -182,40 +249,66 @@
       targetPace: f.targetPace.value,
       description: f.description.value,
       aidStations: editAid,
-    }));
+    };
     const paceTyped = f.targetPace.value.trim();
-    openEditor(editId, false);
+    if (isNew) {
+      // première sauvegarde : c'est ici, et seulement ici, que la course est créée
+      const before = new Set(state.config.races.map((r) => r.id));
+      setConfig(await api('POST', '/api/admin/races', body));
+      const created = state.config.races.find((r) => !before.has(r.id));
+      if (!created) throw new Error('La course n’a pas pu être créée.');
+      loadEditor(created.id, false);
+    } else {
+      setConfig(await api('PUT', `/api/admin/races/${editId}`, body));
+      loadEditor(editId, false);
+    }
+    raceTrack.saved();
     toast(paceTyped && !editedRace().targetPace ? 'Course enregistrée, mais allure non reconnue (ex. 5:30)' : 'Course enregistrée');
   }));
 
   $('gpxInput').addEventListener('change', action(async (e) => {
-    const file = e.target.files[0];
+    const input = e.target;
+    const file = input.files[0];
     if (!file) return;
     const r = editedRace();
-    if (r.trackCount && !confirm('Importer un parcours efface le suivi GPS de cette course. Continuer ?')) { e.target.value = ''; return; }
+    if (!r) { ZTA.resetFile(input); throw new Error('Enregistre d’abord la course, puis importe son parcours GPX.'); }
+    // l'import recharge le formulaire depuis le serveur : les saisies non enregistrées seraient perdues
+    const lost = [raceTrack.isDirty() && 'les modifications non enregistrées de la course', r.trackCount && 'le suivi GPS déjà enregistré'].filter(Boolean);
+    if (lost.length && !await ZTA.confirm({
+      title: 'Importer ce parcours ?',
+      body: `Importer ce parcours efface ${lost.join(' et ')}.`,
+      confirmLabel: 'Importer',
+      danger: true,
+    })) { ZTA.resetFile(input); return; }
     const res = await api('POST', `/api/admin/races/${editId}/course`, { gpx: await file.text() });
-    e.target.value = '';
+    ZTA.resetFile(input);
     setConfig(res);
-    openEditor(editId, false);
+    loadEditor(editId, false);
     const extra = res.imported.aidStations ? ` · ${res.imported.aidStations} ravitaillement(s) importé(s)` : '';
     toast(`Parcours importé : ${ZT.fmtKm(res.imported.length)}${extra}`);
   }));
 
   $('courseDelete').addEventListener('click', action(async () => {
-    if (!confirm('Supprimer le parcours de cette course ?')) return;
+    if (!await ZTA.confirm({
+      title: 'Supprimer le parcours ?',
+      body: 'Le tracé GPX de cette course sera retiré. Les ravitaillements restent en place.',
+      confirmLabel: 'Supprimer le parcours',
+      danger: true,
+    })) return;
     setConfig(await api('DELETE', `/api/admin/races/${editId}/course`));
     renderEditorCourse();
+    $('gpxInput').focus(); // le bouton « Supprimer le parcours » vient de disparaître
   }));
 
   /** Nouvelle configuration : ferme l'éditeur si sa course a disparu, puis redessine la liste. */
   function onConfig() {
-    if (editId && !editedRace()) closeEditor();
+    if (editId && !editedRace()) closeEditor(); // la course éditée a été supprimée
     renderRaceList();
   }
 
   /** La vue redevient visible : la carte de l'éditeur était masquée, recalcul de sa taille. */
   function onViewShown() {
-    if (editId) setTimeout(() => { adminMap.invalidateSize(); renderEditorCourse(true); }, 50);
+    if (editId && !isNew) setTimeout(() => { adminMap.invalidateSize(); renderEditorCourse(true); }, 50);
   }
 
   ZTA.races = { onConfig, onViewShown };

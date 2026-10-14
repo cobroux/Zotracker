@@ -1,8 +1,10 @@
-/* Page SOS : appui long → position GPS → alerte aux contacts de confiance. */
+/* Page SOS : appui long → position GPS → alerte aux contacts de confiance.
+ * La logique d'état et les textes sont dans sos-core.js (testés) ; ce fichier gère le DOM et le réseau. */
 'use strict';
 
 // Portée locale : aucune déclaration de ce fichier ne devient une globale de window.
 (() => {
+  const S = window.ZTSos;
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
   let key = params.get('key');
@@ -11,19 +13,50 @@
     else key = localStorage.getItem('zt-sos-key');
   } catch { /* stockage indisponible */ }
 
-  const HOLD_MS = 2000;
   const btn = $('sosBtn');
+  let state = S.initial();
   let holdTimer = null;
+  let countTimer = null;
+  let holdStart = 0;
+  let buzzed = false;
+  let announced = '';
 
-  function status(text, cls = '') {
-    $('sosStatus').textContent = text;
-    $('sosStatus').className = `sos-status ${cls}`;
+  // ---------------------------------------------------------------- affichage
+
+  function announce(text) {
+    if (text === announced) return;
+    announced = text;
+    $('sosAnnounce').textContent = text;
   }
 
-  if (!key) {
-    btn.disabled = true;
-    status('Lien SOS incomplet : ouvre le lien fourni dans l’admin (section Sécurité).', 'error');
+  function render(remaining) {
+    const v = S.view(state);
+    document.body.dataset.phase = state.phase;
+    document.body.dataset.result = v.result ? v.result.kind : '';
+    btn.classList.toggle('holding', state.phase === 'holding');
+    $('sosLabel').textContent = state.phase === 'holding' && remaining ? String(remaining) : 'SOS';
+    $('sosStateText').textContent = v.counter && remaining ? `${v.text} ${remaining} s` : v.text;
+    $('sosSpinner').hidden = !v.busy;
+    $('sosOutdated').hidden = !state.outdated;
+
+    const r = v.result;
+    $('sosResult').hidden = !r;
+    if (r) {
+      $('sosResultTitle').textContent = r.title;
+      $('sosResultDetail').textContent = r.detail;
+      $('sosRetry').hidden = !r.retry;
+      $('okBtn').hidden = !r.lift;
+    }
+    if (state.phase === 'holding') announce('Appui détecté. Continue 2 secondes.');
+    else announce(r ? `${r.title}. ${r.detail}` : v.text);
   }
+
+  function dispatch(ev) {
+    state = S.reduce(state, ev);
+    render();
+  }
+
+  // ---------------------------------------------------------------- envoi
 
   /** Position actuelle (8 s max), sinon le serveur utilisera la dernière position connue. */
   function currentPosition() {
@@ -38,67 +71,78 @@
   }
 
   async function send(cancel) {
-    status(cancel ? 'Envoi…' : 'Localisation et envoi de l’alerte…', 'pending');
     const pos = cancel ? null : await currentPosition();
-    for (let attempt = 0; attempt < 3; attempt++) {
+    if (!cancel) dispatch({ type: 'located', located: !!pos, acc: pos && pos.acc });
+    let kind = 'network';
+    for (let attempt = 0; attempt < S.MAX_ATTEMPTS; attempt++) {
+      if (attempt > 0) dispatch({ type: 'attempt', attempt: attempt + 1 });
       try {
         const res = await fetch('/api/sos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, cancel, note: $('note').value, source: 'page SOS', ...(pos || {}) }),
+          signal: AbortSignal.timeout(15_000), // réseau qui n'aboutit jamais : on échoue vite, avec « Réessayer » et le 112
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           // clé refusée : inutile de réessayer
           if (res.status === 401 || res.status === 403) {
-            status(data.error || 'Lien SOS invalide.', 'error');
+            dispatch({ type: cancel ? 'lift-denied' : 'rejected' });
             return;
           }
-          throw new Error(data.error);
+          kind = 'server';
+          throw new Error('http');
         }
-        const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const at = S.formatClock(new Date());
         if (cancel) {
-          status(`Alerte levée à ${time}. Tes contacts savent que tout va bien.`, 'ok');
-          $('okBtn').hidden = true;
+          dispatch({ type: 'lifted', at });
         } else {
-          status(
-            data.delivered
-              ? `🆘 Alerte envoyée à ${time}${pos ? '' : ' (dernière position connue)'}. Tes contacts sont prévenus.`
-              : `Alerte enregistrée à ${time}, mais l'envoi aux contacts a échoué. Appelle quelqu'un si tu le peux.`,
-            data.delivered ? 'sent' : 'error',
-          );
-          $('okBtn').hidden = false;
+          dispatch({ type: 'sent', delivered: data.delivered, at, outdated: data.outdatedLink });
           navigator.vibrate?.([200, 100, 200]);
-          // ancien lien (clé du traceur) : l'alerte part, mais il faudra le nouveau lien pour la lever
-          if (data.outdatedLink) $('sosOutdated').hidden = false;
         }
         return;
       } catch (err) {
-        if (attempt === 2) status(`Échec de l'envoi (${err.message || 'réseau'}). Réessaie ou appelle le 112.`, 'error');
-        else await new Promise((r) => setTimeout(r, 2000));
+        if (err.name === 'TimeoutError') kind = 'server';
+        else if (err.message !== 'http') kind = 'network';
+        if (attempt < S.MAX_ATTEMPTS - 1) await new Promise((r) => setTimeout(r, 2000));
       }
     }
+    dispatch(cancel ? { type: 'lift-failed' } : { type: 'failed', kind });
+  }
+
+  // ---------------------------------------------------------------- appui long (2 s, inchangé)
+
+  function tickCount() {
+    const remaining = S.holdRemaining(Date.now() - holdStart);
+    if (remaining === 1 && !buzzed) { buzzed = true; navigator.vibrate?.(20); } // repère à 1 s
+    render(remaining);
   }
 
   function startHold(e) {
-    if (btn.disabled) return;
+    if (btn.disabled || holdTimer) return;
     e.preventDefault();
-    btn.classList.add('holding');
+    const next = S.reduce(state, { type: 'hold-start' });
+    if (next === state) return; // envoi en cours : on ignore l'appui
+    state = next;
     navigator.vibrate?.(30);
-    status('Continue d’appuyer…', 'pending');
+    holdStart = Date.now();
+    buzzed = false;
+    render(S.holdRemaining(0));
+    countTimer = setInterval(tickCount, 200); // uniquement pendant les 2 s d'appui
     holdTimer = setTimeout(() => {
-      btn.classList.remove('holding');
+      clearInterval(countTimer);
       holdTimer = null;
+      dispatch({ type: 'hold-done' });
       send(false);
-    }, HOLD_MS);
+    }, S.HOLD_MS);
   }
 
   function cancelHold() {
     if (!holdTimer) return;
     clearTimeout(holdTimer);
+    clearInterval(countTimer);
     holdTimer = null;
-    btn.classList.remove('holding');
-    status('Maintiens le bouton 2 secondes pour envoyer l’alerte.');
+    dispatch({ type: 'hold-cancel' });
   }
 
   btn.addEventListener('pointerdown', startHold);
@@ -108,5 +152,49 @@
   btn.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) startHold(e); });
   btn.addEventListener('keyup', cancelHold);
 
-  $('okBtn').addEventListener('click', () => send(true));
+  // ---------------------------------------------------------------- réessayer, lever l'alerte
+
+  $('sosRetry').addEventListener('click', () => {
+    const next = S.reduce(state, { type: 'retry-send' });
+    if (next === state) return;
+    state = next;
+    render();
+    send(false);
+  });
+
+  // lever l'alerte : un second appui dans les 3 s confirme (pas de boîte de dialogue, utilisable avec des gants)
+  const LIFT_LABEL = 'Je vais bien : lever l’alerte';
+  let armedAt = null;
+  let armTimer = null;
+
+  function disarm() {
+    armedAt = null;
+    clearTimeout(armTimer);
+    $('okBtn').textContent = LIFT_LABEL;
+    $('okBtn').classList.remove('armed');
+  }
+
+  $('okBtn').addEventListener('click', () => {
+    const tap = S.liftTap(armedAt, Date.now());
+    armedAt = tap.armedAt;
+    if (tap.action === 'arm') {
+      $('okBtn').textContent = 'Appuie encore pour confirmer';
+      $('okBtn').classList.add('armed');
+      announce('Appuie encore une fois pour lever l’alerte.');
+      armTimer = setTimeout(disarm, S.LIFT_WINDOW_MS);
+      return;
+    }
+    disarm();
+    dispatch({ type: 'lift-start' });
+    send(true);
+  });
+
+  // ---------------------------------------------------------------- démarrage
+
+  if (!key) {
+    btn.disabled = true;
+    dispatch({ type: 'blocked', reason: 'nokey' });
+  } else {
+    render();
+  }
 })();

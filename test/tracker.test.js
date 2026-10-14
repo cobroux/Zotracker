@@ -177,3 +177,19 @@ test('addPosition refuse les coordonnées vides (pas de point 0,0)', () => {
   assert.strictEqual(addPosition(state, { lat: '', lon: '', t: t0 + 1000 }, t0 + 2000).ignored, 'invalid');
   assert.strictEqual(addPosition(state, { lat: null, lon: null, t: t0 + 1000 }, t0 + 2000).ignored, 'invalid');
 });
+
+test('endedBy : « finish » à l’arrivée détectée, null en cours, migré à null pour les anciennes sessions', () => {
+  const state = newRace();
+  assert.strictEqual(state.session.endedBy, null);
+  state.course = buildCourse(parseGpx(outAndBackGpx()));
+  const t0 = Date.parse('2026-10-12T08:00:00Z');
+  state.session = { ...state.session, status: 'running', startedAt: t0 };
+  [0, 500, 1000].forEach((m, i) => addPosition(state, { lat: LAT + 0.00002, lon: lonAt(m), t: t0 + (i + 1) * 150_000, acc: 8 }, t0 + 10e6));
+  assert.strictEqual(state.session.endedBy, null);
+  [1500, 2000, 1500, 1000, 500, 0].forEach((m, i) => addPosition(state, { lat: LAT + 0.00002, lon: lonAt(m), t: t0 + (i + 4) * 150_000, acc: 8 }, t0 + 10e6));
+  assert.strictEqual(state.session.status, 'finished');
+  assert.strictEqual(state.session.endedBy, 'finish');
+
+  const migrated = migrate({ races: [{ id: 'a', name: 'x', session: { status: 'finished', finishedAt: 5 }, track: [] }], activeRaceId: 'a' });
+  assert.strictEqual(migrated.races[0].session.endedBy, null);
+});

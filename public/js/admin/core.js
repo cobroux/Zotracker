@@ -94,7 +94,12 @@ window.ZTA = (() => {
   }
 
   async function logout(all) {
-    if (all && !confirm('Déconnecter tous les appareils (y compris celui-ci) ?')) return;
+    if (all && !await ZTA.confirm({
+      title: 'Déconnecter tous les appareils ?',
+      body: 'Tous les appareils connectés à l’admin, celui-ci compris, devront se reconnecter.',
+      confirmLabel: 'Tout déconnecter',
+      danger: true,
+    })) return;
     await fetch(all ? '/api/admin/logout-all' : '/api/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
     location.reload();
   }

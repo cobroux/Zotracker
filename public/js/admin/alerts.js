@@ -13,6 +13,8 @@
     f.signalLostMinutes.value = a.signalLostMinutes;
   }
 
+  const track = ZTA.trackForm($('alertsForm'));
+
   $('alertsForm').addEventListener('submit', action(async (e) => {
     e.preventDefault();
     const f = e.target;
@@ -21,6 +23,7 @@
     const c = await api('PUT', '/api/admin/alerts', body);
     fill(c.alertSettings);
     setConfig(c);
+    track.saved();
     toast('Alertes enregistrées');
   }));
 
@@ -33,7 +36,7 @@
     const list = (state.live && state.live.alerts) || [];
     $('alertLog').replaceChildren(...(list.length
       ? list.map((a) => el('li', {}, el('time', {}, ZT.fmtClock(a.t)), el('span', {}, el('strong', {}, a.title), a.body && el('small', { class: 'muted' }, a.body))))
-      : [el('li', { class: 'muted small' }, 'Aucune alerte envoyée pour cette course.')]));
+      : [el('li', { class: 'muted small' }, 'Rien pour l’instant. Les alertes envoyées à tes supporters apparaîtront ici dès le départ.')]));
   }
 
   ZTA.alerts = { fill, renderLog };

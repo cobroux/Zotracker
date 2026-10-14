@@ -69,8 +69,13 @@
     toast('Double authentification activée');
   }));
 
-  $('tfCodesDone').addEventListener('click', () => {
-    if (!confirm('As-tu bien noté tes codes de secours ? Ils ne seront plus affichés.')) return;
+  $('tfCodesDone').addEventListener('click', async () => {
+    if (!await ZTA.confirm({
+      title: 'Codes de secours bien notés ?',
+      body: 'Ils ne seront plus jamais affichés. Sans eux, un téléphone perdu t’enferme hors de ton compte.',
+      confirmLabel: 'Oui, je les ai notés',
+      cancelLabel: 'Pas encore',
+    })) return;
     $('tfCodes').hidden = true;
     renderTwoFactor();
   });
@@ -85,7 +90,12 @@
 
   $('tfDisableForm').addEventListener('submit', action(async (e) => {
     e.preventDefault();
-    if (!confirm('Désactiver la double authentification ? Ton compte sera moins protégé.')) return;
+    if (!await ZTA.confirm({
+      title: 'Désactiver la double authentification ?',
+      body: 'Ton compte ne sera plus protégé que par le mot de passe.',
+      confirmLabel: 'Désactiver',
+      danger: true,
+    })) return;
     const c = await api('POST', '/api/admin/2fa/disable', { password: e.target.password.value, code: e.target.code.value });
     e.target.reset();
     setConfig(c);
@@ -106,7 +116,7 @@
     $('rotateKey').disabled = c.trackerKeyFromEnv;
     $('retentionInfo').textContent = c.retentionDays
       ? `Les positions GPS des courses terminées sont effacées automatiquement après ${c.retentionDays} jours.`
-      : 'Les positions GPS sont conservées sans limite de durée (TRACK_RETENTION_DAYS=0).';
+      : 'Les positions GPS sont conservées sans limite de durée.';
   }
 
   for (const id of ['privateLink', 'publicLink']) copyOnClick(id, 'Lien copié');
@@ -118,7 +128,12 @@
   }));
 
   $('newLinkBtn').addEventListener('click', action(async () => {
-    if (!confirm('Créer un nouveau lien privé ? L’ancien lien ne fonctionnera plus.')) return;
+    if (!await ZTA.confirm({
+      title: 'Créer un nouveau lien privé ?',
+      body: 'L’ancien lien cessera de fonctionner : les personnes qui l’ont devront recevoir le nouveau.',
+      confirmLabel: 'Créer un nouveau lien',
+      danger: true,
+    })) return;
     fillAccount(await api('POST', '/api/admin/privacy/new-link'));
     toast('Nouveau lien créé : partage-le à nouveau');
   }));
@@ -136,7 +151,12 @@
   $('logoutAllBtn').addEventListener('click', () => logout(true));
 
   $('rotateKey').addEventListener('click', action(async () => {
-    if (!confirm('Régénérer la clé du traceur et celle du lien SOS ? Il faudra mettre à jour Traccar Client et ton lien SOS.')) return;
+    if (!await ZTA.confirm({
+      title: 'Régénérer les clés ?',
+      body: 'La clé du traceur et le lien SOS changent. Il faudra mettre à jour Traccar Client et enregistrer le nouveau lien SOS sur ton téléphone.',
+      confirmLabel: 'Régénérer les clés',
+      danger: true,
+    })) return;
     const c = await api('POST', '/api/admin/tracker-key/rotate');
     ZTA.gps.setupIngestHelp(c.trackerKey);
     ZTA.safety.setupHelp(c);
