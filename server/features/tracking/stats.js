@@ -1,4 +1,3 @@
-/* global self -- module UMD aussi chargé par le navigateur ; eslint.config.js ne lui donne que les globales Node */
 /**
  * Statistiques d'une course : allure moyenne / récente, allure de prévision et heures estimées.
  * Source unique, partagée par le serveur (require('./stats')) et le navigateur

@@ -2,9 +2,9 @@
 
 /**
  * ESLint (flat config). Pas de règles de style : uniquement des erreurs probables.
- *  - backend (server.js, lib/, routes/, test/) : CommonJS + globales Node ;
+ *  - backend (server/, test/) : CommonJS + globales Node ;
  *  - front (public/) : scripts classiques chargés par <script>, qui partagent quelques globales ;
- *  - lib/stats.js : module UMD servi aussi au navigateur (/shared/stats.js).
+ *  - server/features/tracking/stats.js : module UMD servi aussi au navigateur (/shared/stats.js).
  */
 const js = require('@eslint/js');
 const globals = require('globals');
@@ -12,15 +12,15 @@ const globals = require('globals');
 /** Globales partagées entre les scripts du front (définies par un script, lues par les autres). */
 const sharedFrontGlobals = {
   L: 'readonly', // Leaflet (/vendor/leaflet/leaflet.js)
-  ZT: 'readonly', // public/common.js (const ZT au niveau du script)
-  ZTA: 'readonly', // public/js/admin/core.js (window.ZTA)
-  ZTStats: 'readonly', // lib/stats.js servi à /shared/stats.js
-  ZTTheme: 'readonly', // public/theme.js (window.ZTTheme)
-  ZT_TILES: 'readonly', // /tiles.js, généré par server.js
+  ZT: 'readonly', // public/shared/common.js (const ZT au niveau du script)
+  ZTA: 'readonly', // public/admin/js/core.js (window.ZTA)
+  ZTStats: 'readonly', // server/features/tracking/stats.js servi à /shared/stats.js
+  ZTTheme: 'readonly', // public/shared/theme.js (window.ZTTheme)
+  ZT_TILES: 'readonly', // /tiles.js, généré par server/index.js
 };
 
 module.exports = [
-  { ignores: ['node_modules/**', 'public/vendor/**', 'graphify-out/**', 'data/**'] },
+  { ignores: ['node_modules/**', 'graphify-out/**', 'data/**'] },
   js.configs.recommended,
   {
     rules: {
@@ -42,7 +42,7 @@ module.exports = [
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
   },
   {
-    files: ['lib/stats.js'],
+    files: ['server/features/tracking/stats.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
