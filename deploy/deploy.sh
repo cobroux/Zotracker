@@ -10,7 +10,7 @@ cd "$(dirname "$0")"
 TAG="${1:-${SSH_ORIGINAL_COMMAND:-}}"
 [ -n "$TAG" ] || { echo "usage : deploy.sh <tag>" >&2; exit 1; }
 [[ "$TAG" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || { echo "Tag invalide : $TAG" >&2; exit 1; }
-PREV="$(cat .current-tag 2>/dev/null || echo latest)"
+PREV="$(cat .current-tag 2>/dev/null || true)" # vide au premier déploiement : rien vers quoi revenir
 
 app_health() {
   local id
@@ -26,22 +26,21 @@ wait_healthy() {
   return 1
 }
 
-echo "==> Déploiement de $TAG (version actuelle : $PREV)"
+echo "==> Déploiement de $TAG (version actuelle : ${PREV:-aucune})"
 if [ "$(app_health)" = "healthy" ]; then
   ./backup.sh || echo "!! Sauvegarde échouée : déploiement poursuivi" >&2
 fi
 
 export ZOTRACKER_TAG="$TAG"
-docker compose pull --quiet app
-docker compose up -d --remove-orphans
-
-if wait_healthy; then
+if docker compose pull --quiet app && docker compose up -d --remove-orphans && wait_healthy; then
   echo "$TAG" > .current-tag
   docker image prune -f >/dev/null
   echo "==> $TAG est en ligne et en bonne santé"
 else
-  echo "!! $TAG ne démarre pas correctement : retour à $PREV" >&2
+  echo "!! $TAG ne démarre pas correctement" >&2
   docker compose logs --tail 50 app >&2 || true
+  [ -n "$PREV" ] || { echo "!! Premier déploiement : aucune version précédente, pas de retour arrière" >&2; exit 1; }
+  echo "!! Retour à $PREV" >&2
   export ZOTRACKER_TAG="$PREV"
   docker compose up -d --remove-orphans
   wait_healthy && echo "==> Retour à $PREV effectué" >&2
