@@ -8,12 +8,14 @@
   const P = window.ZTP;
   const { $, el } = P;
 
+  let lastKey = ''; // dernier rendu : évite de reconstruire (et de perdre un tap) sans changement
   let current = null; // { dist, title, km, info }
 
   /** Ouvre le panneau pour un point du parcours (distance en mètres depuis le départ). */
   P.openSpot = (dist, opts = {}) => {
     current = { dist, ...opts };
     $('spotBody').replaceChildren(); // nouvel endroit : détails repliés
+    lastKey = '';
     render();
     $('spot').hidden = false;
     const ll = ZT.courseAt(P.state.course, dist);
@@ -73,6 +75,9 @@
     const stats = P.stats();
     const e = ZT.spotEstimate(P.state, stats, current.dist);
     const [lat, lon] = ZT.courseAt(P.state.course, current.dist);
+    const key = JSON.stringify([current, e, P.status(), P.me && [P.me.lat.toFixed(4), P.me.lon.toFixed(4)], Math.floor(P.now() / 60_000)]);
+    if (key === lastKey) return;
+    lastKey = key;
     const km = current.km ?? current.dist / 1000;
     $('spotTitle').textContent = current.title;
     const list = facts(e, lat, lon);

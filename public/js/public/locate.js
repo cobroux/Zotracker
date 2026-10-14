@@ -11,6 +11,8 @@
   P.me = null;
   let watchId = null;
   let fitted = false;
+  let lastKey = '';
+  let lastEmit = null; // dernière position annoncée aux autres modules
 
   function renderButton() {
     const on = watchId != null;
@@ -24,12 +26,16 @@
   function render() {
     renderButton();
     const { map, layers } = P;
-    layers.me.clearLayers();
     const info = $('meInfo');
     const me = P.me;
     info.hidden = !me;
-    if (!me || !P.state) return;
+    if (!me || !P.state) { layers.me.clearLayers(); lastKey = ''; return; }
     const stats = P.stats();
+    // même position, mêmes chiffres : on garde les marqueurs et le bouton « Y aller » en place
+    const key = JSON.stringify([me.lat.toFixed(4), me.lon.toFixed(4), Math.round(me.acc || 0), stats.last, stats.progress, P.status(), !!P.state.course, ZT.cssVar('--me'), Math.floor(P.now() / 60_000)]);
+    if (key === lastKey) return;
+    lastKey = key;
+    layers.me.clearLayers();
     const meLL = [me.lat, me.lon];
     L.circle(meLL, { radius: me.acc || 0, stroke: false, fillColor: ZT.cssVar('--me'), fillOpacity: 0.12, interactive: false }).addTo(layers.me);
     L.marker(meLL, { icon: L.divIcon({ className: 'me-icon', html: el('span', { class: 'me-dot' }), iconSize: [16, 16], iconAnchor: [8, 8] }), zIndexOffset: 900, interactive: false, keyboard: false }).addTo(layers.me);
@@ -75,6 +81,7 @@
     watchId = null;
     P.me = null;
     fitted = false;
+    lastEmit = null;
     render();
     P.emit('progress');
   }
@@ -86,8 +93,11 @@
     watchId = navigator.geolocation.watchPosition(
       (pos) => {
         P.me = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
-        render();
-        P.emit('progress');
+        // les autres modules (passages, panneau) ne bougent qu'au-delà de ~10 m ; render() suit via 'progress'
+        if (!lastEmit || ZT.distance(lastEmit.lat, lastEmit.lon, P.me.lat, P.me.lon) > 10) {
+          lastEmit = P.me;
+          P.emit('progress');
+        }
       },
       (err) => fail(err.code === err.PERMISSION_DENIED
         ? 'Localisation refusée : active-la pour ce site dans les réglages du navigateur.'

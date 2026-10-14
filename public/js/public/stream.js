@@ -36,6 +36,7 @@
   let es = null; // flux en cours (un seul à la fois)
   let blocked = false; // lien privé refusé : plus de reconnexion
   let openedAt = 0;
+  let probed = false; // test de révocation déjà fait pour cet épisode d'erreur
 
   /** Ferme proprement le flux actuel avant d'en ouvrir un autre (jamais deux flux en parallèle). */
   function closeStream() {
@@ -60,11 +61,15 @@
     openedAt = Date.now();
     const source = new EventSource(P.withKey('/api/stream'));
     es = source;
-    source.onopen = () => setOnline(true);
+    probed = false;
+    source.onopen = () => { probed = false; setOnline(true); };
     source.onerror = async () => {
       setOnline(false);
-      // lien révoqué pendant la visite ?
+      // suivi passé en privé ou lien révoqué pendant la visite ? Un seul test par épisode d'erreur (EventSource réessaie en boucle)
+      if (probed) return;
+      probed = true;
       const res = await fetch(P.withKey('/api/state')).catch(() => null);
+      if (!res) probed = false; // réseau coupé : on retentera à la prochaine erreur
       if (res && res.status === 403) { blocked = true; closeStream(); showPrivate(); }
     };
     listen(source);
@@ -101,10 +106,11 @@
       P.emit('profile', 'progress');
     });
     src.addEventListener('messages', (e) => {
-      const before = P.state.messages.length;
+      const known = new Set(P.state.messages.map((m) => m.id));
       P.state.messages = JSON.parse(e.data);
       P.emit('feed');
-      if (P.state.messages.length > before) P.showBanner({ title: P.state.runner.name || 'Message', body: P.state.messages[0].text });
+      // bandeau seulement si le message le plus récent est inconnu (pas sur suppression ni plafond de 100)
+      if (P.state.messages.length && !known.has(P.state.messages[0].id)) P.showBanner({ title: P.state.runner.name || 'Message', body: P.state.messages[0].text });
     });
     src.addEventListener('alert', (e) => {
       const a = JSON.parse(e.data);
@@ -116,7 +122,7 @@
     });
   }
 
-  setInterval(() => P.emit('tick'), 1000);
+  setInterval(() => { if (!document.hidden) P.emit('tick'); }, 1000);
   // estimations (« dans 22 min », marqueurs) à jour même sans nouvelle position
   setInterval(() => P.emit('progress'), 30_000);
   window.addEventListener('offline', () => setOnline(false));
@@ -124,6 +130,7 @@
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { hiddenAt = Date.now(); return; }
+    P.emit('tick');
     // revenu au premier plan : flux fermé, ou onglet resté longtemps en veille (flux possiblement mort)
     if (!es || es.readyState !== EventSource.OPEN || Date.now() - hiddenAt > 30_000) reconnect();
   });

@@ -301,15 +301,23 @@ html.dark body.public .leaflet-tile-pane { filter: invert(1) hue-rotate(205deg) 
 /* ---- repères de la carte publique : drapeaux, bornes, position du supporter */
 .flag-icon { background: none; border: 0; }
 .flag {
-  display: inline-block; transform: translate(-50%, calc(-100% - 27px));
-  padding: 2px 7px; border-radius: 6px;
+  --flag-bg: var(--accent-btn); --stem: 24px;
+  position: relative; display: inline-block; transform: translate(-50%, calc(-100% - var(--stem)));
+  padding: 2px 7px; border-radius: 6px; background: var(--flag-bg);
   font-family: var(--font); font-size: 11px; font-weight: 800; line-height: 1.35;
   color: var(--on-accent); white-space: nowrap; box-shadow: var(--shadow-pin);
 }
-/* au-delà du rayon du marqueur du coureur (24 px), du côté opposé au tracé */
-.flag.is-below { transform: translate(-50%, 27px); }
-.flag.start { background: var(--accent-btn); }
-.flag.finish { background: var(--ink-btn); }
+/* tige + point posé exactement sur l'extrémité du tracé : l'étiquette reste au-delà du marqueur du coureur (24 px), du côté opposé au tracé */
+.flag::before, .flag::after { content: ''; position: absolute; left: 50%; background: var(--flag-bg); }
+.flag::before { top: 100%; width: 2px; height: var(--stem); margin-left: -1px; }
+.flag::after {
+  top: calc(100% + var(--stem)); width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--on-accent); transform: translate(-50%, -50%); box-sizing: border-box;
+}
+.flag.is-below { transform: translate(-50%, var(--stem)); }
+.flag.is-below::before { top: auto; bottom: 100%; }
+.flag.is-below::after { top: auto; bottom: calc(100% + var(--stem)); transform: translate(-50%, 50%); }
+.flag.finish { --flag-bg: var(--ink-btn); }
 .km-icon span {
   display: grid; place-items: center;
   width: 22px; height: 22px; border-radius: 50%;

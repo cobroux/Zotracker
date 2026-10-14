@@ -79,7 +79,7 @@
 
     const first = c.points[0];
     const lastP = c.points[c.points.length - 1];
-    // l'étiquette se place du côté opposé au tracé (au nord si le tracé part vers le sud) et au-delà du marqueur du coureur
+    // l'étiquette, reliée par une tige au point exact du tracé, se place du côté opposé (au nord si le tracé part vers le sud)
     const flag = (txt, cls, from, toward) => {
       const side = toward[0] > from[0] ? 'is-below' : '';
       const icon = L.divIcon({ className: 'flag-icon', html: P.el('span', { class: `flag ${cls} ${side}` }, txt), iconSize: null });

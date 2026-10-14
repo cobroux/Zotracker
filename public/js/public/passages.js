@@ -20,11 +20,11 @@
     return [`${word} ${ZT.fmtClock(p.at)}`, until].filter(Boolean).join(' · ');
   }
 
-  function details(p) {
+  function details(p, idPrefix = 'pass-') {
     const c = P.state.course;
     const ll = c ? ZT.courseAt(c, p.dist) : null;
     const fromMe = P.me && ll && ZT.distance(P.me.lat, P.me.lon, ll[0], ll[1]);
-    return el('div', { class: 'pass-more', id: `pass-${Math.round(p.dist)}` },
+    return el('div', { class: 'pass-more', id: `${idPrefix}${Math.round(p.dist)}` },
       p.info && el('p', { class: 'pass-info' }, p.info),
       el('p', { class: 'pass-when' }, whenLine(p), fromMe ? ` · à ${ZT.fmtDist(fromMe)} de toi` : ''),
       !p.passed && ll && P.goButton(ll[0], ll[1], p.name),
@@ -70,14 +70,12 @@
     auto = status === 'running' ? next : status === 'idle' ? points[0] : null;
     if (selected != null && !points.some((p) => p.dist === selected)) selected = undefined;
 
-    // la liste est reconstruite : on garde le focus clavier sur la même ligne
-    const focused = document.activeElement && document.activeElement.closest('.pass-row');
-    const focusId = focused && focused.getAttribute('aria-controls');
-    $('passages').replaceChildren(...points.map((p) => {
-      const state = p.passed ? 'done' : p === next ? 'next' : 'todo';
-      return row(p, state, isOpen(p));
-    }));
-    if (focusId) { const b = $('passages').querySelector(`[aria-controls="${focusId}"]`); if (b) b.focus(); }
+    // rien de visible n'a changé : on ne touche pas au DOM (sinon un tap en cours est perdu)
+    const key = JSON.stringify([points, next && next.dist, points.map(isOpen), status, meKey(), Math.floor(P.now() / 60_000)]);
+    if (key !== listKey) {
+      listKey = key;
+      renderList(points, next);
+    }
     const basis = status === 'finished' ? '' : P.basisText(stats);
     $('passagesNote').textContent = basis;
     $('passagesNote').hidden = !basis;
@@ -86,19 +84,36 @@
     renderCustom(stats);
   }
 
+  let listKey = '';
+  const meKey = () => (P.me ? [P.me.lat.toFixed(4), P.me.lon.toFixed(4)] : null);
+
+  function renderList(points, next) {
+    // la liste est reconstruite : on garde le focus clavier sur la même ligne
+    const focused = document.activeElement && document.activeElement.closest('.pass-row');
+    const focusId = focused && focused.getAttribute('aria-controls');
+    $('passages').replaceChildren(...points.map((p) => {
+      const state = p.passed ? 'done' : p === next ? 'next' : 'todo';
+      return row(p, state, isOpen(p));
+    }));
+    if (focusId) { const b = $('passages').querySelector(`[aria-controls="${focusId}"]`); if (b) b.focus(); }
+  }
+
   // ---- un autre endroit (point kilométrique)
 
+  let customKey = '';
   function renderCustom(stats) {
     const c = P.state.course;
     const km = parseFloat($('spotKm').value.replace(',', '.'));
     const ok = c && Number.isFinite(km) && km >= 0 && km * 1000 <= c.length;
-    if (!ok) { $('spotCustom').replaceChildren(); return; }
+    if (!ok) { customKey = ''; $('spotCustom').replaceChildren(); return; }
     const p = { kind: 'spot', name: `Km ${ZT.fmtPk(km)}`, dist: km * 1000, km, ...ZT.passageAt(P.state, stats, km * 1000) };
-    $('spotCustom').replaceChildren(details(p));
+    const key = JSON.stringify([p, P.status(), meKey(), Math.floor(P.now() / 60_000)]);
+    if (key === customKey) return;
+    customKey = key;
+    $('spotCustom').replaceChildren(details(p, 'pass-other-'));
   }
   $('spotKm').addEventListener('input', () => P.state && renderCustom(P.stats()));
 
-  P.renderPassages = render;
   P.on('progress', render);
   P.on('profile', render);
   // « dans 22 min » reste juste sans attendre une nouvelle position

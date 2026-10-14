@@ -19,10 +19,9 @@
 
   async function init() {
     if (!$('alertStatus')) return; // page « suivi privé » : pas d'alertes
-    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
     if (!supported) {
-      $('alertStatus').textContent = isIos && !standalone
+      $('alertStatus').textContent = ZT.isIos && !standalone
         ? 'Pour être prévenu sur iPhone : touche Partager, puis « Sur l’écran d’accueil », et ouvre le suivi depuis l’icône.'
         : 'Les alertes s’affichent sur cette page.';
       return;
