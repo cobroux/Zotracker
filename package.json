@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test test/*.test.js",
-    "check": "for f in server.js lib/*.js routes/*.js public/*.js public/js/admin/*.js public/js/public/*.js; do node --check \"$f\" || exit 1; done && eslint .",
+    "check": "for f in server.js lib/*.js routes/*.js public/*.js public/js/admin/*.js public/js/public/*.js public/js/common/*.js; do node --check \"$f\" || exit 1; done && eslint .",
     "lint": "eslint .",
     "audit": "npm audit --omit=dev --audit-level=high"
   },

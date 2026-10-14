@@ -1,0 +1,79 @@
+/* Page SOS (sos.html), chargée après style.css. */
+
+/* le rouge reste : urgence */
+/* Lisible à bout de bras et au soleil : texte --text (jamais --muted), cibles de 56 px. */
+
+.sos-page { min-height: 100vh; min-height: 100dvh; }
+.sos-main {
+  max-width: 440px; min-height: 100vh; min-height: 100dvh; margin: 0 auto;
+  padding: 24px 16px max(24px, env(safe-area-inset-bottom));
+  padding-top: max(24px, env(safe-area-inset-top));
+  display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center;
+}
+.sos-main h1 { font-size: 1.75rem; margin: 0; }
+.sos-main p { margin: 0; }
+.sos-pad { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.sos-intro { font-size: 1rem; }
+
+.sos-banner { width: 100%; padding: 12px 14px; border-radius: var(--r-md); background: var(--warn-bg); color: var(--warn-text); font-weight: 700; font-size: 1rem; text-align: left; }
+
+.sos-btn {
+  position: relative; width: min(72vw, 280px); min-height: 56px; aspect-ratio: 1; border-radius: 50%;
+  border: 0; background: var(--danger-btn); color: var(--on-accent);
+  font-family: var(--font-num); font-size: 3.2rem; font-weight: 700; letter-spacing: .04em;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--danger-btn) 45%, transparent), inset 0 -6px 0 rgba(0, 0, 0, .15);
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+.sos-btn:hover { border: 0; }
+.sos-btn:disabled { opacity: .4; }
+.sos-btn.holding {
+  transform: scale(.96);
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--danger) 30%, transparent), 0 10px 30px color-mix(in srgb, var(--danger-btn) 45%, transparent), inset 0 -6px 0 rgba(0, 0, 0, .15);
+}
+.sos-label { pointer-events: none; }
+.sos-ring { position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); transform: rotate(-90deg); pointer-events: none; }
+.sos-ring circle { fill: none; stroke: var(--on-accent); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 289; stroke-dashoffset: 289; transition: stroke-dashoffset 200ms var(--ease-out); }
+.sos-btn.holding .sos-ring circle { transition: stroke-dashoffset 2s linear; stroke-dashoffset: 0; }
+
+/* zone d'état juste sous le bouton, là où le regard reste après l'appui */
+.sos-state { min-height: 2.4rem; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.2rem; font-weight: 800; color: var(--text); }
+.spinner { flex: none; width: 1.1em; height: 1.1em; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--danger); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sos-note { width: 100%; margin: 0; text-align: left; }
+.sos-note summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 1rem; list-style: none; }
+.sos-note summary::-webkit-details-marker { display: none; }
+.sos-note summary::after { content: ''; width: 10px; height: 10px; margin-right: 6px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-2px); transition: transform 160ms var(--ease-out); }
+.sos-note[open] summary::after { transform: rotate(-135deg); }
+.sos-note label { font-size: 1rem; margin: 4px 0; }
+.sos-note input { min-height: 52px; }
+.sos-note input::placeholder { color: var(--muted); opacity: 1; }
+
+/* résultat : succès plein écran rouge, échec ou envoi incomplet sur fond d'avertissement, levée en vert */
+.sos-result { width: 100%; display: flex; flex-direction: column; gap: 12px; padding: 20px 16px; border-radius: var(--r-lg); text-align: left; }
+.sos-result h2 { margin: 0; font-size: 1.6rem; line-height: 1.15; }
+.sos-result p { font-size: 1.05rem; }
+.sos-action { width: 100%; min-height: 56px; border-radius: 14px; font-size: 1.1rem; }
+.sos-retry { background: var(--danger-btn); border-color: var(--danger-btn); color: var(--on-accent); }
+.ok-btn { background: var(--ok-btn); border: 2px solid var(--on-accent); color: var(--on-accent); }
+.ok-btn.armed { background: var(--on-accent); border-color: var(--on-accent); color: var(--danger-ink); }
+body[data-result=failed] .sos-result, body[data-result=partial] .sos-result, body[data-result=blocked] .sos-result { background: var(--warn-bg); color: var(--warn-text); }
+body[data-result=ok] .sos-result { background: var(--ok-btn); color: var(--on-accent); }
+body[data-result=sent] { background: var(--danger-btn); color: var(--on-accent); }
+body[data-result=sent] .sos-main { justify-content: center; }
+body[data-result=sent] .sos-result { background: none; padding: 0; text-align: center; }
+body[data-result=sent] .sos-result h2 { font-size: 2.2rem; }
+body[data-result=sent] .sos-result p { font-size: 1.15rem; }
+body[data-result=sent] .sos-pad, body[data-result=partial] .sos-pad { display: none; }
+
+.sos-call {
+  width: 100%; min-height: 56px; margin-top: auto; padding: 12px 16px;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--danger); border-radius: 14px; background: var(--surface);
+  color: var(--danger); font-size: 1.1rem; font-weight: 800; text-decoration: none;
+}
+body[data-result=sent] .sos-call { background: none; border-color: var(--on-accent); color: var(--on-accent); margin-top: 0; }
+
+/* après .sos-btn.holding pour l'emporter à spécificité égale */
+@media (prefers-reduced-motion: reduce) { .sos-btn.holding { transform: none; } }
