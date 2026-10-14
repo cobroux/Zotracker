@@ -7,18 +7,18 @@
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#1d4ed8">
   <link rel="manifest" href="/manifest-admin.webmanifest">
-  <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/img/icon-192.png">
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/admin.css">
-  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/shared/style.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/shared/theme.js"></script>
 </head>
 <body class="admin">
   <!-- ================================================================ connexion -->
   <section id="login" class="login" hidden>
     <form id="loginForm" class="card login-card">
-      <img src="/icon.svg" alt="" class="login-logo">
+      <img src="/img/icon.svg" alt="" class="login-logo">
       <h1>Zotracker</h1>
       <p class="muted small">Espace administrateur</p>
       <label id="passwordField">Mot de passe <input type="password" name="password" autocomplete="current-password" required></label>
@@ -34,7 +34,7 @@
   <div id="app" class="admin-shell" hidden>
     <!-- ================================================================ menu -->
     <aside id="sidebar" class="sidebar" aria-label="Menu principal">
-      <div class="brand"><img src="/icon.svg" alt=""> <span>Zotracker</span></div>
+      <div class="brand"><img src="/img/icon.svg" alt=""> <span>Zotracker</span></div>
       <nav class="nav">
         <a href="#/direct" data-view="direct"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Tableau de bord <span id="navLiveDot" class="nav-dot" hidden></span></a>
         <a href="#/courses" data-view="courses"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2.5 4L17 12H4"/></svg> Mes courses</a>
@@ -509,20 +509,20 @@
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script src="/tiles.js"></script>
   <script src="/shared/stats.js"></script>
-  <script src="/common.js"></script>
-  <script src="/js/common/format.js"></script>
-  <script src="/js/common/course.js"></script>
-  <script src="/js/common/map.js"></script>
-  <script src="/js/admin/core.js"></script>
-  <script src="/js/admin/confirm.js"></script>
-  <script src="/js/admin/forms.js"></script>
-  <script src="/js/admin/readiness.js"></script>
-  <script src="/js/admin/dashboard.js"></script>
-  <script src="/js/admin/races.js"></script>
-  <script src="/js/admin/profile.js"></script>
-  <script src="/js/admin/gps.js"></script>
-  <script src="/js/admin/alerts.js"></script>
-  <script src="/js/admin/safety.js"></script>
-  <script src="/js/admin/settings.js"></script>
+  <script src="/shared/common.js"></script>
+  <script src="/shared/js/format.js"></script>
+  <script src="/shared/js/course.js"></script>
+  <script src="/shared/js/map.js"></script>
+  <script src="/admin/js/core.js"></script>
+  <script src="/admin/js/confirm.js"></script>
+  <script src="/admin/js/forms.js"></script>
+  <script src="/admin/js/readiness.js"></script>
+  <script src="/admin/js/dashboard.js"></script>
+  <script src="/admin/js/races.js"></script>
+  <script src="/admin/js/profile.js"></script>
+  <script src="/admin/js/gps.js"></script>
+  <script src="/admin/js/alerts.js"></script>
+  <script src="/admin/js/safety.js"></script>
+  <script src="/admin/js/settings.js"></script>
 </body>
 </html>

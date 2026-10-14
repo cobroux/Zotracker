@@ -32,7 +32,7 @@ Zotracker manipule des données sensibles : ta **position en temps réel**, ton 
 - **Double authentification (TOTP)** optionnelle et recommandée :
   - code à 6 chiffres d'une appli (Google Authenticator, 1Password, Bitwarden…), refusé s'il est rejoué ;
   - 8 codes de secours à usage unique, stockés hachés ;
-  - en dernier recours : `docker compose run --rm app node server.js --disable-2fa` sur le serveur.
+  - en dernier recours : `docker compose run --rm app node server/index.js --disable-2fa` sur le serveur.
 - **Anti force brute** : 10 tentatives par 15 minutes et par IP, avec un ralentissement progressif. L'IP du client ne peut pas être falsifiée, car seul le reverse proxy local est cru.
 - **Anti-CSRF** : toute modification doit venir de l'origine du site, en plus de `SameSite=Strict`.
 - **En-têtes de sécurité** :

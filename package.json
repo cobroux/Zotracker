@@ -3,13 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "description": "Suivi GPS en direct pour courses à pied : interface admin + page publique pour les supporters",
-  "main": "server.js",
+  "main": "server/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "test": "node --test test/*.test.js",
-    "check": "for f in server.js lib/*.js routes/*.js public/*.js public/js/admin/*.js public/js/public/*.js public/js/common/*.js; do node --check \"$f\" || exit 1; done && eslint .",
-    "lint": "eslint .",
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "check": "find server public -name '*.js' -not -path '*/vendor/*' -print0 | xargs -0 -n1 node --check && eslint .",
     "audit": "npm audit --omit=dev --audit-level=high"
   },
   "engines": {

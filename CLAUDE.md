@@ -5,13 +5,18 @@ Suivi GPS en direct pour courses à pied. Node 22 + Express 4 (CommonJS), front 
 ## Structure
 
 ```
-server.js            montage Express, en-têtes, start()/shutdown
-routes/*.js          une route = un domaine (public, ingest, auth, admin-races, admin-session, admin-settings)
-lib/*.js             logique métier pure (tracker, geo, gpx, stats UMD, alerts, safety…) et infrastructure (store, hub SSE, notify)
-public/              page publique (index.html, js/public/*.js, namespace window.ZTP), SOS, styles ; admin dans public/js/admin/*.js (namespace window.ZTA)
-test/*.test.js       node:test, un fichier par module ou par parcours
-deploy/              docker-compose de prod, Caddyfile, scripts déploiement / sauvegarde / restauration
-.github/workflows/   CI (tests, audit, gitleaks, image + Trivy), CodeQL, déploiement continu sur main
+server/index.js            montage Express, en-têtes, start()/shutdown
+server/core/               socle transverse : context, store, http (asyncHandler, toNum), hub SSE, security, text, geo, retention, auth
+server/features/<domaine>/ un dossier par fonctionnalité, routes (*.routes.js) et logique métier côte à côte :
+  auth, tracking (tracker, stats UMD, public-state, tiles, ingest, public), sos, races (gpx, marker),
+  alerts (alerts, notify, push), simulation, admin (admin-config, session, settings), share (share-meta, page)
+public/                    pages à la racine (index.html, admin.html, sos.html), sw.js, manifests ; img/ ; shared/ (common.js, theme.js, style.css, js/ : format, course, map)
+public/tracking/js/       page publique (namespace window.ZTP), tracking.css
+public/admin/js/          admin par vue (namespace window.ZTA), admin.css
+public/sos/                page SOS (sos.js, sos-core.js, sos.css)
+test/<fonctionnalité>/     node:test, un sous-dossier par fonctionnalité (core, tracking, sos, races, alerts, auth, simulation, admin, share, pages), un fichier *.test.js par module ou parcours
+deploy/                    docker-compose de prod, Caddyfile, scripts déploiement / sauvegarde / restauration
+.github/workflows/         CI (tests, audit, gitleaks, image + Trivy), CodeQL, déploiement continu sur main
 ```
 
 ## Commandes
@@ -25,9 +30,9 @@ deploy/              docker-compose de prod, Caddyfile, scripts déploiement / s
 - **Lisible avant tout** : fonctions courtes à responsabilité unique, noms explicites, pas d'abstraction prématurée. Fichiers de 200 à 400 lignes, 800 au maximum.
 - **Commentaires** : en français, courts, ils expliquent le *pourquoi* et pas le *quoi*. JSDoc d'une ligne sur les fonctions exportées.
 - **Style** : il suit le code environnant (2 espaces, `'use strict'`, `const` par défaut, `===`). ESLint fait foi.
-- **Erreurs** : jamais avalées en silence. On journalise côté serveur et on renvoie un message générique au client. Les handlers async passent par `asyncHandler` (`lib/http.js`).
-- **Entrées** : toujours validées à la frontière (routes). Pour les nombres, `toNum` (`lib/http.js`), qui refuse `null`, `''` et les booléens.
-- **Immutabilité** autant que possible. Les mutations de l'état partagé (`lib/context.js`) se font uniquement via les fonctions dédiées, suivies de `store.save()`.
+- **Erreurs** : jamais avalées en silence. On journalise côté serveur et on renvoie un message générique au client. Les handlers async passent par `asyncHandler` (`server/core/http.js`).
+- **Entrées** : toujours validées à la frontière (routes). Pour les nombres, `toNum` (`server/core/http.js`), qui refuse `null`, `''` et les booléens.
+- **Immutabilité** autant que possible. Les mutations de l'état partagé (`server/core/context.js`) se font uniquement via les fonctions dédiées, suivies de `store.save()`.
 - **Dépendances** : aucune nouvelle dépendance sans accord explicite de l'utilisateur.
 - **Front** : aucun `innerHTML` avec des données. On construit le DOM avec `ZT.el()` / `textContent`. Les couleurs passent uniquement par les tokens CSS de `:root` / `html.dark`, sans couleur codée en dur. Aucun script ni style inline (CSP stricte).
 - **Identité visuelle** : la DA bleue « Océan clair / Nuit bleue » (accent `#1d4ed8`) et le logo tracé + coureur orange sont validés par l'utilisateur. Ils ne changent pas sans son accord.

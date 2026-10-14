@@ -2,7 +2,5 @@
 *
 !package.json
 !package-lock.json
-!server.js
-!lib/
-!routes/
+!server/
 !public/

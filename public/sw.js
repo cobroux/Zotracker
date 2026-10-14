@@ -10,8 +10,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Suivi en direct', {
       body: data.body || '',
-      icon: data.icon || '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: data.icon || '/img/icon-192.png',
+      badge: '/img/icon-192.png',
       tag: data.tag,
       data: { url: data.url || '/' },
       vibrate: [120, 60, 120],

@@ -6,3 +6,17 @@ deploy/.env
 backups/
 graphify-out/
 .claude/ux-review/
+.DS_Store
+*.log
+npm-debug.log*
+coverage/
+.nyc_output/
+.vscode/
+.idea/
+*.tgz
+.env.*
+!deploy/.env.example
+!.env.example
+.claude/settings.local.json
+.claude/worktrees/
+tmp/

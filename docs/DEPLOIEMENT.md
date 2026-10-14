@@ -149,7 +149,7 @@ Connecte-toi sur `https://suivi.mondomaine.fr/admin`, puis va dans ⚙️ **Para
 Si tu perds à la fois ton téléphone d'authentification et tes codes de secours, désactive la double authentification depuis le serveur :
 
 ```bash
-docker compose run --rm app node server.js --disable-2fa
+docker compose run --rm app node server/index.js --disable-2fa
 ```
 
 ### Protection de la branche main (recommandé)

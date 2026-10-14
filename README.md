@@ -158,33 +158,28 @@ Le **HTTPS est obligatoire** pour que le navigateur du téléphone accepte de do
 ```bash
 npm run dev   # redémarre automatiquement à chaque modification
 npm test      # tests : calculs, alertes, sécurité (en-têtes, sessions, CSRF, SSRF…)
-npm run check # vérification de syntaxe
+npm run check # syntaxe puis ESLint
 npm run audit # vulnérabilités connues des dépendances
 ```
 
 Structure :
 
 ```
-server.js          application Express : en-têtes, analyse des corps, fichiers statiques, montage des routes, démarrage
-routes/            API : public.js (état, flux SSE, push), ingest.js (applis GPS, SOS), auth.js (connexion, 2FA),
-                   admin-races.js, admin-session.js (course en direct, simulation), admin-settings.js (profil, réglages)
-lib/context.js     état partagé (stockage, secrets, réglages lus dans l'environnement)
-lib/hub.js         flux temps réel (Server-Sent Events) et diffusions
-lib/notify.js      notifications push, alertes de sécurité ntfy, SOS
-lib/sim-runner.js  simulation de course (test sans courir)
-lib/geo.js         distances, construction et projection sur le parcours
-lib/gpx.js         lecture des fichiers GPX
-lib/tracker.js     ajout de positions, filtrage, détection d'arrivée
-lib/stats.js       allure et heures de passage estimées
-lib/alerts.js      règles d'alerte (ravitos, mi-course, arrivée, perte de signal)
-lib/push.js        envoi des notifications Web Push
-lib/safety.js      alertes de sécurité privées (immobilité, signal, batterie…)
-lib/security.js    mots de passe, sessions, anti-CSRF, limites de débit, en-têtes, anti-SSRF
-lib/totp.js        double authentification (TOTP RFC 6238, codes de secours)
-public/sos.html    page SOS du coureur (appui long)
-public/sw.js       service worker qui affiche les notifications
-lib/store.js       stockage JSON + secrets
-public/            page publique (index.html, js/public/*.js), admin (admin.html, js/admin/*.js par vue)
+server/index.js                       application Express : en-têtes, analyse des corps, fichiers statiques, montage des routes, démarrage
+server/core/                          socle : context (état partagé, secrets, réglages), store (JSON + secrets), hub (flux SSE, diffusions),
+                                      security (mots de passe, sessions, anti-CSRF, limites de débit, en-têtes, anti-SSRF), http, text, geo, retention, auth
+server/features/tracking/             positions : tracker, stats (allure, heures de passage), public-state, tiles, ingest.routes.js (applis GPS), public.routes.js (état, SSE, push)
+server/features/auth/                 connexion, 2FA (totp : RFC 6238, codes de secours)
+server/features/sos/                  alertes de sécurité privées (safety : immobilité, signal, batterie…), sos.routes.js
+server/features/races/                parcours : gpx, marker, races.routes.js
+server/features/alerts/               règles d'alerte (alerts), notifications (notify : push, ntfy, SOS), push (Web Push)
+server/features/simulation/           simulation de course (simulator, sim-runner : test sans courir)
+server/features/admin/                admin-config, session.routes.js (course en direct), settings.routes.js (profil, réglages)
+server/features/share/                aperçu du lien partagé (share-meta), page.routes.js
+public/                               pages (index.html, admin.html, sos.html), sw.js (service worker des notifications), manifests
+public/shared/  public/img/           code et styles communs ; icônes, og.png
+public/tracking/  public/admin/  public/sos/   page publique (ZTP, js/), admin par vue (ZTA, js/), page SOS (appui long)
+test/<fonctionnalité>/                tests node:test, un sous-dossier par fonctionnalité
 deploy/            production : docker-compose, Caddyfile, scripts de déploiement et de sauvegarde
 .github/           CI (tests, audit, secrets, scan d'image), CodeQL, déploiement continu, Dependabot
 ```
