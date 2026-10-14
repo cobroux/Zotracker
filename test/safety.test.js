@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { newRace } = require('../lib/store');
-const { evaluateSafety, normalizeSafety, makeAlert } = require('../lib/safety');
+const { evaluateSafety, normalizeSafety, makeAlert, newTopic } = require('../lib/safety');
 
 const T0 = Date.parse('2026-10-12T08:00:00Z');
 const runner = { name: 'Enzo' };
@@ -63,7 +63,7 @@ test('rien avant le départ ni après l’arrivée', () => {
 
 test('réglages : canal ntfy conservé, valeurs bornées', () => {
   const a = normalizeSafety({});
-  assert.match(a.ntfyTopic, /^zotracker-[A-Za-z0-9]{6,}$/);
+  assert.match(a.ntfyTopic, /^zotracker-[a-f0-9]{20}$/);
   const b = normalizeSafety({ stoppedMinutes: 0, ntfyTopic: 'mauvais canal !' }, a);
   assert.strictEqual(b.ntfyTopic, a.ntfyTopic);
   assert.strictEqual(b.stoppedMinutes, 1);
@@ -75,4 +75,15 @@ test('makeAlert sans course ni position (SOS hors course)', () => {
   const a = makeAlert(null, 'sos', 'SOS', 'Position inconnue', null);
   assert.strictEqual(a.mapsUrl, undefined);
   assert.strictEqual(a.level, 'sos');
+});
+
+test('canal ntfy : 16 caractères minimum, canal généré toujours conforme', () => {
+  for (let i = 0; i < 200; i++) assert.match(newTopic(), /^[A-Za-z0-9_-]{16,64}$/);
+  const prev = normalizeSafety({});
+  assert.strictEqual(normalizeSafety({ ntfyTopic: 'court-123456789' }, prev).ntfyTopic, prev.ntfyTopic, '15 caractères : refusé');
+  assert.strictEqual(normalizeSafety({ ntfyTopic: 'assez-long-12345' }, prev).ntfyTopic, 'assez-long-12345');
+  // ancien canal trop court : remplacé par un canal conforme
+  const migrated = normalizeSafety({}, { ntfyTopic: 'abcdef' });
+  assert.notStrictEqual(migrated.ntfyTopic, 'abcdef');
+  assert.match(migrated.ntfyTopic, /^[A-Za-z0-9_-]{16,64}$/);
 });

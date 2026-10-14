@@ -22,12 +22,12 @@ const titles = (list) => list.map((a) => a.title);
 
 test('départ, puis approche du ravito ~5 min avant', () => {
   const race = raceAt(1);
-  assert.deepStrictEqual(titles(evaluate(race, runner, settings, T0 + 61_000)), ['🏃 Enzo a pris le départ !']);
+  assert.deepStrictEqual(titles(evaluate(race, runner, settings, T0 + 61_000)), ['Enzo a pris le départ !']);
 
   const r2 = raceAt(20); // 4 km, ravito au km 5 → ~5 min
   r2.alertsFired = { start: 1 };
   const out = evaluate(r2, runner, settings, T0 + 20 * 60_000);
-  assert.deepStrictEqual(titles(out), ['📍 Enzo arrive au Ravito 1']);
+  assert.deepStrictEqual(titles(out), ['Enzo arrive au Ravito 1']);
   assert.match(out[0].body, /~5 min/);
   // pas de doublon
   assert.strictEqual(evaluate(r2, runner, settings, T0 + 20 * 60_000 + 5000).length, 0);
@@ -37,8 +37,8 @@ test('passage au ravito et mi-course, une seule fois', () => {
   const race = raceAt(26); // 5,2 km
   race.alertsFired = { start: 1 };
   const out = titles(evaluate(race, runner, settings, T0 + 26 * 60_000));
-  assert.ok(out.includes('🥤 Enzo est passé au Ravito 1'));
-  assert.ok(out.includes('⏱️ Enzo est à mi-course'));
+  assert.ok(out.includes('Enzo est passé au Ravito 1'));
+  assert.ok(out.includes('Enzo est à mi-course'));
   assert.ok(!out.some((t) => t.includes('arrive au Ravito')));
   assert.strictEqual(race.alerts.length, out.length);
 });
@@ -46,11 +46,11 @@ test('passage au ravito et mi-course, une seule fois', () => {
 test('arrivée imminente puis arrivée avec le temps', () => {
   const race = raceAt(47); // 9,4 km → ~3 min de l'arrivée
   race.alertsFired = { start: 1, halfway: 1, 'pass:r1': 1, 'near:r1': 1 };
-  assert.deepStrictEqual(titles(evaluate(race, runner, settings, T0 + 47 * 60_000)), ['🏁 Enzo arrive bientôt !']);
+  assert.deepStrictEqual(titles(evaluate(race, runner, settings, T0 + 47 * 60_000)), ['Enzo arrive bientôt !']);
   race.session.status = 'finished';
   race.session.finishedAt = T0 + 50 * 60_000;
   const out = evaluate(race, runner, settings, T0 + 50 * 60_000);
-  assert.deepStrictEqual(titles(out), ['🎉 Enzo a terminé !']);
+  assert.deepStrictEqual(titles(out), ['Enzo a terminé !']);
   assert.strictEqual(out[0].body, 'Temps : 50 min 00 s');
 });
 
@@ -87,6 +87,6 @@ test('départ corrigé a posteriori : pas de fausse alerte « plus de position �
   race.alertsFired = { start: 1 };
   assert.strictEqual(evaluate(race, runner, settings, now + 60_000).length, 0);
   const late = evaluate(race, runner, settings, now + 6 * 60_000);
-  assert.deepStrictEqual(titles(late), ['📡 Plus de position reçue']);
+  assert.deepStrictEqual(titles(late), ['Plus de position reçue']);
   assert.match(late[0].body, /d'Enzo il y a 6 min/);
 });

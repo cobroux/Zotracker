@@ -152,3 +152,28 @@ test('parsePace accepte « 5:30 », « 5\'30" » et « 5.5 », refuse le reste',
   const race = newRace({ targetPace: 330 });
   assert.strictEqual(raceStats(race).pace, 330);
 });
+
+test('addPosition ne saute pas sur la branche retour d’un aller-retour', () => {
+  const state = newRace();
+  state.course = buildCourse(parseGpx(outAndBackGpx()));
+  const t0 = Date.parse('2026-10-12T08:00:00Z');
+  state.session = { ...state.session, status: 'running', startedAt: t0 };
+  // 3 m/s, un point toutes les 3 s, bruit GPS déterministe de quelques mètres
+  let worst = 0;
+  for (let i = 1; i * 9 <= 1900; i++) {
+    const truth = i * 9;
+    const noise = ((i * 37) % 11) - 5;
+    addPosition(state, { lat: LAT + noise * 0.00001, lon: lonAt(truth + noise), t: t0 + i * 3000, acc: 6 }, t0 + 1e7);
+    worst = Math.max(worst, state.session.progress - truth);
+  }
+  assert.ok(worst < 50, `avance excessive de ${Math.round(worst)} m`);
+  assert.notStrictEqual(state.session.status, 'finished');
+});
+
+test('addPosition refuse les coordonnées vides (pas de point 0,0)', () => {
+  const state = newRace();
+  const t0 = Date.parse('2026-10-12T08:00:00Z');
+  state.session = { ...state.session, status: 'running', startedAt: t0 };
+  assert.strictEqual(addPosition(state, { lat: '', lon: '', t: t0 + 1000 }, t0 + 2000).ignored, 'invalid');
+  assert.strictEqual(addPosition(state, { lat: null, lon: null, t: t0 + 1000 }, t0 + 2000).ignored, 'invalid');
+});

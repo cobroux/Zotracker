@@ -16,6 +16,9 @@ services:
     image: zotracker:local
     environment:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Pas de reverse proxy ici : TRUST_PROXY reste à son défaut (« loopback »), X-Forwarded-For
+      # est ignoré et l'IP vue est celle de la passerelle Docker (limites de débit communes, sans
+      # conséquence en local). Ne pas mettre « uniquelocal » ici : l'en-tête deviendrait falsifiable.
       # fond de carte optionnel (ex. MapTiler), lu depuis un fichier .env à la racine
       TILE_URL: ${TILE_URL:-}
       TILE_ATTRIBUTION: ${TILE_ATTRIBUTION:-}

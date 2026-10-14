@@ -29,6 +29,7 @@ RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack 
 COPY --from=deps --chown=root:root /app/node_modules ./node_modules
 COPY --chown=root:root package.json server.js ./
 COPY --chown=root:root lib ./lib
+COPY --chown=root:root routes ./routes
 COPY --chown=root:root public ./public
 # le code appartient à root et n'est pas modifiable par le processus (utilisateur node)
 USER node

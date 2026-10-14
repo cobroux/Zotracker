@@ -31,14 +31,23 @@ const login = async (body) => {
 };
 
 test('activation, connexion en deux étapes, anti-rejeu et codes de secours', async () => {
-  const { cookie } = await login({ password: process.env.ADMIN_PASSWORD });
+  const { cookie: setupCookie } = await login({ password: process.env.ADMIN_PASSWORD });
+  const other = await login({ password: process.env.ADMIN_PASSWORD }); // autre appareil, connecté sans 2FA
+  const cookie = setupCookie;
 
   const setup = await (await post('/api/admin/2fa/setup', {}, cookie)).json();
   assert.match(setup.qr, /^data:image\/svg\+xml;base64,/);
   const secret = setup.secret.replace(/\s/g, '');
   assert.strictEqual((await post('/api/admin/2fa/enable', { code: '000000' }, cookie)).status, 400);
-  const enabled = await (await post('/api/admin/2fa/enable', { code: totp.totp(secret) }, cookie)).json();
+  const enableRes = await post('/api/admin/2fa/enable', { code: totp.totp(secret) }, cookie);
+  const enabled = await enableRes.json();
   assert.strictEqual(enabled.twoFactor.enabled, true);
+  // activation : les autres sessions sont déconnectées, la session courante reçoit un nouveau cookie
+  const config = (c) => fetch(base + '/api/admin/config', { headers: { cookie: c } });
+  assert.strictEqual((await config(other.cookie)).status, 401, 'session ouverte sans 2FA déconnectée');
+  assert.strictEqual((await config(cookie)).status, 401, 'ancien cookie invalidé');
+  const renewed = (enableRes.headers.get('set-cookie') || '').split(';')[0];
+  assert.strictEqual((await config(renewed)).status, 200, 'l’admin qui active reste connecté');
   assert.strictEqual(enabled.recoveryCodes.length, 8);
   assert.doesNotMatch(fs.readFileSync(path.join(process.env.DATA_DIR, 'secrets.json'), 'utf8'), new RegExp(enabled.recoveryCodes[0]), 'codes de secours stockés hachés');
 
@@ -65,7 +74,14 @@ test('activation, connexion en deux étapes, anti-rejeu et codes de secours', as
 
   // désactivation : exige le mot de passe ET un code valide
   assert.strictEqual((await post('/api/admin/2fa/disable', { password: 'faux', code: enabled.recoveryCodes[1] }, ok.cookie)).status, 403);
-  const off = await (await post('/api/admin/2fa/disable', { password: process.env.ADMIN_PASSWORD, code: enabled.recoveryCodes[1] }, ok.cookie)).json();
+  const before = await login({ password: process.env.ADMIN_PASSWORD, code: enabled.recoveryCodes[2] });
+  assert.strictEqual(before.res.status, 200);
+  const offRes = await post('/api/admin/2fa/disable', { password: process.env.ADMIN_PASSWORD, code: enabled.recoveryCodes[1] }, ok.cookie);
+  const off = await offRes.json();
   assert.strictEqual(off.twoFactor.enabled, false);
+  // désactivation : idem, nouvelle version de session
+  assert.strictEqual((await config(before.cookie)).status, 401);
+  assert.strictEqual((await config(ok.cookie)).status, 401);
+  assert.strictEqual((await config((offRes.headers.get('set-cookie') || '').split(';')[0])).status, 200);
   assert.strictEqual((await login({ password: process.env.ADMIN_PASSWORD })).res.status, 200);
 });
