@@ -1,6 +1,7 @@
 /* Fonctions partagées entre la page publique et l'admin. */
 'use strict';
 
+/* global ZT: off -- ZT est déclarée ici ; eslint.config.js la prédéclare pour les autres scripts. */
 const ZT = {
   /** Crée un élément DOM. Le contenu texte passe toujours par textContent (pas d'injection HTML). */
   el(tag, attrs = {}, ...children) {
@@ -62,48 +63,22 @@ const ZT = {
     return `il y a ${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
   },
 
-  /** Longueur totale de référence : distance officielle si renseignée, sinon longueur du tracé. */
+  /** Longueur totale de référence : longueur du tracé si présent, sinon distance officielle. */
   totalDistance(state) {
-    if (state.course) return state.course.length;
-    if (state.race && state.race.distanceKm) return state.race.distanceKm * 1000;
-    return null;
+    return ZTStats.totalDistance(state.course, state.race && state.race.distanceKm);
   },
 
-  /** Statistiques calculées à partir du suivi. track = [[lat, lon, t, along]] */
+  /**
+   * Statistiques calculées à partir du suivi (track = [[lat, lon, t, along]]).
+   * Façade vers le module partagé avec le serveur (/shared/stats.js, window.ZTStats).
+   */
   computeStats(state, now) {
-    const s = state.session;
-    const track = state.track;
-    const last = track[track.length - 1];
-    const total = ZT.totalDistance(state);
-    const progress = s.progress || 0;
-    const elapsed = s.startedAt ? ((s.finishedAt || now) - s.startedAt) / 1000 : null;
+    return ZTStats.computeStats(state, now);
+  },
 
-    let avgPace = null;
-    if (last && s.startedAt && last[3] > 200) avgPace = (last[2] - s.startedAt) / 1000 / (last[3] / 1000);
-
-    // allure sur les ~5 dernières minutes
-    let recentPace = null;
-    if (last) {
-      const from = track.find((p) => p[2] >= last[2] - 5 * 60_000);
-      if (from && last[3] - from[3] > 100) recentPace = (last[2] - from[2]) / 1000 / ((last[3] - from[3]) / 1000);
-    }
-
-    // allure de prévision : moyenne entre l'allure globale et l'allure récente
-    // sans allure mesurée (avant le départ, premiers km) : allure prévue par le coureur
-    const targetPace = (state.race && state.race.targetPace) || null;
-    const livePace = avgPace ? (recentPace ? (avgPace + recentPace) / 2 : avgPace) : null;
-    const pace = livePace || targetPace;
-    const plannedStart = state.race && state.race.plannedStart ? Date.parse(state.race.plannedStart) : null;
-    let eta = null;
-    const remaining = total != null ? Math.max(0, total - progress) : null;
-    if (s.status === 'finished') eta = s.finishedAt;
-    else if (remaining != null && pace) {
-      // point de départ de la projection : dernière position, sinon heure de départ (réelle ou prévue)
-      const base = last ? last[2] : s.status === 'running' ? s.startedAt : plannedStart;
-      if (base) eta = base + (remaining / 1000) * pace * 1000;
-    }
-
-    return { total, progress, remaining, elapsed, avgPace, recentPace, pace, livePace, targetPace, plannedStart, eta, lastTime: last ? last[2] : null, last };
+  /** Prénom du coureur (premier mot du nom), ou le texte de repli. */
+  firstName(name, fallback = 'le coureur') {
+    return String(name || '').trim().split(/\s+/)[0] || fallback;
   },
 
   /**

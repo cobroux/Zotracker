@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Zotracker Admin</title>
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#1d4ed8">
+  <meta name="theme-color" content="#17202b">
   <link rel="manifest" href="/manifest-admin.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon-192.png">
@@ -35,16 +35,16 @@
     <aside id="sidebar" class="sidebar" aria-label="Menu principal">
       <div class="brand"><img src="/icon.svg" alt=""> <span>Zotracker</span></div>
       <nav class="nav">
-        <a href="#/direct" data-view="direct"><span class="ico">📡</span> Tableau de bord <span id="navLiveDot" class="nav-dot" hidden></span></a>
-        <a href="#/courses" data-view="courses"><span class="ico">🏁</span> Mes courses</a>
-        <a href="#/profil" data-view="profil"><span class="ico">👤</span> Mon profil</a>
-        <a href="#/gps" data-view="gps"><span class="ico">📍</span> Mon GPS</a>
-        <a href="#/alertes" data-view="alertes"><span class="ico">🔔</span> Alertes supporters</a>
-        <a href="#/securite" data-view="securite"><span class="ico">🛟</span> Sécurité <span id="navSosDot" class="nav-dot danger" hidden></span></a>
-        <a href="#/parametres" data-view="parametres"><span class="ico">⚙️</span> Paramètres</a>
+        <a href="#/direct" data-view="direct"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Tableau de bord <span id="navLiveDot" class="nav-dot" hidden></span></a>
+        <a href="#/courses" data-view="courses"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2.5 4L17 12H4"/></svg> Mes courses</a>
+        <a href="#/profil" data-view="profil"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Mon profil</a>
+        <a href="#/gps" data-view="gps"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.4 7-12a7 7 0 0 0-14 0c0 5.6 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg> Mon GPS</a>
+        <a href="#/alertes" data-view="alertes"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg> Alertes supporters</a>
+        <a href="#/securite" data-view="securite"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Sécurité <span id="navSosDot" class="nav-dot danger" hidden></span></a>
+        <a href="#/parametres" data-view="parametres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg> Paramètres</a>
       </nav>
       <div class="sidebar-foot">
-        <a href="/" target="_blank" rel="noopener" class="btn-link">👀 Voir la page publique ↗</a>
+        <a href="/" target="_blank" rel="noopener" class="btn-link">Voir la page publique <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
         <button id="logoutBtn" type="button" class="link">Se déconnecter</button>
       </div>
     </aside>
@@ -52,7 +52,7 @@
 
     <div class="content">
       <header class="topbar">
-        <button id="menuBtn" type="button" class="menu-btn" aria-label="Ouvrir le menu" aria-controls="sidebar" aria-expanded="false">☰</button>
+        <button id="menuBtn" type="button" class="menu-btn" aria-label="Ouvrir le menu" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
         <h1 id="viewTitle">Tableau de bord</h1>
         <span id="topStatus" class="badge"></span>
         <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
@@ -65,7 +65,7 @@
         <!-- ============================================================ TABLEAU DE BORD -->
         <section class="view" data-view="direct" data-title="Tableau de bord">
           <div id="sosBanner" class="sos-active" hidden>
-            <strong>🆘 Un SOS est en cours</strong>
+            <strong>Un SOS est en cours</strong>
             <a href="#/securite" class="btn-link">Voir les détails</a>
           </div>
 
@@ -75,14 +75,14 @@
           </section>
 
           <section class="card live-card">
-            <h2>Course en ligne : <span id="liveName"></span></h2>
+            <h2 id="liveTitle">Course en ligne<span id="liveName"></span></h2>
             <p id="noLive" class="muted">Aucune course en ligne. Va dans <a href="#/courses">Mes courses</a> et clique sur <strong>Mettre en ligne</strong>.</p>
             <div id="liveControls">
               <p>Statut : <span id="sessionBadge" class="badge">…</span> <span id="sessionInfo" class="muted"></span></p>
               <div class="row-buttons">
-                <button id="startBtn" class="primary big" type="button">▶ Donner le départ</button>
-                <button id="finishBtn" class="big" type="button">🏁 Terminer</button>
-                <button id="resumeBtn" type="button">↺ Reprendre</button>
+                <button id="startBtn" class="primary big" type="button">Donner le départ</button>
+                <button id="finishBtn" class="big" type="button">Terminer la course</button>
+                <button id="resumeBtn" type="button">Reprendre</button>
                 <button id="resetBtn" class="danger" type="button">Réinitialiser le suivi</button>
               </div>
               <details>
@@ -96,7 +96,7 @@
           </section>
 
           <section class="card sim-card" id="simCard">
-            <div class="card-head"><h2>🧪 Simulation</h2><span id="simBadge" class="badge" hidden>En cours</span></div>
+            <div class="card-head"><h2>Simulation</h2><span id="simBadge" class="badge" hidden>En cours</span></div>
             <p class="muted small">Un coureur virtuel parcourt le tracé de la course en ligne : carte, estimations, ravitos et alertes se comportent comme le jour J. La page publique affiche un badge « Simulation ».</p>
             <p id="simUnavailable" class="warning" hidden></p>
 
@@ -112,7 +112,7 @@
                 </select>
               </label>
               <label class="check full"><input type="checkbox" name="notify"> Envoyer aussi les vraies notifications (supporters abonnés et contacts de sécurité, marquées « Test »)</label>
-              <button class="primary" type="submit">▶ Lancer la simulation</button>
+              <button class="primary" type="submit">Lancer la simulation</button>
             </form>
             <p id="simSpeedNote" class="muted small">En accéléré, le coureur virtuel court vraiment plus vite : les allures et heures affichées le sont aussi.</p>
 
@@ -120,13 +120,13 @@
               <p id="simInfo" class="sim-info"></p>
               <p class="muted small">Déclenche un incident pour tester les alertes :</p>
               <div class="row-buttons sim-modes">
-                <button type="button" data-sim-mode="detour">🧭 Sortir du parcours</button>
-                <button type="button" data-sim-mode="stopped">⏸ S'arrêter</button>
-                <button type="button" data-sim-mode="signalLost">📵 Couper le signal</button>
+                <button type="button" data-sim-mode="detour">Sortir du parcours</button>
+                <button type="button" data-sim-mode="stopped">S'arrêter</button>
+                <button type="button" data-sim-mode="signalLost">Couper le signal</button>
               </div>
               <div class="row-buttons">
-                <a class="btn-link" href="/" target="_blank" rel="noopener">👀 Voir la page publique</a>
-                <button id="simStop" class="danger" type="button">■ Arrêter et effacer</button>
+                <a class="btn-link" href="/" target="_blank" rel="noopener">Voir la page publique</a>
+                <button id="simStop" class="danger" type="button">Arrêter et effacer</button>
               </div>
             </div>
             <div id="simLeftover" hidden>
@@ -136,7 +136,7 @@
           </section>
 
           <section class="card" id="messagesSection">
-            <h2>💬 Messages aux supporters</h2>
+            <h2>Messages aux supporters</h2>
             <form id="messageForm" class="inline-form">
               <input name="text" maxlength="500" placeholder="Ex : Ravito du 10e km, tout va bien !" required>
               <button class="primary" type="submit">Publier</button>
@@ -159,7 +159,7 @@
           <section class="card" id="raceEditor" hidden>
             <div class="card-head">
               <h2 id="editorTitle">Modifier la course</h2>
-              <button id="editorClose" class="link" type="button">✕ Fermer</button>
+              <button id="editorClose" class="link" type="button">Fermer</button>
             </div>
             <form id="raceForm" class="grid-form">
               <label>Nom de la course <input name="name" maxlength="120" required></label>
@@ -209,10 +209,10 @@
                   <div class="marker-preview" id="markerPreview" aria-hidden="true"></div>
                   <fieldset>
                     <legend>Style</legend>
-                    <label class="chip-radio"><input type="radio" name="markerStyle" value="photo"><span>📷 Photo</span></label>
-                    <label class="chip-radio"><input type="radio" name="markerStyle" value="initials"><span>Aa Initiales</span></label>
-                    <label class="chip-radio"><input type="radio" name="markerStyle" value="emoji"><span>😀 Emoji</span></label>
-                    <label class="chip-radio"><input type="radio" name="markerStyle" value="dot"><span>● Point simple</span></label>
+                    <label class="chip-radio"><input type="radio" name="markerStyle" value="photo"><span>Photo</span></label>
+                    <label class="chip-radio"><input type="radio" name="markerStyle" value="initials"><span>Initiales</span></label>
+                    <label class="chip-radio"><input type="radio" name="markerStyle" value="emoji"><span>Emoji</span></label>
+                    <label class="chip-radio"><input type="radio" name="markerStyle" value="dot"><span>Point simple</span></label>
                   </fieldset>
                   <fieldset id="emojiSet">
                     <legend>Emoji</legend>
@@ -221,14 +221,14 @@
                   </fieldset>
                   <fieldset>
                     <legend>Couleur</legend>
-                    <label class="chip-radio swatch" title="Bleu"><input type="radio" name="markerColor" value="#1d4ed8" aria-label="Bleu"><span></span></label>
-                    <label class="chip-radio swatch" title="Bleu nuit"><input type="radio" name="markerColor" value="#0b2545" aria-label="Bleu nuit"><span></span></label>
-                    <label class="chip-radio swatch" title="Turquoise"><input type="radio" name="markerColor" value="#0e7490" aria-label="Turquoise"><span></span></label>
-                    <label class="chip-radio swatch" title="Vert"><input type="radio" name="markerColor" value="#15803d" aria-label="Vert"><span></span></label>
-                    <label class="chip-radio swatch" title="Jaune"><input type="radio" name="markerColor" value="#ca8a04" aria-label="Jaune"><span></span></label>
+                    <label class="chip-radio swatch" title="Encre"><input type="radio" name="markerColor" value="#17202b" aria-label="Encre"><span></span></label>
+                    <label class="chip-radio swatch" title="Marine"><input type="radio" name="markerColor" value="#1f3b5c" aria-label="Marine"><span></span></label>
+                    <label class="chip-radio swatch" title="Sapin"><input type="radio" name="markerColor" value="#0b6b62" aria-label="Sapin"><span></span></label>
+                    <label class="chip-radio swatch" title="Vert"><input type="radio" name="markerColor" value="#24733a" aria-label="Vert"><span></span></label>
+                    <label class="chip-radio swatch" title="Ocre"><input type="radio" name="markerColor" value="#9a6412" aria-label="Ocre"><span></span></label>
                     <label class="chip-radio swatch" title="Orange"><input type="radio" name="markerColor" value="#ea580c" aria-label="Orange"><span></span></label>
-                    <label class="chip-radio swatch" title="Rouge"><input type="radio" name="markerColor" value="#dc2626" aria-label="Rouge"><span></span></label>
-                    <label class="chip-radio swatch" title="Rose"><input type="radio" name="markerColor" value="#db2777" aria-label="Rose"><span></span></label>
+                    <label class="chip-radio swatch" title="Cramoisi"><input type="radio" name="markerColor" value="#b81c3b" aria-label="Cramoisi"><span></span></label>
+                    <label class="chip-radio swatch" title="Prune"><input type="radio" name="markerColor" value="#6a3fb8" aria-label="Prune"><span></span></label>
                   </fieldset>
                   <fieldset>
                     <legend>Taille et effet</legend>
@@ -255,7 +255,7 @@
         <!-- ============================================================ GPS -->
         <section class="view" data-view="gps" data-title="Mon GPS" hidden>
           <section class="card">
-            <div class="card-head"><h2>📱 Traccar Client</h2><span class="badge live">Recommandé</span></div>
+            <div class="card-head"><h2>Traccar Client</h2><span class="badge live">Recommandé</span></div>
             <p class="small">Fonctionne écran verrouillé et consomme peu de batterie. Installe l'appli gratuite <strong>Traccar Client</strong> (iPhone / Android), puis renseigne :</p>
             <dl class="facts">
               <dt>URL du serveur</dt><dd><code id="ingestTraccar" class="copy"></code></dd>
@@ -271,7 +271,7 @@
           </section>
 
           <section class="card">
-            <h2>🌐 GPS de ce navigateur</h2>
+            <h2>GPS de ce navigateur</h2>
             <p class="muted small">Solution de dépannage : fonctionne seulement si cette page reste ouverte et l'écran allumé. À éviter si tu utilises déjà Traccar.</p>
             <div class="row-buttons"><button id="gpsBtn" type="button">Activer le GPS</button></div>
             <dl class="facts small">
@@ -290,16 +290,16 @@
               <h2>Ce que reçoivent tes supporters</h2>
               <span id="subscribers" class="badge"></span>
             </div>
-            <p class="muted small">Notification sur leur téléphone s'ils ont touché « 🔔 Être alerté », et bandeau sur la page publique.</p>
+            <p class="muted small">Notification sur leur téléphone s'ils ont touché « Être alerté », et bandeau sur la page publique.</p>
             <form id="alertsForm" class="alerts-form">
-              <label class="check"><input type="checkbox" name="start"> 🏃 Départ donné</label>
-              <label class="check"><input type="checkbox" name="aidApproach"> 📍 Approche d'un ravito</label>
-              <label class="check"><input type="checkbox" name="aidPass"> 🥤 Passage à un ravito</label>
-              <label class="check"><input type="checkbox" name="halfway"> ⏱️ Mi-course</label>
-              <label class="check"><input type="checkbox" name="finishApproach"> 🏁 Arrivée imminente</label>
-              <label class="check"><input type="checkbox" name="finish"> 🎉 Arrivée (avec le temps final)</label>
-              <label class="check"><input type="checkbox" name="messages"> 💬 Mes messages</label>
-              <label class="check"><input type="checkbox" name="signalLost"> 📡 Plus de position reçue</label>
+              <label class="check"><input type="checkbox" name="start"> Départ donné</label>
+              <label class="check"><input type="checkbox" name="aidApproach"> Approche d'un ravito</label>
+              <label class="check"><input type="checkbox" name="aidPass"> Passage à un ravito</label>
+              <label class="check"><input type="checkbox" name="halfway"> Mi-course</label>
+              <label class="check"><input type="checkbox" name="finishApproach"> Arrivée imminente</label>
+              <label class="check"><input type="checkbox" name="finish"> Arrivée (avec le temps final)</label>
+              <label class="check"><input type="checkbox" name="messages"> Mes messages</label>
+              <label class="check"><input type="checkbox" name="signalLost"> Plus de position reçue</label>
               <div class="alerts-nums">
                 <label>Prévenir avant un ravito / l'arrivée (min) <input type="number" name="approachMinutes" min="1" max="30"></label>
                 <label>Alerte « plus de position » après (min) <input type="number" name="signalLostMinutes" min="2" max="60"></label>
@@ -320,15 +320,15 @@
         <section class="view" data-view="securite" data-title="Sécurité" hidden>
           <section class="card safety-card" id="safetyCard">
             <div class="card-head">
-              <h2>🛟 En cas de problème</h2>
+              <h2>En cas de problème</h2>
               <span class="badge">Privé</span>
             </div>
             <div id="sosActive" class="sos-active" hidden>
               <strong id="sosActiveTitle"></strong>
               <span id="sosActiveBody"></span>
               <div class="row-buttons">
-                <a id="sosActiveMap" class="btn-link" target="_blank" rel="noopener">📍 Voir la position</a>
-                <button id="sosResolve" type="button">✅ Lever l'alerte</button>
+                <a id="sosActiveMap" class="btn-link" target="_blank" rel="noopener">Voir la position</a>
+                <button id="sosResolve" type="button">Lever l'alerte</button>
               </div>
             </div>
             <p class="muted small">Alertes réservées à toi et à tes contacts de confiance, jamais visibles par les supporters.</p>
@@ -349,18 +349,18 @@
             <code id="sosLink" class="copy"></code>
             <div class="row-buttons">
               <a id="sosOpen" class="btn-link" target="_blank" rel="noopener">Ouvrir la page SOS</a>
-              <button id="sosNow" type="button" class="danger">🆘 Envoyer un SOS maintenant</button>
+              <button id="sosNow" type="button" class="danger">Envoyer un SOS maintenant</button>
             </div>
           </section>
 
           <section class="card">
             <h2>Détections automatiques</h2>
             <form id="safetyForm" class="alerts-form">
-              <label class="check"><input type="checkbox" name="stopped"> ⚠️ Immobile depuis <input type="number" name="stoppedMinutes" min="1" max="60" class="mini"> min</label>
-              <label class="check"><input type="checkbox" name="signalLost"> 📡 Plus de position depuis <input type="number" name="signalLostMinutes" min="2" max="60" class="mini"> min</label>
-              <label class="check"><input type="checkbox" name="offCourse"> 🧭 Hors parcours depuis <input type="number" name="offCourseMinutes" min="1" max="60" class="mini"> min</label>
-              <label class="check"><input type="checkbox" name="lowBattery"> 🔋 Batterie sous <input type="number" name="lowBatteryPercent" min="5" max="50" class="mini"> %</label>
-              <label class="check"><input type="checkbox" name="slowdown"> 🐢 Fort ralentissement</label>
+              <label class="check"><input type="checkbox" name="stopped"> Immobile depuis <input type="number" name="stoppedMinutes" min="1" max="60" class="mini"> min</label>
+              <label class="check"><input type="checkbox" name="signalLost"> Plus de position depuis <input type="number" name="signalLostMinutes" min="2" max="60" class="mini"> min</label>
+              <label class="check"><input type="checkbox" name="offCourse"> Hors parcours depuis <input type="number" name="offCourseMinutes" min="1" max="60" class="mini"> min</label>
+              <label class="check"><input type="checkbox" name="lowBattery"> Batterie sous <input type="number" name="lowBatteryPercent" min="5" max="50" class="mini"> %</label>
+              <label class="check"><input type="checkbox" name="slowdown"> Fort ralentissement</label>
               <div class="row-buttons"><button class="primary" type="submit">Enregistrer</button></div>
             </form>
           </section>
@@ -374,10 +374,10 @@
         <!-- ============================================================ PARAMÈTRES -->
         <section class="view" data-view="parametres" data-title="Paramètres" hidden>
           <section class="card">
-            <h2>👀 Qui peut suivre la course ?</h2>
+            <h2>Qui peut suivre la course ?</h2>
             <form id="privacyForm" class="alerts-form">
-              <label class="check"><input type="radio" name="mode" value="public"> 🌍 Tout le monde avec l'adresse du site</label>
-              <label class="check"><input type="radio" name="mode" value="link"> 🔑 Seulement les personnes à qui je donne le lien privé</label>
+              <label class="check"><input type="radio" name="mode" value="public"> Tout le monde avec l'adresse du site</label>
+              <label class="check"><input type="radio" name="mode" value="link"> Seulement les personnes à qui je donne le lien privé</label>
             </form>
             <div id="publicLinkBox"><p class="small">Lien à partager :</p><code id="publicLink" class="copy"></code></div>
             <div id="privateLinkBox" hidden>
@@ -389,7 +389,7 @@
           </section>
 
           <section class="card" id="mapCard">
-            <h2>🗺️ Fond de carte</h2>
+            <h2>Fond de carte</h2>
             <p id="mapEnv" class="muted small" hidden>Le fond de carte est défini sur le serveur (variable TILE_URL).</p>
             <form id="mapForm" class="alerts-form">
               <label class="check"><input type="radio" name="provider" value="osm"> OpenStreetMap : gratuit, sans clé (usage léger)</label>
@@ -408,7 +408,7 @@
           </section>
 
           <section class="card" id="twoFactorCard">
-            <div class="card-head"><h2>🔐 Double authentification</h2><span id="twoFactorBadge" class="badge"></span></div>
+            <div class="card-head"><h2>Double authentification</h2><span id="twoFactorBadge" class="badge"></span></div>
             <div id="tfOff">
               <p class="small">En plus du mot de passe, un code à 6 chiffres affiché par une appli sur ton téléphone (Google Authenticator, Microsoft Authenticator, 1Password, Bitwarden…). Même si quelqu'un découvre ton mot de passe, il ne peut pas se connecter. <strong>Fortement recommandé.</strong></p>
               <div class="row-buttons"><button id="tfSetupBtn" class="primary" type="button">Activer la double authentification</button></div>
@@ -431,7 +431,7 @@
               <div class="row-buttons"><button id="tfCopyCodes" type="button">Copier</button><button id="tfCodesDone" class="primary" type="button">C'est noté</button></div>
             </div>
             <div id="tfOn" hidden>
-              <p class="small">✅ Active. <span id="tfRecoveryLeft"></span></p>
+              <p class="small"><strong>Activée.</strong> <span id="tfRecoveryLeft"></span></p>
               <details>
                 <summary>Nouveaux codes de secours / désactiver</summary>
                 <form id="tfRegenForm" class="inline-form">
@@ -448,7 +448,7 @@
           </section>
 
           <section class="card">
-            <h2>🔑 Mot de passe</h2>
+            <h2>Mot de passe</h2>
             <p id="passwordEnv" class="muted small" hidden>Le mot de passe est défini sur le serveur (variable ADMIN_PASSWORD).</p>
             <form id="passwordForm" class="grid-form">
               <input type="text" name="username" value="admin" autocomplete="username" hidden>
@@ -460,7 +460,7 @@
           </section>
 
           <section class="card">
-            <h2>🧯 Sessions et clés</h2>
+            <h2>Sessions et clés</h2>
             <div class="row-buttons">
               <button id="logoutAllBtn" type="button">Déconnecter tous les appareils</button>
               <button id="rotateKey" type="button" class="danger">Régénérer la clé du traceur</button>
@@ -476,7 +476,15 @@
 
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script src="/tiles.js"></script>
+  <script src="/shared/stats.js"></script>
   <script src="/common.js"></script>
-  <script src="/admin.js"></script>
+  <script src="/js/admin/core.js"></script>
+  <script src="/js/admin/dashboard.js"></script>
+  <script src="/js/admin/races.js"></script>
+  <script src="/js/admin/profile.js"></script>
+  <script src="/js/admin/gps.js"></script>
+  <script src="/js/admin/alerts.js"></script>
+  <script src="/js/admin/safety.js"></script>
+  <script src="/js/admin/settings.js"></script>
 </body>
 </html>

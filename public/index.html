@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Suivi en direct</title>
-  <meta name="theme-color" content="#1d4ed8">
+  <meta name="theme-color" content="#17202b">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon-192.png">
@@ -39,7 +39,12 @@
     <aside class="panel">
       <div id="countdown" class="countdown" hidden></div>
 
-      <section class="distance" aria-label="Progression">
+      <div id="noRace" class="empty-state" hidden>
+        <strong>Pas de course en ce moment</strong>
+        <span>Reviens le jour J : la carte, la distance et l'heure d'arrivée s'afficheront ici en direct.</span>
+      </div>
+
+      <section id="distanceBox" class="distance" aria-label="Progression">
         <div class="distance-head">
           <div>
             <span class="caps">Distance parcourue</span>
@@ -51,7 +56,7 @@
         <span id="updated" class="muted small"></span>
       </section>
 
-      <div class="stats">
+      <div id="statsBox" class="stats">
         <div class="stat"><span class="label">Temps</span><span class="value" id="sTime">–</span></div>
         <div class="stat"><span class="label">Allure moy.</span><span class="value" id="sAvg">–</span></div>
         <div class="stat"><span class="label">Allure récente</span><span class="value" id="sRecent">–</span></div>
@@ -119,6 +124,7 @@
 
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script src="/tiles.js"></script>
+  <script src="/shared/stats.js"></script>
   <script src="/common.js"></script>
   <script src="/app.js"></script>
 </body>
