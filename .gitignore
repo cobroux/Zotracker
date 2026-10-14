@@ -5,3 +5,4 @@ deploy/.env
 *.key
 backups/
 graphify-out/
+.claude/ux-review/
