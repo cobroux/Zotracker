@@ -216,18 +216,6 @@ const ZT = {
 
   isApple: /iphone|ipad|ipod|macintosh/i.test(navigator.userAgent),
 
-  /**
-   * Liens d'itinéraire vers un point (l'application Plans / Google Maps part de la position
-   * actuelle du téléphone). Seules des coordonnées sont transmises, jamais la position du supporter.
-   */
-  directions(lat, lon) {
-    const ll = `${lat.toFixed(6)},${lon.toFixed(6)}`;
-    return {
-      google: `https://www.google.com/maps/dir/?api=1&destination=${ll}`,
-      apple: `https://maps.apple.com/?daddr=${ll}`,
-    };
-  },
-
   /** Point du tracé le plus proche d'une position : { along, offset } en mètres. */
   nearestOnCourse(course, lat, lon) {
     const M = 111_195;
@@ -259,69 +247,81 @@ const ZT = {
     return L.divIcon({ className: 'aid-icon', html: `<span class="${passed ? 'passed' : ''}">${ZT.DROP_SVG}</span>`, iconSize: [28, 28], iconAnchor: [14, 14] });
   },
 
-  /** Profil d'altitude dans un <canvas>, avec la progression actuelle. */
-  drawProfile(canvas, course, progress, aidStations = []) {
+  /**
+   * Profil d'altitude dans un <canvas> : partie parcourue, repères des ravitos et, avec
+   * opts.runner, la position du coureur. Retourne false si le parcours n'a pas d'altitudes.
+   */
+  drawProfile(canvas, course, progress, aidStations = [], opts = {}) {
     const pts = course && course.points.filter((p) => p[2] != null);
-    if (!pts || pts.length < 2) { canvas.hidden = true; return; }
-    canvas.hidden = false;
+    if (!pts || pts.length < 2) return false;
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
+    if (!w || !h) return true; // section encore masquée : dessin au prochain rendu
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
 
-    const accent = ZT.cssVar('--accent');
-    const muted = ZT.cssVar('--muted');
-    const line = ZT.cssVar('--track');
-    const teal = ZT.cssVar('--teal');
-    const font = ZT.cssVar('--font-num') || 'system-ui, sans-serif';
+    const css = (n) => ZT.cssVar(n);
+    const font = css('--font-num') || 'system-ui, sans-serif';
 
     let min = Infinity, max = -Infinity;
     for (const p of pts) { min = Math.min(min, p[2]); max = Math.max(max, p[2]); }
     const pad = Math.max(10, (max - min) * 0.15);
-    min -= pad; max += pad;
+    const lo = min - pad, hi = max + pad;
     const len = course.length || pts[pts.length - 1][3];
-    const top = 14, bottom = 18;
+    const top = 18, bottom = 18;
     const x = (d) => (d / len) * w;
-    const y = (e) => top + (1 - (e - min) / (max - min)) * (h - top - bottom);
+    const y = (e) => top + (1 - (e - lo) / (hi - lo)) * (h - top - bottom);
 
     const area = (upTo, fill) => {
       ctx.beginPath();
       ctx.moveTo(0, h - bottom);
       for (const p of pts) { if (p[3] > upTo) break; ctx.lineTo(x(p[3]), y(p[2])); }
-      const lastIn = [...pts].reverse().find((p) => p[3] <= upTo) || pts[0];
-      ctx.lineTo(x(Math.min(upTo, len)), y(lastIn[2]));
-      ctx.lineTo(x(Math.min(upTo, len)), h - bottom);
+      const end = Math.min(upTo, len);
+      ctx.lineTo(x(end), y(ZT.elevationAt(course, end)));
+      ctx.lineTo(x(end), h - bottom);
       ctx.closePath();
       ctx.fillStyle = fill;
       ctx.fill();
     };
-    area(len, line);
-    if (progress > 0) area(progress, accent);
+    area(len, css('--track'));
+    if (progress > 0) area(progress, css('--accent'));
 
-    // ravitaillements : trait vertical + pastille
-    ctx.strokeStyle = teal;
-    ctx.fillStyle = teal;
-    ctx.setLineDash([3, 3]);
+    // ravitaillements : trait fin pointillé + pastille
+    ctx.strokeStyle = css('--teal');
+    ctx.fillStyle = css('--teal');
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
     for (const a of aidStations) {
       const ax = x(a.km * 1000);
       if (ax < 0 || ax > w) continue;
-      ctx.beginPath(); ctx.moveTo(ax, top); ctx.lineTo(ax, h - bottom); ctx.stroke();
-      ctx.beginPath(); ctx.arc(Math.min(Math.max(ax, 5), w - 5), 6, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(ax, top - 4); ctx.lineTo(ax, h - bottom); ctx.stroke();
+      ctx.beginPath(); ctx.arc(Math.min(Math.max(ax, 4), w - 4), top - 8, 3.5, 0, Math.PI * 2); ctx.fill();
     }
     ctx.setLineDash([]);
 
-    ctx.fillStyle = muted;
+    // position du coureur sur la courbe
+    if (opts.runner && progress > 0 && progress <= len) {
+      const rx = x(progress), ry = y(ZT.elevationAt(course, progress));
+      ctx.beginPath(); ctx.arc(rx, ry, 6, 0, Math.PI * 2);
+      ctx.fillStyle = css('--marker'); ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = css('--surface'); ctx.stroke();
+    }
+
+    ctx.fillStyle = css('--muted');
     ctx.font = `600 12px ${font}`;
-    ctx.textBaseline = 'top';
-    ctx.fillText(`${Math.round(max - pad)} m`, 4, 0);
     ctx.textBaseline = 'bottom';
+    ctx.fillText(`${Math.round(max).toLocaleString('fr-FR')} m`, 2, 14);
     const step = len > 25000 ? 10000 : len > 8000 ? 5000 : 1000;
-    for (let d = step; d < len; d += step) ctx.fillText(`${d / 1000}`, x(d) - 4, h);
-    ctx.fillText('km', w - 18, h);
+    ctx.textBaseline = 'bottom';
+    for (let d = step; d < len - step / 3; d += step) ctx.fillText(`${d / 1000}`, x(d) - 4, h);
+    ctx.textAlign = 'right';
+    ctx.fillText('km', w - 2, h);
+    ctx.textAlign = 'left';
+    return true;
   },
 
   /** Découpe le parcours jusqu'à une distance donnée (pour colorer la partie parcourue). */
@@ -408,3 +408,9 @@ const ZT = {
     return L.divIcon({ className: 'runner-icon', html: ZT.runnerDot(runner), iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
   },
 };
+
+// Leaflet en français : titres des boutons de zoom (repris en aria-label par Leaflet) et crédit
+if (typeof L !== 'undefined') {
+  Object.assign(L.Control.Zoom.prototype.options, { zoomInTitle: 'Zoom avant', zoomOutTitle: 'Zoom arrière' });
+  L.Control.Attribution.prototype.options.prefix = '<a href="https://leafletjs.com" title="Bibliothèque de cartes Leaflet">Leaflet</a>';
+}

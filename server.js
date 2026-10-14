@@ -15,6 +15,7 @@ const { clients, adminClients } = require('./lib/hub');
 const { retryUndeliveredSos, NTFY_RETRY_DELAYS } = require('./lib/notify');
 const { purgeOldTracks, scheduleRetention } = require('./lib/retention');
 const publicRoutes = require('./routes/public');
+const { pageRouter } = require('./routes/page');
 const authRoutes = require('./routes/auth');
 const ingestRoutes = require('./routes/ingest');
 const adminRaces = require('./routes/admin-races');
@@ -67,10 +68,11 @@ app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 // calculs d'allure et d'heures de passage : même source côté serveur et navigateur (window.ZTStats)
 app.get('/shared/stats.js', (req, res) => res.sendFile(path.join(__dirname, 'lib', 'stats.js')));
-app.use(express.static(path.join(__dirname, 'public'), { index: 'index.html' }));
+app.use(pageRouter()); // '/' et '/index.html' reçoivent l'aperçu du lien partagé (le static n'a plus d'index : // et /./ ne servent pas la page brute)
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.use('/vendor/leaflet', express.static(path.dirname(require.resolve('leaflet/dist/leaflet.js'))));
 // polices hébergées ici (pas de Google Fonts : les adresses IP des visiteurs ne partent pas chez un tiers)
-for (const font of ['manrope', 'space-grotesk']) {
+for (const font of ['manrope', 'barlow-semi-condensed']) {
   app.use(`/vendor/fonts/${font}`, express.static(path.join(path.dirname(require.resolve(`@fontsource/${font}/package.json`)), 'files'), { maxAge: '30d', immutable: true }));
 }
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
