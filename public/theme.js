@@ -4,7 +4,7 @@
 (function () {
   const KEY = 'zt-theme';
   const media = window.matchMedia('(prefers-color-scheme: dark)');
-  const COLORS = { light: '#17202b', dark: '#0d1218' };
+  const COLORS = { light: '#1d4ed8', dark: '#0a1324' };
 
   const saved = () => {
     try { return localStorage.getItem(KEY); } catch { return null; }
