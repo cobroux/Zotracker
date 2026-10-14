@@ -30,12 +30,14 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | --- | --- | --- |
 | `PORT` | Port HTTP | `3000` |
 | `ADMIN_PASSWORD` | Mot de passe de l'admin | généré |
-| `TRACKER_KEY` | Clé des applis GPS externes | générée |
+| `TRACKER_KEY` | Clé des applis GPS externes (24 caractères minimum, sinon refus de démarrer) | générée |
+| `TOKEN_SECRET` | Secret de signature des sessions admin (32 caractères minimum, sinon refus de démarrer) | généré |
 | `DATA_DIR` | Dossier de stockage (état JSON) | `./data` |
 | `NTFY_SERVER` | Serveur ntfy des alertes de sécurité | `https://ntfy.sh` |
 | `VAPID_SUBJECT` | Contact pour les notifications push | `mailto:zotracker@example.com` |
 | `TRACK_RETENTION_DAYS` | Positions GPS effacées N jours après la course (0 = jamais) | `90` |
-| `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client | `loopback, linklocal, uniquelocal` |
+| `PUBLIC_TRACK_MASK_M` | Confidentialité du domicile : sur la trace publique, points masqués à moins de N m du premier point GPS (et du dernier une fois la course terminée). Aucune exception pour la position actuelle : tant que le coureur est dans la zone du départ, le public ne voit ni trace ni marqueur (la progression reste affichée), le marqueur apparaît dès la sortie de la zone ; l'admin voit tout (0 = désactivé) | `300` |
+| `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client (`X-Forwarded-For`). Derrière un proxy dans un réseau Docker privé (Caddy de `deploy/`) : `uniquelocal`. Ne l'élargis jamais si l'appli est joignable sans passer par ce proxy | `loopback` |
 | `TILE_URL` / `TILE_ATTRIBUTION` | Fond de carte imposé par le serveur. Sinon, il se choisit dans l'admin (⚙️ Paramètres → Fond de carte) | OpenStreetMap, avec repli sur OpenTopoMap |
 | `PUSH_ALLOWED_HOSTS` | Services push supplémentaires autorisés (séparés par des virgules) | — |
 
@@ -162,7 +164,13 @@ npm run audit # vulnérabilités connues des dépendances
 Structure :
 
 ```
-server.js          API, authentification, flux temps réel (Server-Sent Events)
+server.js          application Express : en-têtes, analyse des corps, fichiers statiques, montage des routes, démarrage
+routes/            API : public.js (état, flux SSE, push), ingest.js (applis GPS, SOS), auth.js (connexion, 2FA),
+                   admin-races.js, admin-session.js (course en direct, simulation), admin-settings.js (profil, réglages)
+lib/context.js     état partagé (stockage, secrets, réglages lus dans l'environnement)
+lib/hub.js         flux temps réel (Server-Sent Events) et diffusions
+lib/notify.js      notifications push, alertes de sécurité ntfy, SOS
+lib/sim-runner.js  simulation de course (test sans courir)
 lib/geo.js         distances, construction et projection sur le parcours
 lib/gpx.js         lecture des fichiers GPX
 lib/tracker.js     ajout de positions, filtrage, détection d'arrivée
@@ -175,7 +183,7 @@ lib/totp.js        double authentification (TOTP RFC 6238, codes de secours)
 public/sos.html    page SOS du coureur (appui long)
 public/sw.js       service worker qui affiche les notifications
 lib/store.js       stockage JSON + secrets
-public/            page publique (index.html, app.js), admin (admin.html, admin.js)
+public/            page publique (index.html, app.js), admin (admin.html, js/admin/*.js par vue)
 deploy/            production : docker-compose, Caddyfile, scripts de déploiement et de sauvegarde
 .github/           CI (tests, audit, secrets, scan d'image), CodeQL, déploiement continu, Dependabot
 ```
