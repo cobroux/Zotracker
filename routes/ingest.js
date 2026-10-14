@@ -14,7 +14,7 @@ const { safeEqual } = sec;
 
 const FIX_SAVE_EVERY = 30_000; // ms : l'horodatage de dernière réception n'est réécrit sur disque qu'à ce rythme
 
-const isValidFix = (p) => !!p && typeof p === 'object' && Math.abs(toNum(p.lat, 90)) <= 90 && Math.abs(toNum(p.lon, 180)) <= 180;
+const isValidFix = (p) => !!p && typeof p === 'object' && Number.isFinite(toNum(p.lat, 90)) && Number.isFinite(toNum(p.lon, 180));
 
 /**
  * Mémorise l'heure de la dernière position valide d'un vrai appareil (jamais la position elle-même),

@@ -7,6 +7,7 @@ const alerts = require('../lib/alerts');
 const safety = require('../lib/safety');
 const sec = require('../lib/security');
 const { asyncHandler, str } = require('../lib/http');
+const { firstName } = require('../lib/text');
 const { sanitizeMarker } = require('../lib/marker');
 const { MAPTILER_KEY } = require('../lib/tiles');
 const { store, secrets, state, push, activeRace } = require('../lib/context');
@@ -65,7 +66,7 @@ router.post('/safety/new-channel', (req, res) => {
 });
 
 router.post('/safety/test', asyncHandler(async (req, res) => {
-  const a = safety.makeAlert(null, 'test', '🔔 Test des alertes de sécurité', `Tu recevras ici les alertes privées concernant ${safety.firstName(state.runner)} pendant ses courses.`, null);
+  const a = safety.makeAlert(null, 'test', '🔔 Test des alertes de sécurité', `Tu recevras ici les alertes privées concernant ${firstName(state.runner)} pendant ses courses.`, null);
   res.json({ delivered: await dispatchSafety(a) });
 }));
 

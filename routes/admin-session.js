@@ -7,6 +7,7 @@ const { defaultSession } = require('../lib/store');
 const { parsePace } = require('../lib/stats');
 const alerts = require('../lib/alerts');
 const { str } = require('../lib/http');
+const { firstName } = require('../lib/text');
 const { store, state, alertSettings, activeRace, TRACK_MASK_M } = require('../lib/context');
 const { isAdmin } = require('../lib/auth');
 const { adminClients, broadcast, broadcastFull } = require('../lib/hub');
@@ -103,7 +104,7 @@ router.post('/messages', requireActive, (req, res) => {
   store.save();
   broadcast('messages', race.messages);
   if (alertSettings().messages) {
-    sendPush({ title: `💬 ${alerts.firstName(state.runner)}`, body: text, tag: `msg-${race.messages[0].id}` });
+    sendPush({ title: `💬 ${firstName(state.runner)}`, body: text, tag: `msg-${race.messages[0].id}` });
   }
   res.json(race.messages);
 });
