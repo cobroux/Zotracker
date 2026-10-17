@@ -157,6 +157,17 @@
             <p class="help">Il apparaît tout de suite sur la page publique, avec l'heure.</p>
             <ul id="adminMessages" class="messages"></ul>
           </section>
+
+          <section class="card" id="cheersSection" aria-labelledby="cheersTitle">
+            <h2 id="cheersTitle" tabindex="-1">💬 Encouragements</h2>
+            <p id="cheerNote" class="warning" hidden></p>
+            <div class="cheer-settings">
+              <label class="check"><input type="checkbox" id="cheerEnabled"> Activer pour cette course</label>
+              <label class="check"><input type="checkbox" id="cheerPublish"> Autoriser la publication</label>
+            </div>
+            <p class="help">Les supporters envoient un court message depuis la page publique. Rien n’est public sans ton accord : publie-le pour le faire apparaître dans le fil « En direct ».</p>
+            <ul id="cheerList" class="messages cheer-list"></ul>
+          </section>
         </section>
 
         <!-- ============================================================ COURSES -->
@@ -518,6 +529,7 @@
   <script src="/admin/js/forms.js"></script>
   <script src="/admin/js/readiness.js"></script>
   <script src="/admin/js/dashboard.js"></script>
+  <script src="/admin/js/cheers.js"></script>
   <script src="/admin/js/races.js"></script>
   <script src="/admin/js/profile.js"></script>
   <script src="/admin/js/gps.js"></script>

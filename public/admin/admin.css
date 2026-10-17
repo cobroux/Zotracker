@@ -315,3 +315,9 @@ html.dark .brand img, html.dark .login-logo { box-shadow: 0 0 0 1px var(--line);
   .btn-link:active { transform: none; }
   .toast { @starting-style { transform: none; } }
 }
+
+/* encouragements */
+.cheer-settings { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-bottom: 8px; }
+.cheer-text { font-weight: 600; }
+.cheer-list li.is-new small { color: var(--accent); font-weight: 600; }
+.cheer-actions { display: flex; flex-wrap: wrap; gap: 8px; flex: none; }
