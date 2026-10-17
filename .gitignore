@@ -20,3 +20,5 @@ coverage/
 .claude/settings.local.json
 .claude/worktrees/
 tmp/
+test/fixtures/local/*
+!test/fixtures/local/README.md
