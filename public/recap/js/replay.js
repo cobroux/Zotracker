@@ -36,7 +36,8 @@
         out)));
 
     const latlngs = track.map((p) => [p.lat, p.lon]);
-    const map = L.map(mapDiv, { zoomControl: true });
+    // la molette fait défiler la page ; les boutons +/− et le pincement zooment encore
+    const map = L.map(mapDiv, { zoomControl: true, scrollWheelZoom: false });
     ZT.addTiles(map);
     const route = L.polyline(latlngs, { weight: 4 }).addTo(map);
     const done = L.polyline([], { weight: 5 }).addTo(map);
