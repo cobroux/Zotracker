@@ -69,9 +69,9 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T8 : bandeau SOS
 - Agent: zt-frontend | Modèle: sonnet | Parallélisable: oui (avec T7, T9) | Dépend de: T5
 - Fichiers: `public/sos/sos-cheers.js`, `public/sos.html`, `public/sos/sos.css`, `test/pages/`
-- [ ] dernier message 8 s puis pastille « 💬 N » ; texte 20 px, `aria-live="polite"`, `pointer-events: none` hors pastille
-- [ ] masqué pendant un SOS actif ; bouton SOS ni couvert ni retardé ; `POST /api/sos` inchangé
-- [ ] flux isolé (try/catch), retry, repli par sondage 15 s ; pas de lecture vocale
+- [x] dernier message 8 s puis pastille « 💬 N » ; texte 20 px, `aria-live="polite"`, `pointer-events: none` hors pastille
+- [x] masqué pendant un SOS actif ; bouton SOS ni couvert ni retardé ; `POST /api/sos` inchangé
+- [x] flux isolé (try/catch), retry, repli par sondage 15 s ; pas de lecture vocale
 - Vérif: `node --test test/pages/ test/sos/`, `npm test`, `npm run check`, essai manuel téléphone
 
 ## T9 : section admin « Encouragements »

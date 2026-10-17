@@ -51,7 +51,14 @@
     <!-- annonces pour lecteurs d'écran : l'état visible change trop vite pour être lu tel quel -->
     <p id="sosAnnounce" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></p>
   </main>
+
+  <!-- encouragements des supporters : bandeau en haut, ne reçoit aucun appui hors pastille -->
+  <div id="cheerBar" class="cheer-bar">
+    <p id="cheerText" class="cheer-text sr-only" aria-live="polite" aria-atomic="true"></p>
+    <button id="cheerBadge" class="cheer-badge" type="button" aria-label="Relire le dernier encouragement" hidden></button>
+  </div>
   <script src="/sos/sos-core.js"></script>
   <script src="/sos/sos.js"></script>
+  <script src="/sos/sos-cheers.js"></script>
 </body>
 </html>
