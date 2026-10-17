@@ -73,7 +73,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
 - [ ] **Checkpoint 3** : démo locale (`DATA_DIR=$(mktemp -d) ADMIN_PASSWORD=<12+ caractères> npm run dev`), marge visible public et admin, alerte privée reçue en simulation, clair et sombre OK.
 
 ## Phase 4 : finition
-- [ ] **T11 Intégration bout en bout** (M)
+- [x] **T11 Intégration bout en bout** (M)
   - Agent: zt-debugger | Modèle: sonnet | Parallèle: non | Dép.: T5, T6, T9, T10
   - Fichiers : `test/races/cutoffs-flow.test.js`, correctifs minimes si bug trouvé (test rouge d'abord)
   - [ ] Parcours : course avec barrières, simulation accélérée, 1 alerte `tight` puis 1 `danger` par ravito, marge publique cohérente, aucune notification ntfy sans `simNotify`.
