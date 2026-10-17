@@ -108,7 +108,7 @@ window.ZTP = (() => {
   /** Base des estimations, dite une seule fois sous la liste. */
   P.basisText = (stats) => {
     const status = P.status();
-    if (status === 'running' && stats.livePace) return `Heures estimées selon son allure actuelle (${ZT.fmtPace(stats.pace)}).`;
+    if (status === 'running' && stats.livePace) return `Heures estimées selon son allure d’effort (${ZT.fmtPace(stats.pace)}).`;
     if (stats.targetPace && (status === 'running' || status === 'idle')) return `Heures estimées sur l’allure prévue (${ZT.fmtPace(stats.targetPace)}).`;
     if (status === 'idle') return 'Heures de passage estimées dès le départ.';
     return '';

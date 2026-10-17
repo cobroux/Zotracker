@@ -47,21 +47,21 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
 
 ## Phase 3 : Front et validation
 
-- [ ] **T6 : Front : `passageAt` délègue à `etaAt`** (S, parallélisable avec T7 et T8)
+- [x] **T6 : Front : `passageAt` délègue à `etaAt`** (S, parallélisable avec T7 et T8)
   - Agent: zt-frontend | Modèle: haiku | Dépend de : T4, T5
   - Fichiers : `public/shared/js/course.js`, `public/tracking/js/core.js`
   - Description : `ZT.passageAt` appelle `stats.etaAt(dist)` (supprimer la formule `pace * 1000` dupliquée) ; libellé d'allure (l. ~111 de `core.js`) : « selon son allure d'effort ». DOM par `ZT.el()`/`textContent`.
   - Critères : `grep "pace \* 1000" public/` ne trouve plus `course.js` ; ravitos, point touché (`locate.js`, `passages.js`) inchangés visuellement ; repli plat si `etaAt` renvoie `null` sans profil.
   - Vérification : `npm test`, `npm run check`, contrôle manuel en simulation.
 
-- [ ] **T7 : Critères de précision sur fixture « trail » synthétique** (M, parallélisable avec T6 et T8)
+- [x] **T7 : Critères de précision sur fixture « trail » synthétique** (M, parallélisable avec T6 et T8)
   - Agent: zt-backend | Modèle: sonnet | Dépend de : T4
   - Fichiers : `test/tracking/effort-accuracy.test.js`, `test/tracking/stats.test.js` (parité `vm` + perf)
   - Description : fixture ≈ 80 km / 3 200 m D+ en dents de scie, allure d'effort constante. Mesure aux 25 %, 50 %, 75 % et à chaque ravito.
   - Critères : erreur d'arrivée à mi-distance ≤ 50 % de celle du plat et ≤ 5 % du total ; fixture plate : écart ≤ 1 % ; non-dégradation à chaque point ; parité `vm`/`require` ; profil 20 000 points < 50 ms ; 10 000 `etaAt` < 20 ms.
   - Vérification : `node --test test/tracking/effort-accuracy.test.js`, `npm test`, `npm run check`.
 
-- [ ] **T8 : Test de cohérence sur le GPX officiel local (skip si absent)** (S, parallélisable avec T6 et T7)
+- [x] **T8 : Test de cohérence sur le GPX officiel local (skip si absent)** (S, parallélisable avec T6 et T7)
   - Agent: zt-backend | Modèle: haiku | Dépend de : T1, T3
   - Fichiers : `test/tracking/effort-local-gpx.test.js`
   - Description : avec `loadLocalCourse()`, `t.skip()` si `null`. Ignorer les `<time>` (synthétiques). `targetPace` réglé pour 13h35'53 sur 79,4 km.
