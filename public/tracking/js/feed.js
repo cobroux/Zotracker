@@ -17,14 +17,14 @@
 
   function render() {
     const items = [
-      ...P.state.messages.map((m) => ({ t: m.t, msg: m.text })),
+      ...P.state.messages.map((m) => ({ t: m.t, msg: m.text, who: m.from === 'supporter' ? (m.name || 'Un supporter') : null })),
       ...events().map((a) => ({ t: a.t, title: a.title, body: a.body, type: a.type })),
     ].sort((a, b) => b.t - a.t).slice(0, 60);
     $('feedBox').hidden = !items.length;
     $('feed').replaceChildren(...items.map((it) => (it.msg
       ? el('li', { class: 'feed-msg' },
         el('time', { class: 'num' }, ZT.fmtClock(it.t)),
-        el('p', { class: 'bubble' }, it.msg))
+        el('p', { class: 'bubble' }, it.who && el('span', { class: 'bubble-who' }, it.who), it.msg))
       : el('li', { class: `feed-event is-${it.type || 'info'}` },
         el('time', { class: 'num' }, ZT.fmtClock(it.t)),
         el('p', {}, el('span', { class: 'ev-title' }, it.title), it.body && el('span', { class: 'ev-body' }, it.body))))));

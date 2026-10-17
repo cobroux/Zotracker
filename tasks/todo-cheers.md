@@ -61,9 +61,9 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T7 : formulaire public
 - Agent: zt-frontend | Modèle: haiku | Parallélisable: oui (avec T8, T9) | Dépend de: T3
 - Fichiers: `public/tracking/js/cheer.js`, `public/index.html`, `public/tracking/js/tracking.css`, `test/pages/`
-- [ ] bouton « Encourager » (carte « Venir encourager »), prénom + message, compteur 140, accusé « Merci, ton message arrive au coureur »
-- [ ] masqué si `cheersEnabled` faux ; erreurs génériques ; fil « En direct » affiche `from`/`name` en `textContent`
-- [ ] `ZT.el()`, tokens CSS, ni inline ni `innerHTML`
+- [x] bouton « Encourager » (carte « Venir encourager »), prénom + message, compteur 140, accusé « Merci, ton message arrive au coureur »
+- [x] masqué si `cheersEnabled` faux ; erreurs génériques ; fil « En direct » affiche `from`/`name` en `textContent`
+- [x] `ZT.el()`, tokens CSS, ni inline ni `innerHTML`
 - Vérif: `node --test test/pages/`, `npm test`, `npm run check`
 
 ## T8 : bandeau SOS
@@ -77,8 +77,8 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T9 : section admin « Encouragements »
 - Agent: zt-frontend | Modèle: haiku | Parallélisable: oui (avec T7, T8) | Dépend de: T4
 - Fichiers: `public/admin/js/cheers.js`, `public/admin.html`, `public/admin/admin.css`, `test/pages/`
-- [ ] liste (nouveaux en tête), Publier / Retirer / Supprimer ; bascules « Activer pour cette course » et « Autoriser la publication »
-- [ ] mise à jour par l'événement admin `cheers` ; `textContent` seul
+- [x] liste (nouveaux en tête), Publier / Retirer / Supprimer ; bascules « Activer pour cette course » et « Autoriser la publication »
+- [x] mise à jour par l'événement admin `cheers` ; `textContent` seul
 - Vérif: `node --test test/pages/`, `npm test`, `npm run check`
 
 ## T10 : doc et SECURITY.md

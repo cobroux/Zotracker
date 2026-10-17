@@ -120,6 +120,25 @@
         <p id="profileText" class="hint" hidden></p>
       </section>
 
+      <section id="cheerBox" class="section" aria-labelledby="cheerTitle" hidden>
+        <h2 id="cheerTitle">Venir encourager</h2>
+        <p class="hint">Un petit mot pour le coureur : il le lit pendant la course.</p>
+        <button id="cheerBtn" type="button" class="btn-primary">Encourager</button>
+        <form id="cheerForm" class="cheer-form" hidden>
+          <label class="field" for="cheerName">Ton prénom (facultatif)
+            <input id="cheerName" type="text" maxlength="24" autocomplete="given-name">
+          </label>
+          <label class="field" for="cheerText">Ton message
+            <textarea id="cheerText" rows="3" maxlength="140" required></textarea>
+          </label>
+          <div class="cheer-foot">
+            <span id="cheerCount" class="num" aria-live="polite">0/140</span>
+            <button id="cheerSend" type="submit" class="btn-primary">Envoyer</button>
+          </div>
+        </form>
+        <p id="cheerStatus" class="hint" aria-live="polite"></p>
+      </section>
+
       <section id="feedBox" class="section" aria-labelledby="feedTitle" hidden>
         <h2 id="feedTitle">En direct</h2>
         <ol id="feed" class="feed"></ol>
@@ -175,6 +194,7 @@
   <script src="/tracking/js/feed.js"></script>
   <script src="/tracking/js/info.js"></script>
   <script src="/tracking/js/push.js"></script>
+  <script src="/tracking/js/cheer.js"></script>
   <script src="/tracking/js/stream.js"></script>
 </body>
 </html>

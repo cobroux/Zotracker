@@ -340,3 +340,12 @@ html.dark body.public .leaflet-tile-pane { filter: invert(1) hue-rotate(205deg) 
   #progressFill, .btn-go, .more > summary::after { transition: none; }
   .spot, .go-menu, .alert-banner { transition: opacity 200ms ease; @starting-style { opacity: 0; transform: none; } }
 }
+
+/* « Encourager » : un bouton, puis un formulaire court (prénom facultatif, message 140 caractères) */
+.cheer-form { display: flex; flex-direction: column; gap: var(--sp-3); margin-top: var(--sp-3); }
+.cheer-form textarea { min-height: 88px; resize: vertical; }
+.cheer-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.cheer-foot .btn-primary { width: auto; min-width: 9rem; }
+#cheerBtn { margin-top: var(--sp-3); }
+#cheerStatus:not(:empty) { margin-top: var(--sp-3); color: var(--text); }
+.bubble-who { display: block; font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--muted); }
