@@ -18,7 +18,7 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
   - Critères : tests rouges d'abord. Plat 10 km : `E(d)=d` ; montée 1 km à +10 % : `E=2000 m` ; descente -10 % : 0,8 ; -30 % : 0,7 ; jamais négatif ; bruit ±2 m : `E_total` ≤ +2 % ; aller-retour monotone ; boucle sans reset ; altitudes absentes : `null` ; profil calculé une fois (compteur).
   - Vérification : `node --test test/tracking/effort.test.js`, `npm test`, `npm run check`.
 
-- [ ] **T3 : Allure d'effort et heures prévues (TDD)** (M)
+- [x] **T3 : Allure d'effort et heures prévues (TDD)** (M)
   - Agent: zt-backend | Modèle: sonnet | Dépend de : T2
   - Fichiers : `server/features/tracking/effort.js`, `test/tracking/effort.test.js`
   - Description : `effortPace({profile, progress, elapsed, recent, targetPace, total})` (`k_avg`, `k_récent` borné [0,7 ; 1,4], rampe `w = min(1, E/3 km-effort)`, `k₀`), et `plannedPassages(race) -> [{ dist, kind, plannedAt }]` (ravitos, départ, arrivée) depuis `plannedStart` et `k₀`, indépendant de l'allure réelle.

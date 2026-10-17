@@ -106,8 +106,57 @@
     return effort[lo] + (effort[hi] - effort[lo]) * t;
   }
 
+  /** Effort minimal (m-effort) avant de mesurer une allure fiable, et durée de montée en charge. */
+  const MIN_EFFORT = 1000;
+  const RAMP_EFFORT = 3000;
+  /** Effort minimal de la fenêtre récente, et bornes de l'allure récente par rapport à la moyenne. */
+  const MIN_RECENT_EFFORT = 100;
+  const RECENT_BOUNDS = [0.7, 1.4];
+
+  /**
+   * Allure d'effort (s par km-effort) d'un coureur, ou null si trop tôt pour l'estimer.
+   * { profile, progress (m), elapsed (s), recent: { from (m), seconds } | null, targetPace (s/km) | null, total (m) }
+   * Prévue (k₀) au départ, réelle ensuite, mélangées par une rampe sur les premiers km-effort.
+   */
+  function effortPace({ profile, progress, elapsed, recent, targetPace, total }) {
+    const e = effortAt(profile, progress);
+    const k0 = targetPace ? (targetPace * total) / effortAt(profile, Infinity) : null;
+    if (!(e >= MIN_EFFORT) || !(elapsed > 0)) return k0;
+    const kAvg = elapsed / (e / 1000);
+    let kLive = kAvg;
+    const eRecent = recent ? e - effortAt(profile, recent.from) : 0;
+    if (eRecent > MIN_RECENT_EFFORT && recent.seconds > 0) {
+      const kRecent = recent.seconds / (eRecent / 1000);
+      kLive = (kAvg + Math.min(RECENT_BOUNDS[1] * kAvg, Math.max(RECENT_BOUNDS[0] * kAvg, kRecent))) / 2;
+    }
+    if (k0 == null) return kLive;
+    const w = Math.min(1, e / RAMP_EFFORT);
+    return w * kLive + (1 - w) * k0;
+  }
+
+  /** Durée (ms) pour aller de la distance `from` à `to` à l'allure d'effort k (s/km-effort). */
+  const effortTime = (profile, k, from, to) => (effortAt(profile, to) - effortAt(profile, from)) * k;
+
+  /**
+   * Heures prévues { dist, kind: 'start' | 'aid' | 'finish', plannedAt (ms) } depuis plannedStart et
+   * targetPace, sans jamais utiliser l'allure réelle. null sans profil, allure prévue ou heure de départ.
+   * race = { course, targetPace (s/km), plannedStart (ISO), aidStations: [{ km }] }
+   */
+  function plannedPassages(race) {
+    const profile = buildEffortProfile(race.course);
+    const start = race.plannedStart ? Date.parse(race.plannedStart) : NaN;
+    if (!profile || !race.targetPace || !Number.isFinite(start)) return null;
+    const total = race.course.length;
+    const k = effortPace({ profile, progress: 0, elapsed: 0, recent: null, targetPace: race.targetPace, total });
+    const aids = (race.aidStations || []).map((a) => a.km * 1000).filter((d) => d > 0 && d < total).sort((a, b) => a - b);
+    const stops = [{ dist: 0, kind: 'start' }, ...aids.map((dist) => ({ dist, kind: 'aid' })), { dist: total, kind: 'finish' }];
+    return stops
+      .filter((s, i) => i === 0 || s.dist > stops[i - 1].dist)
+      .map((s) => ({ ...s, plannedAt: start + effortTime(profile, k, 0, s.dist) }));
+  }
+
   return {
-    buildEffortProfile, effortAt, profileBuilds: () => builds,
+    buildEffortProfile, effortAt, effortPace, effortTime, plannedPassages, profileBuilds: () => builds,
     STEP, SMOOTH_HALF, CLIMB_FACTOR, DESCENT_FLOOR, MIN_ELE_RATIO, FLAT_SLOPE,
   };
 });
