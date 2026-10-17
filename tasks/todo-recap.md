@@ -75,9 +75,9 @@ Vérification commune à chaque tâche : `npm test` et `npm run check` verts. Ch
   - [x] Marge négative si barrière dépassée ; contrat absent => `null` (« n/d »), jamais d'invention.
   - Vérif : test rouge puis vert, `npm test`, `npm run check`. Dépend de : T2, effort-eta, cutoffs.
 
-- [ ] **T11 Doc et recette** (S) | Agent: zt-devops | Modèle: haiku (en attente de cutoffs)
+- [x] **T11 Doc et recette** (S) | Agent: zt-devops | Modèle: haiku (en attente de cutoffs)
   Fichiers : `README.md` (section récap), `docs/PLAN.md` (mise à jour), `CLAUDE.md` (ligne `recap` dans la structure).
-  - [ ] Recette manuelle consignée : clavier, lecteur d'écran, reduced-motion, clair/sombre, 390/1024 px, Lighthouse a11y sans erreur.
+  - [x] Doc (README, PLAN, CLAUDE.md) faite. Recette manuelle (clavier, lecteur d'écran, reduced-motion, clair/sombre, 390/1024 px, Lighthouse a11y) : NON exécutée par l'agent, à faire à la main avant fusion.
   - Vérif : `npm test`, `npm run check`. Dépend de : T10.
 
 ### Checkpoint final
