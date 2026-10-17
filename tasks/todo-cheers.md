@@ -7,9 +7,9 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T1 : logique pure `cheers.js`
 - Agent: zt-backend | Modèle: haiku | Parallélisable: oui (avec T2) | Dépend de: aucune
 - Fichiers: `server/features/cheers/cheers.js`, `test/cheers/cheers.test.js`
-- [ ] `validateCheer` : 140 accepté, 141 refusé ; HTML, contrôles, zéro-largeur, bidi nettoyés
-- [ ] liens, domaines, `@` et mots interdits refusés ; motif interne seulement
-- [ ] file bornée : 50 non lus (refus, pas d'éviction), 200 par course ; seuils en constantes
+- [x] `validateCheer` : 140 accepté, 141 refusé ; HTML, contrôles, zéro-largeur, bidi nettoyés
+- [x] liens, domaines, `@` et mots interdits refusés ; motif interne seulement
+- [x] file bornée : 50 non lus (refus, pas d'éviction), 200 par course ; seuils en constantes
 - Vérif: `node --test test/cheers/`, `npm run check`
 
 ## T2 : état par défaut et rétention
