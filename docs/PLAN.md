@@ -97,6 +97,7 @@ server/core/hub.js                      ←  broadcast, broadcastAdmin, checkAle
 server/features/simulation/sim-runner.js ← simTick, startSim, stopSim
 server/core/text.js                     ←  firstName, deName, fmtKm (une seule copie)
 server/features/tracking/stats.js       ←  source unique, servie aussi au navigateur (UMD) pour supprimer computeStats
+server/features/tracking/effort.js      ←  profil d'effort (km-effort), UMD servi à /shared/effort.js, chargé avant stats.js
 public/admin/js/*.js                    ←  admin.js découpé par vue (courses, profil, sécurité, réglages, GPS)
 ```
 
@@ -129,3 +130,12 @@ Par ordre de risque :
 - [x] Alertes « plus de position », « hors parcours », « immobile » : clés d'incident relatives au départ, une seule alerte par incident (la simulation accélérée décalait les heures et les répétait).
 - [x] Tests : attente active dans `store.test.js`, `atAid`, page `/` réelle.
 - [ ] Rappel espacé (ex. toutes les 15 min) d'un incident toujours en cours : non fait, à décider.
+
+## Estimations au km-effort (`effort.js`)
+
+Les heures estimées (arrivée, ravitos, points touchés, alertes serveur) viennent d'un seul calcul, `etaAt(dist)` de `stats.js`, qui s'appuie sur le profil d'effort du tracé quand le GPX a des altitudes (au moins 90 % de points), sinon sur l'ancien modèle à plat.
+
+- Effort d'un segment : montée `dd + 10·dz` ; descente `dd × clamp(1 + 2p, 0,7 ; 1)`. Profil rééchantillonné à 25 m, altitude lissée sur ±75 m, seuil de pente de 0,3 % contre le bruit. Constantes exportées (`CLIMB_FACTOR`, `DESCENT_FLOOR`, `FLAT_SLOPE`…).
+- Allure d'effort `k` (s par km-effort) : avant le départ `k₀ = targetPace × distance / E_total` (`targetPace` est l'allure moyenne sur la distance totale) ; en course, moyenne des allures globale et récente (bornée à 0,7 à 1,4 fois la globale), mélangée à `k₀` sur les 3 premiers km-effort. Les pauses restent comptées.
+- `plannedPassages(race)` donne les heures prévues (départ, ravitos, arrivée) depuis `plannedStart` et `targetPace`, jamais l'allure réelle ; consommé par `recap`.
+- En attente : comparaison avec les temps de passage réels d'Enzo (trace GPS ou temps aux ravitos) pour caler les constantes, la fatigue et la descente (questions Q1, Q3, Q4 de la spec). Le GPX officiel sert de test local de cohérence uniquement.

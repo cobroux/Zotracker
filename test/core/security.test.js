@@ -56,6 +56,14 @@ test('calculs partagés servis au navigateur : /shared/stats.js', async () => {
   assert.match(await res.text(), /parsePace/);
 });
 
+test('profil d\'effort servi au navigateur : /shared/effort.js', async () => {
+  const res = await fetch(base + '/shared/effort.js');
+  assert.strictEqual(res.status, 200);
+  assert.match(res.headers.get('content-type'), /javascript/);
+  assert.strictEqual(res.headers.get('x-content-type-options'), 'nosniff');
+  assert.match(await res.text(), /buildEffortProfile/);
+});
+
 test('admin inaccessible sans session, cookie sécurisé après connexion', async () => {
   assert.strictEqual((await fetch(base + '/api/admin/config')).status, 401);
   assert.strictEqual((await fetch(base + '/api/admin/stream')).status, 401);

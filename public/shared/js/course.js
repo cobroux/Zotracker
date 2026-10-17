@@ -26,11 +26,13 @@ Object.assign(ZT, {
       return { passed, at: p ? p[2] : s.startedAt, estimated: false };
     }
     if (s.status === 'running' && stats.pace) {
-      const base = stats.last ? stats.last[2] : s.startedAt;
-      return { passed, at: base + ((dist - stats.progress) / 1000) * stats.pace * 1000, estimated: true, planned: !stats.livePace };
+      const at = stats.etaAt(dist);
+      if (at != null) return { passed, at, estimated: true, planned: !stats.livePace };
     }
     if (s.status === 'idle' && stats.targetPace && stats.plannedStart) {
-      return { passed, at: stats.plannedStart + (dist / 1000) * stats.targetPace * 1000, estimated: true, planned: true };
+      // Repli pour dist = 0 : etaAt exige dist > progress.
+      const at = stats.etaAt(dist) ?? stats.plannedStart + (dist / 1000) * stats.targetPace * 1000;
+      return { passed, at, estimated: true, planned: true };
     }
     return { passed, at: null, estimated: false };
   },
