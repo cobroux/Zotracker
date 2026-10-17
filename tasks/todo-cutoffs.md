@@ -19,7 +19,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
 - [ ] **Checkpoint 1** : suite verte, fonctions pures couvertes, aucune dépendance ajoutée.
 
 ## Phase 2 : données
-- [ ] **T3 Validation en route** (S)
+- [x] **T3 Validation en route** (S)
   - Agent: zt-backend | Modèle: haiku | Parallèle: oui (avec T4, T6) | Dép.: T1
   - Fichiers : `server/features/races/races.routes.js`, `test/races/races.test.js`
   - [ ] `sanitizeAidStations` garde `cutoffMin` ; `applyRaceFields` gère `finishCutoffMin` ; ordre vérifié par `checkCutoffOrder`.
