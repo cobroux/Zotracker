@@ -29,7 +29,7 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
 
 ## Phase 2 : Intégration
 
-- [ ] **T4 : Brancher le profil dans `stats.js` (TDD)** (M)
+- [x] **T4 : Brancher le profil dans `stats.js` (TDD)** (M)
   - Agent: zt-backend | Modèle: sonnet | Dépend de : T3
   - Fichiers : `server/features/tracking/stats.js`, `test/tracking/stats.test.js`
   - Description : `raceStats` et `computeStats` utilisent `effortAt`/`effortPace` quand le profil existe ; `eta` et `etaAt(dist)` partagent la même formule ; repli identique sinon.

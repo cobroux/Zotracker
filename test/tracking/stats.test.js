@@ -151,3 +151,61 @@ test('chargé comme dans le navigateur : self.ZTStats expose les mêmes fonction
   race.session.progress = race.track.at(-1).along;
   assert.strictEqual(browser.computeStats(publicState(race), T0).eta, computeStats(publicState(race), T0).eta);
 });
+
+// --- profil d'effort (km-effort) ---
+
+const { buildCourse } = require('../../server/core/geo');
+
+/** Tracé de 10 km : plat sur la 1re moitié, montée de 500 m D+ sur la 2e (eleFn = altitude selon la distance). */
+function courseWith(eleFn) {
+  const raw = [];
+  for (let d = 0; d <= 10_000; d += 10) raw.push({ lat: 45 + d / 111_194.9, lon: 5, ele: eleFn(d) });
+  return buildCourse(raw);
+}
+const climbEnd = (d) => (d < 5000 ? 100 : 100 + (d - 5000) * 0.1);
+
+test('sans altitude : mêmes sorties que le modèle plat', () => {
+  const flat = serverRace({ track: serverTrack(300, 20) });
+  const noEle = serverRace({ track: serverTrack(300, 20), course: courseWith(() => null) });
+  for (const r of [flat, noEle]) r.session.progress = r.track.at(-1).along;
+  for (const dist of [5000, 8000, 10_000]) assert.strictEqual(raceStats(noEle).etaAt(dist), raceStats(flat).etaAt(dist));
+  assert.strictEqual(computeStats(publicState(noEle), T0).eta, computeStats(publicState(flat), T0).eta);
+});
+
+test('avec profil : une montée à venir retarde l\'estimation par rapport au modèle plat', () => {
+  const hill = serverRace({ track: serverTrack(300, 10), course: courseWith(climbEnd) });
+  const flat = serverRace({ track: serverTrack(300, 10) });
+  for (const r of [hill, flat]) r.session.progress = r.track.at(-1).along;
+  assert.ok(raceStats(hill).etaAt(10_000) > raceStats(flat).etaAt(10_000));
+  const gap = Math.abs(raceStats(hill).etaAt(4000) - raceStats(flat).etaAt(4000));
+  assert.ok(gap < 2000, `le plat qui précède la montée reste au modèle plat (${gap} ms)`);
+});
+
+test('eta de computeStats, etaAt de raceStats et de computeStats : même formule', () => {
+  const race = serverRace({ track: serverTrack(300, 10), course: courseWith(climbEnd), targetPace: 330 });
+  race.session.progress = race.track.at(-1).along;
+  const pub = computeStats(publicState(race), T0 + 10 * MIN);
+  assert.strictEqual(pub.eta, raceStats(race).etaAt(10_000));
+  assert.strictEqual(pub.etaAt(10_000), pub.eta);
+  assert.strictEqual(pub.etaAt(7000), raceStats(race).etaAt(7000));
+});
+
+test('avant le départ : l\'heure prévue suit l\'effort et conserve targetPace × distance', () => {
+  const race = serverRace({
+    session: { status: 'idle', startedAt: null, progress: 0 }, course: courseWith(climbEnd),
+    targetPace: 360, plannedStart: '2026-10-12T08:00:00Z',
+  });
+  const pub = computeStats(publicState(race), T0);
+  assert.ok(Math.abs(pub.eta - (T0 + 360 * 10 * 1000)) < 1000);
+  assert.ok(pub.etaAt(5000) < T0 + 360 * 5 * 1000, 'plat avant la montée : plus rapide que la moyenne');
+});
+
+test('chargé comme dans le navigateur avec effort.js : mêmes ETA que require', () => {
+  const read = (f) => fs.readFileSync(path.join(__dirname, '..', '..', 'server', 'features', 'tracking', f), 'utf8');
+  const sandbox = { self: {} };
+  vm.runInNewContext(read('effort.js'), sandbox, { filename: 'effort.js' });
+  vm.runInNewContext(read('stats.js'), sandbox, { filename: 'stats.js' });
+  const race = serverRace({ track: serverTrack(300, 10), course: courseWith(climbEnd) });
+  race.session.progress = race.track.at(-1).along;
+  assert.strictEqual(sandbox.self.ZTStats.computeStats(publicState(race), T0).eta, computeStats(publicState(race), T0).eta);
+});

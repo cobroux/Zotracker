@@ -3,14 +3,16 @@
  * Source unique, partagée par le serveur (require('./stats')) et le navigateur
  * (servi à /shared/stats.js, exposé en window.ZTStats). Aucune dépendance, aucun accès au DOM.
  *
+ * Avec altitudes (effort.js), les heures estimées suivent l'effort (km-effort) ; sinon, le modèle à plat.
+ *
  * Deux formats de points de suivi sont acceptés :
  *  - serveur : { lat, lon, t, acc, along }
  *  - navigateur (état public) : [lat, lon, t, along]
  */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.ZTStats = factory();
-})(typeof self !== 'undefined' ? self : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./effort'));
+  else root.ZTStats = factory(root.ZTEffort);
+})(typeof self !== 'undefined' ? self : this, function (effort) {
   'use strict';
 
   /** Fenêtre de l'allure récente (ms). */
@@ -54,6 +56,27 @@
     return { livePace, pace: livePace || targetPace || null };
   }
 
+  /** Profil d'effort du tracé, ou null (module absent, pas de tracé ou pas d'altitude exploitable). */
+  const effortProfile = (course) => (effort && course && course.points ? effort.buildEffortProfile(course) : null);
+
+  /** Allure d'effort (s/km-effort) depuis le suivi : même fenêtre récente que l'allure à plat. */
+  function effortRate(profile, session, track, last, targetPace, total) {
+    const elapsed = last && session.startedAt ? (pointTime(last) - session.startedAt) / 1000 : 0;
+    let recent = null;
+    const from = last && track.find((p) => pointTime(p) >= pointTime(last) - RECENT_WINDOW);
+    if (from) recent = { from: pointAlong(from), seconds: (pointTime(last) - pointTime(from)) / 1000 };
+    return effort.effortPace({ profile, progress: session.progress || 0, elapsed, recent, targetPace, total });
+  }
+
+  /**
+   * Durée (ms) restante jusqu'à une distance, ou null : au km-effort si le profil existe, sinon à plat.
+   * Source unique de l'arrivée estimée (eta) et des heures de passage (etaAt).
+   */
+  function durationTo({ profile, k, pace, progress }) {
+    if (profile) return k ? (dist) => effort.effortTime(profile, k, progress, dist) : () => null;
+    return pace ? (dist) => ((dist - progress) / 1000) * pace * 1000 : () => null;
+  }
+
   /**
    * Instant de référence des projections : dernière position reçue.
    * Avec startFallback et sans position : heure de départ réelle (course lancée)
@@ -80,8 +103,12 @@
     const plannedStart = race.plannedStart ? Date.parse(race.plannedStart) || null : null;
     const base = etaBase(s, last, plannedStart, !!opts.startFallback);
 
+    const profile = effortProfile(race.course);
+    const k = profile && effortRate(profile, s, race.track, last, race.targetPace, total);
+    const duration = durationTo({ profile, k, pace, progress });
+
     /** Heure estimée de passage à une distance donnée (ms), ou null. */
-    const etaAt = (dist) => (pace && base && dist > progress ? base + ((dist - progress) / 1000) * pace * 1000 : null);
+    const etaAt = (dist) => (base && dist > progress ? (duration(dist) == null ? null : base + duration(dist)) : null);
 
     return { total, progress, last, avgPace, recentPace, pace, etaAt };
   }
@@ -104,16 +131,19 @@
     const { livePace, pace } = forecastPace(avgPace, recentPace, targetPace);
     const plannedStart = race.plannedStart ? Date.parse(race.plannedStart) : null;
 
+    const profile = effortProfile(state.course);
+    const k = profile && effortRate(profile, s, state.track, last, targetPace, total);
+    const duration = durationTo({ profile, k, pace, progress });
+    const base = etaBase(s, last, plannedStart, startFallback);
+    const etaAt = (dist) => (base && dist > progress && duration(dist) != null ? base + duration(dist) : null);
+
     let eta = null;
     const remaining = total != null ? Math.max(0, total - progress) : null;
     if (s.status === 'finished') eta = s.finishedAt;
-    else if (remaining != null && pace) {
-      const base = etaBase(s, last, plannedStart, startFallback);
-      if (base) eta = base + (remaining / 1000) * pace * 1000;
-    }
+    else if (remaining != null && base && duration(total) != null) eta = base + duration(total);
 
     return {
-      total, progress, remaining, elapsed, avgPace, recentPace, pace, livePace, targetPace, plannedStart, eta,
+      total, progress, remaining, elapsed, avgPace, recentPace, pace, livePace, targetPace, plannedStart, eta, etaAt,
       lastTime: last ? pointTime(last) : null,
       last: last || undefined,
     };
