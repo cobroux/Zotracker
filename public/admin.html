@@ -180,8 +180,8 @@
               <label>Lieu <input name="location" maxlength="120"><span class="help">Ville ou site de départ.</span></label>
               <label>Départ prévu <input name="plannedStart" type="datetime-local"><span class="help">Heure locale. Sert au compte à rebours avant le départ.</span></label>
               <label>Distance officielle (km) <input name="distanceKm" type="number" step="0.001" min="0" inputmode="decimal"><span class="help">Utilisée tant qu'aucun parcours GPX n'est importé.</span></label>
-              <label>Allure prévue (min/km, facultatif) <input name="targetPace" placeholder="ex. 5:30" maxlength="8" inputmode="text" autocomplete="off">
-                <span class="help">Sert aux heures de passage estimées avant le départ et dans les premiers kilomètres.</span></label>
+              <label>Allure moyenne prévue (min/km, facultatif) <input name="targetPace" placeholder="ex. 5:30" maxlength="8" inputmode="text" autocomplete="off">
+                <span class="help">Allure moyenne visée sur toute la distance (elle donne le temps total). Avec un GPX à altitudes, les ravitos sont répartis selon l'effort, montées comprises.</span></label>
               <label class="full">Description <textarea name="description" rows="3" maxlength="3000"></textarea><span class="help">Texte libre affiché sous la carte (facultatif).</span></label>
 
               <div class="full">

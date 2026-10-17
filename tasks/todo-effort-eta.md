@@ -72,7 +72,7 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
 
 ## Phase 4 : Clôture
 
-- [ ] **T9 : Libellés éditeur et documentation** (S)
+- [x] **T9 : Libellés éditeur et documentation** (S)
   - Agent: zt-architect | Modèle: haiku | Dépend de : T6
   - Fichiers : `public/admin.html` (ou vue admin concernée), `docs/PLAN.md`, `test/fixtures/local/README.md`
   - Description : préciser que `targetPace` est l'allure moyenne sur la distance totale ; documenter `effort.js`, les constantes, et la comparaison réelle en attente des temps de passage d'Enzo (Q1, Q3, Q4).
