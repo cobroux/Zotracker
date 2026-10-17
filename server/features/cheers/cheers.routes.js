@@ -1,27 +1,23 @@
 'use strict';
 
 /** Dépôt d'un encouragement par un supporter (page publique, sans compte). */
-const crypto = require('crypto');
 const express = require('express');
 const sec = require('../../core/security');
 const { store, activeRace } = require('../../core/context');
 const { requireViewer } = require('../../core/auth');
 const { broadcastAdmin } = require('../../core/hub');
-const { validateCheer, addCheer, createDuplicateGuard } = require('./cheers');
+const { validateCheer, addCheer, createDuplicateGuard, ipHash } = require('./cheers');
+const { deliverToSos } = require('./cheers.sos.routes');
 
 // Limites par IP (préfixe /64 en IPv6) et plafond global ; à ajuster après la première course.
 const LIMITS = { perMinute: 3, perHour: 20, globalPerMinute: 30, maxBodyBytes: 2048 };
 
-// Clé de limitation : HMAC de l'IP avec un sel propre au processus. Jamais persistée ni journalisée,
-// et impossible à rapprocher d'une adresse une fois le processus arrêté.
-const SALT = crypto.randomBytes(32);
-const ipHash = (req) => crypto.createHmac('sha256', SALT).update(sec.ipKey(req.ip)).digest('base64url');
-
 const duplicates = createDuplicateGuard();
 const tooMany = 'Trop de messages, réessaie dans un moment.';
 
-/** Prévient les écrans privés (admin) que la boîte a changé : liste complète, elle est bornée à 200 messages. */
+/** Prévient les écrans privés : l'écran SOS d'abord (marque lu), puis l'admin (liste complète, bornée à 200). */
 function notifyCheers(race) {
+  deliverToSos(race);
   broadcastAdmin('cheers', { cheers: race.cheers, cfg: race.cheersCfg });
 }
 

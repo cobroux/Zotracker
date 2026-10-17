@@ -8,6 +8,7 @@ const { compactPoint, raceInfo, publicSession, publicTrack, publicState } = requ
 
 const clients = new Set(); // pages publiques (et admin) abonnées à /api/stream
 const adminClients = new Set(); // flux privé de l'admin (/api/admin/stream)
+const sosClients = new Set(); // flux privé de l'écran SOS du coureur (/api/sos/cheers)
 
 const frame = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 
@@ -32,7 +33,7 @@ function broadcastFull() {
 }
 
 setInterval(() => {
-  for (const res of [...clients, ...adminClients]) res.write(': ping\n\n');
+  for (const res of [...clients, ...adminClients, ...sosClients]) res.write(': ping\n\n');
 }, 25_000).unref();
 
 /** Prévient les pages ouvertes si la course modifiée est celle en ligne. */
@@ -65,4 +66,4 @@ function broadcastPositions(race, added, prevLast, wasFinished) {
   broadcast('positions', { points: added.filter((p) => visible.has(p)).map(compactPoint), session }, all);
 }
 
-module.exports = { clients, adminClients, send, broadcast, broadcastFull, broadcastAdmin, broadcastPositions, notifyIfActive };
+module.exports = { clients, adminClients, sosClients, send, broadcast, broadcastFull, broadcastAdmin, broadcastPositions, notifyIfActive };

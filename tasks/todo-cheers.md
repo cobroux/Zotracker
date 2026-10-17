@@ -43,9 +43,9 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T5 : flux SSE privé pour l'écran SOS
 - Agent: zt-backend | Modèle: sonnet | Parallélisable: oui (avec T4, T6) | Dépend de: T3
 - Fichiers: `server/features/cheers/cheers.sos.routes.js`, `server/core/hub.js`, `server/index.js`, `test/cheers/cheers.sos.test.js`
-- [ ] `GET /api/sos/cheers?key=` : 401 sans clé (`safeEqual`) ; événement `cheers` (non lus + 20 derniers), ping 25 s, plafond de flux par IP
-- [ ] clé jamais journalisée ; messages lus passent `read` ; livré en moins de 2 s
-- [ ] boîte absente de `/api/state` et `/api/stream`
+- [x] `GET /api/sos/cheers?key=` : 401 sans clé (`safeEqual`) ; événement `cheers` (non lus + 20 derniers), ping 25 s, plafond de flux par IP
+- [x] clé jamais journalisée ; messages lus passent `read` ; livré en moins de 2 s
+- [x] boîte absente de `/api/state` et `/api/stream`
 - Vérif: `node --test test/cheers/`, `npm test`, `npm run check`
 
 ## T6 : simulation

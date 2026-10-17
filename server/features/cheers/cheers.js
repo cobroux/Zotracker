@@ -2,6 +2,7 @@
 
 /** Cheers des supporters : nettoyage, filtre basique et file bornée (fonctions pures). */
 const crypto = require('crypto');
+const sec = require('../../core/security');
 
 // Seuils de départ, à ajuster après la première course (les limites par IP sont dans cheers.routes.js).
 const MAX_TEXT = 140;
@@ -52,6 +53,11 @@ function addCheer(race, { text, name = '', sim = false, now = Date.now() }) {
   return { ok: true, cheer };
 }
 
+// Clé de limitation : HMAC de l'IP avec un sel propre au processus. Jamais persistée ni journalisée,
+// et impossible à rapprocher d'une adresse une fois le processus arrêté.
+const SALT = crypto.randomBytes(32);
+const ipHash = (req) => crypto.createHmac('sha256', SALT).update(sec.ipKey(req.ip)).digest('base64url');
+
 /** Détecte un même texte renvoyé par une même clé (HMAC d'IP, fournie par l'appelant) en moins de 10 min ; mémoire seulement. */
 function createDuplicateGuard(windowMs = DUPLICATE_WINDOW_MS) {
   const seen = new Map(); // clé|texte -> heure
@@ -66,4 +72,4 @@ function createDuplicateGuard(windowMs = DUPLICATE_WINDOW_MS) {
   };
 }
 
-module.exports = { MAX_TEXT, MAX_NAME, MAX_PENDING, MAX_PER_RACE, DUPLICATE_WINDOW_MS, validateCheer, addCheer, createDuplicateGuard };
+module.exports = { MAX_TEXT, MAX_NAME, MAX_PENDING, MAX_PER_RACE, DUPLICATE_WINDOW_MS, validateCheer, addCheer, createDuplicateGuard, ipHash };
