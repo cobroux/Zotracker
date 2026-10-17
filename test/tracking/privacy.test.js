@@ -230,7 +230,8 @@ test('flux temps réel : limite par préfixe IP (ipKey), admin connecté jamais 
   const open = async (headers) => {
     const ctrl = new AbortController();
     const res = await fetch(base + '/api/stream', { headers, signal: ctrl.signal });
-    opened.push(ctrl);
+    // garde la Response référencée : undici annule le corps (et ferme le flux) quand elle est ramassée par le GC
+    opened.push({ abort: () => ctrl.abort(), res });
     return res.status;
   };
   try {

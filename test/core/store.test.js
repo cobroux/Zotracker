@@ -12,6 +12,8 @@ const tmpDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'zt-store-'));
 const readState = (dir) => JSON.parse(fs.readFileSync(path.join(dir, 'state.json'), 'utf8'));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Attend (sondage) que la condition soit vraie, au plus `max` ms : pas de délai fixe fragile. */
+/** Attend que le store soit au repos : plus de minuteur armé ni d'écriture (ni réessai) en cours. */
+const idle = (store) => until(() => !store.timer && !store.writing);
 async function until(cond, max = 3000) {
   const end = Date.now() + max;
   while (!cond() && Date.now() < end) await wait(5);
@@ -24,8 +26,7 @@ test('save() regroupe les modifications et écrit de façon asynchrone', async (
   store.save();
   store.save();
   assert.ok(!fs.existsSync(path.join(dir, 'state.json')), 'rien d’écrit avant le délai');
-  await wait(30);
-  await store.writing;
+  await until(() => store.timer === null && store.writing === null && fs.existsSync(path.join(dir, 'state.json')));
   assert.strictEqual(readState(dir).runner.name, 'Enzo');
   assert.strictEqual(fs.statSync(path.join(dir, 'state.json')).mode & 0o777, 0o600);
   assert.ok(!fs.existsSync(path.join(dir, 'state.json.tmp')), 'fichier temporaire renommé');
@@ -72,8 +73,8 @@ test('échec d’écriture : journalisé puis réessayé', async (t) => {
   });
   store.state.runner.name = 'Retry';
   store.save();
-  await wait(60);
-  await store.writing;
+  await until(() => calls >= 2);
+  await idle(store);
   assert.strictEqual(calls, 2);
   assert.strictEqual(console.error.mock.calls.length, 1);
   assert.strictEqual(readState(dir).runner.name, 'Retry');
@@ -89,12 +90,11 @@ test('flush() écrit immédiatement et de façon synchrone, sans être écrasé 
   });
   store.state.runner.name = 'ancien';
   store.save();
-  await wait(10); // écriture asynchrone de « ancien » en cours
+  await until(() => store.writing); // écriture asynchrone de « ancien » en cours
   store.state.runner.name = 'final';
   store.flush();
   assert.strictEqual(readState(dir).runner.name, 'final');
-  await wait(60);
-  await store.writing;
+  await idle(store);
   assert.strictEqual(readState(dir).runner.name, 'final', 'l’écriture plus ancienne ne gagne pas');
 });
 
