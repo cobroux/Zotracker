@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Récap de course</title>
+  <!-- zt:og -->
+  <meta name="theme-color" content="#1d4ed8">
+  <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/img/icon-192.png">
+  <link rel="preload" href="/vendor/fonts/manrope/manrope-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/shared/style.css">
+  <link rel="stylesheet" href="/recap/recap.css">
+  <script src="/shared/theme.js"></script>
+</head>
+<body class="recap-page">
+  <header class="recap-head">
+    <a id="backLink" class="recap-back" href="/">Retour au suivi</a>
+  </header>
+  <main id="recapMain" class="recap-main" aria-busy="true">
+    <h1 id="recapTitle">Récap de course</h1>
+    <p id="recapSub" class="recap-sub" hidden></p>
+    <p id="recapStatus" class="recap-note" role="status">Chargement du récap…</p>
+    <dl id="recapTotals" class="recap-totals" hidden></dl>
+    <div id="replayHost"></div>
+    <div id="tableHost"></div>
+    <div id="listHost"></div>
+  </main>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/tiles.js"></script>
+  <script src="/shared/common.js"></script>
+  <script src="/shared/js/format.js"></script>
+  <script src="/shared/js/course.js"></script>
+  <script src="/shared/js/map.js"></script>
+  <script src="/recap/js/core.js"></script>
+</body>
+</html>

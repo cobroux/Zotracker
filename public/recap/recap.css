@@ -1,0 +1,18 @@
+/* Page récap : couleurs uniquement par les tokens de style.css (clair / sombre). */
+
+.recap-head { display: flex; align-items: center; padding: var(--sp-2) var(--sp-4); padding-top: max(var(--sp-2), env(safe-area-inset-top)); background: var(--surface); border-bottom: 1px solid var(--line); }
+.recap-back { display: inline-flex; align-items: center; min-height: 44px; font-weight: var(--fw-bold); }
+
+.recap-main { max-width: 960px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+.recap-main h1 { font-size: var(--fs-xl); font-weight: var(--fw-bold); line-height: var(--lh-tight); }
+.recap-sub { margin: 0 0 var(--sp-4); color: var(--muted); }
+.recap-note { padding: var(--sp-4); border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+
+.recap-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); margin: 0 0 var(--sp-4); }
+.recap-tile { padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); }
+.recap-tile dt { font-size: var(--fs-sm); color: var(--muted); }
+.recap-tile dd { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-bold); color: var(--accent); }
+
+@media (min-width: 700px) {
+  .recap-totals { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

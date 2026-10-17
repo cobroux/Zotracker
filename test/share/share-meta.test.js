@@ -249,3 +249,12 @@ test('/recap : aperçu public, générique en link et pour un id inconnu', async
     s.closeAllConnections();
   }
 });
+
+test('public/recap.html réelle : marqueur OG présent et page servie sans fichier brut', async () => {
+  assert.ok(fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'recap.html'), 'utf8').includes(MARKER));
+  setup(null, '', 'public');
+  for (const url of ['/recap', '/recap.html', '/recap/recap.css', '/recap/js/core.js']) assert.strictEqual((await fetch(base + url)).status, 200, url);
+  const html = await (await fetch(base + '/recap')).text();
+  assert.ok(!html.includes(MARKER));
+  assert.match(html, /og:title" content="Récap de course"/);
+});
