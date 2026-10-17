@@ -46,3 +46,11 @@
 .recap-table tbody th { font-weight: var(--fw-bold); }
 .recap-late { color: var(--danger); font-weight: var(--fw-medium); }
 .recap-early { color: var(--ok); font-weight: var(--fw-medium); }
+
+/* ---------------------------------------------------------------- archives */
+
+.recap-archives { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.recap-archive { display: flex; flex-direction: column; gap: var(--sp-1); min-height: 44px; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); color: var(--text); text-decoration: none; }
+.recap-archive-name { font-weight: var(--fw-bold); color: var(--accent); }
+.recap-archive-facts { font-size: var(--fs-sm); color: var(--muted); }
+@media (hover: hover) and (pointer: fine) { .recap-archive:hover { border-color: var(--accent); } }
