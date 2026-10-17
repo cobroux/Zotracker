@@ -51,12 +51,12 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T6 : simulation
 - Agent: zt-backend | Modèle: sonnet | Parallélisable: oui (avec T4, T5) | Dépend de: T3
 - Fichiers: `server/features/simulation/` (module concerné), `server/features/cheers/cheers.js`, `test/simulation/`
-- [ ] messages en simulation marqués `sim: true`, aucun `sendPush`
-- [ ] « Arrêter et effacer » supprime les `sim` ; module coupé = refus aussi en simulation
+- [x] messages en simulation marqués `sim: true`, aucun `sendPush`
+- [x] « Arrêter et effacer » supprime les `sim` ; module coupé = refus aussi en simulation
 - Vérif: `node --test test/simulation/ test/cheers/`, `npm test`, `npm run check`
 
 ### Checkpoint : API
-- [ ] critères 1 à 6 de la spec couverts ; `state.json` sans IP ; `npm test` vert
+- [x] critères 1 à 6 de la spec couverts ; `state.json` sans IP ; `npm test` vert
 
 ## T7 : formulaire public
 - Agent: zt-frontend | Modèle: haiku | Parallélisable: oui (avec T8, T9) | Dépend de: T3

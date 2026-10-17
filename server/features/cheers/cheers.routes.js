@@ -42,7 +42,7 @@ publicRouter.post(
       return res.status(202).json({ ok: true });
     }
     if (duplicates.isDuplicate(ipHash(req), v.text)) return res.status(202).json({ ok: true });
-    const added = addCheer(race, { text: v.text, name: v.name });
+    const added = addCheer(race, { text: v.text, name: v.name, sim: !!race.session.simulated });
     if (!added.ok) return res.status(429).json({ error: tooMany });
     store.save();
     notifyCheers(race);

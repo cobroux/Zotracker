@@ -15,6 +15,8 @@ const { publicSession } = require('../tracking/public-state');
 const { sendPush, checkAlerts } = require('../alerts/notify');
 const { simStatus, isSimRunning, startSim, stopSim, setSimModes } = require('../simulation/sim-runner');
 const { ingest } = require('../tracking/ingest.routes');
+const { removeSimCheers } = require('../cheers/cheers');
+const { notifyCheers } = require('../cheers/cheers.routes');
 
 /** Flux privé de l'admin (alertes de sécurité), authentifié par le cookie de session. */
 function adminStream(req, res) {
@@ -28,6 +30,14 @@ function adminStream(req, res) {
 
 const router = express.Router();
 
+/** Les encouragements envoyés pendant une simulation partent avec elle (boîte admin et fil public). */
+function clearSimCheers(race) {
+  if (!race.cheers.some((c) => c.sim)) return;
+  if (removeSimCheers(race)) broadcast('messages', race.messages);
+  store.save();
+  notifyCheers(race);
+}
+
 function requireActive(req, res, next) {
   req.race = activeRace();
   if (!req.race) return res.status(409).json({ error: "Aucune course n'est en ligne." });
@@ -36,7 +46,7 @@ function requireActive(req, res, next) {
 
 router.post('/session/start', requireActive, (req, res) => {
   const race = req.race;
-  if (race.session.simulated) { stopSim(); race.session.status = 'idle'; }
+  if (race.session.simulated) { stopSim(); race.session.status = 'idle'; clearSimCheers(race); }
   const at = req.body.at ? Date.parse(req.body.at) : NaN;
   const startedAt = Number.isFinite(at) ? at : Date.now();
   if (race.session.status !== 'running') {
@@ -83,6 +93,7 @@ router.post('/session/resume', requireActive, (req, res) => {
 
 router.post('/session/reset', requireActive, (req, res) => {
   stopSim();
+  clearSimCheers(req.race);
   req.race.session = defaultSession();
   req.race.track = [];
   alerts.resetAlerts(req.race);
@@ -141,6 +152,7 @@ router.post('/sim/mode', (req, res) => {
 router.post('/sim/stop', (req, res) => {
   stopSim();
   const race = activeRace();
+  if (race) clearSimCheers(race);
   if (race && race.session.simulated) {
     race.session = defaultSession();
     race.track = [];

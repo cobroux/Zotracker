@@ -53,6 +53,17 @@ function addCheer(race, { text, name = '', sim = false, now = Date.now() }) {
   return { ok: true, cheer };
 }
 
+/** Retire les cheers de simulation (et leur copie dans le fil public) ; renvoie vrai si le fil public a changé. */
+function removeSimCheers(race) {
+  const ids = new Set(race.cheers.filter((c) => c.sim).map((c) => c.id));
+  if (!ids.size) return false;
+  race.cheers = race.cheers.filter((c) => !c.sim);
+  const kept = race.messages.filter((m) => !ids.has(m.id));
+  const changed = kept.length !== race.messages.length;
+  race.messages = kept;
+  return changed;
+}
+
 // Clé de limitation : HMAC de l'IP avec un sel propre au processus. Jamais persistée ni journalisée,
 // et impossible à rapprocher d'une adresse une fois le processus arrêté.
 const SALT = crypto.randomBytes(32);
@@ -72,4 +83,4 @@ function createDuplicateGuard(windowMs = DUPLICATE_WINDOW_MS) {
   };
 }
 
-module.exports = { MAX_TEXT, MAX_NAME, MAX_PENDING, MAX_PER_RACE, DUPLICATE_WINDOW_MS, validateCheer, addCheer, createDuplicateGuard, ipHash };
+module.exports = { MAX_TEXT, MAX_NAME, MAX_PENDING, MAX_PER_RACE, DUPLICATE_WINDOW_MS, validateCheer, addCheer, removeSimCheers, createDuplicateGuard, ipHash };
