@@ -25,7 +25,7 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
   - Critères : `k₀` conserve `targetPace × distance` sur l'arrivée ; sans `targetPace`, rien avant 1 km-effort ; pas de saut d'ETA > 5 % entre deux points consécutifs en début de course ; `plannedPassages` strictement croissant ; `null` sans profil.
   - Vérification : `node --test test/tracking/effort.test.js`, `npm test`, `npm run check`.
 
-- [ ] **Checkpoint Phase 1** : suite verte ; relecture de la signature `plannedPassages` face à CAPABILITIES (`recap` la consommera).
+- [x] **Checkpoint Phase 1** : suite verte ; relecture de la signature `plannedPassages` face à CAPABILITIES (`recap` la consommera).
 
 ## Phase 2 : Intégration
 
@@ -43,7 +43,7 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
   - Critères : la route renvoie 200 en JavaScript ; ordre des scripts respecté ; test de route calqué sur `test/core/security.test.js:51`.
   - Vérification : `npm test`, `npm run check`.
 
-- [ ] **Checkpoint Phase 2** : `npm test` vert, simulation locale (`npm run dev`) : ETA d'arrivée cohérente, aucune erreur console.
+- [x] **Checkpoint Phase 2** : `npm test` vert, simulation locale (`npm run dev`) : ETA d'arrivée cohérente, aucune erreur console.
 
 ## Phase 3 : Front et validation
 
@@ -68,7 +68,7 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
   - Critères : D+ du profil à ±10 % de 3 160 m ; `E_total` entre 100 et 110 km-effort ; heures prévues croissantes, départ = `plannedStart`, arrivée = total ±1 s ; mi-distance après 50 % du temps total et ≥ 5 min d'écart au plat ; profil < 50 ms. Sans le fichier : test sauté, suite verte.
   - Vérification : `npm test` (avec et sans le fichier), `npm run check`.
 
-- [ ] **Checkpoint Phase 3** : critères 1 à 4, 6, 7 de la spec verts ; test GPX local passe chez Enzo.
+- [x] **Checkpoint Phase 3** : critères 1 à 4, 6, 7 de la spec verts ; test GPX local passe chez Enzo.
 
 ## Phase 4 : Clôture
 
@@ -79,4 +79,4 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
   - Critères : libellé clair en français ; aucun changement de store ; doc cohérente avec CAPABILITIES.
   - Vérification : `npm test`, `npm run check`.
 
-- [ ] **Checkpoint final** : `npm test` et `npm run check` verts ; `git status` ne montre aucun GPX ; revue humaine avant commit.
+- [x] **Checkpoint final** : `npm test` et `npm run check` verts ; `git status` ne montre aucun GPX ; revue humaine avant commit.
