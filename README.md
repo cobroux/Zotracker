@@ -38,7 +38,7 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `TRACK_RETENTION_DAYS` | Positions GPS et encouragements effacés N jours après la course (0 = jamais) | `90` |
 | `PUBLIC_TRACK_MASK_M` | Confidentialité du domicile : sur la trace publique, points masqués à moins de N m du premier point GPS (et du dernier une fois la course terminée). Aucune exception pour la position actuelle : tant que le coureur est dans la zone du départ, le public ne voit ni trace ni marqueur (la progression reste affichée), le marqueur apparaît dès la sortie de la zone ; l'admin voit tout (0 = désactivé) | `300` |
 | `PUBLIC_URL` | Origine canonique du site (ex. `https://suivi.exemple.fr`), utilisée pour `og:url` et `og:image` de l'aperçu du lien partagé. `http(s)` seulement, sans chemin : sinon le serveur refuse de démarrer. À défaut, l'origine vient de la requête (en-tête `Host`, que le client peut forger : à définir en production) | — |
-| `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client (`X-Forwarded-For`). Derrière un proxy dans un réseau Docker privé (Caddy de `deploy/`) : `uniquelocal`. Ne l'élargis jamais si l'appli est joignable sans passer par ce proxy | `loopback` |
+| `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client (`X-Forwarded-For`). Derrière un proxy dans un réseau Docker privé (Caddy de `deploy/generic/`) : `uniquelocal`. Ne l'élargis jamais si l'appli est joignable sans passer par ce proxy | `loopback` |
 | `TILE_URL` / `TILE_ATTRIBUTION` | Fond de carte imposé par le serveur. Sinon, il se choisit dans l'admin (⚙️ Paramètres → Fond de carte) | OpenStreetMap, avec repli sur OpenTopoMap |
 | `PUSH_ALLOWED_HOSTS` | Services push supplémentaires autorisés (séparés par des virgules) | — |
 
@@ -194,6 +194,6 @@ public/                               pages (index.html, admin.html, sos.html), 
 public/shared/  public/img/           code et styles communs ; icônes, og.png
 public/tracking/  public/admin/  public/sos/   page publique (ZTP, js/), admin par vue (ZTA, js/), page SOS (appui long)
 test/<fonctionnalité>/                tests node:test, un sous-dossier par fonctionnalité
-deploy/            production : docker-compose, Caddyfile, scripts de déploiement et de sauvegarde
+deploy/            production : scripts de sauvegarde et restauration ; deploy/generic/ : chemin générique (docker-compose, Caddyfile, deploy.sh), NON utilisé sur Oracle
 .github/           CI (tests, audit, secrets, scan d'image), CodeQL, déploiement continu, Dependabot
 ```

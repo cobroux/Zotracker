@@ -1,0 +1,48 @@
+# Surveillance de disponibilité : toutes les 15 minutes, vérifie que /healthz répond.
+# Deux essais espacés de 60 s ; si les deux échouent, notification ntfy puis échec du job.
+# Le job est ignoré (sortie propre) tant que la variable de dépôt DOMAIN n'est pas définie.
+name: Healthcheck
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+# Aucun droit accordé au GITHUB_TOKEN : le workflow n'a besoin que du réseau.
+permissions: {}
+
+jobs:
+  healthcheck:
+    name: Vérifie /healthz
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ vars.DOMAIN != '' }}
+    steps:
+      - name: Interroger /healthz
+        shell: bash
+        env:
+          DOMAIN: ${{ vars.DOMAIN }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_SERVER: ${{ vars.NTFY_SERVER || 'https://ntfy.sh' }}
+        run: |
+          # Pas de set -x ni de echo de l'URL : le topic ntfy ne doit jamais apparaître dans les logs.
+          if curl -fsS -m 15 "https://$DOMAIN/healthz" > /dev/null; then
+            echo "/healthz répond."
+            exit 0
+          fi
+
+          echo "Premier essai en échec, nouvel essai dans 60 s."
+          sleep 60
+
+          if curl -fsS -m 15 "https://$DOMAIN/healthz" > /dev/null; then
+            echo "/healthz répond au second essai."
+            exit 0
+          fi
+
+          echo "/healthz ne répond pas après deux essais."
+          # Sans topic configuré, pas de notification ; le job échoue quand même.
+          if [ -n "$NTFY_TOPIC" ]; then
+            curl -fsS -m 10 -d "Zotracker : /healthz ne répond pas" "$NTFY_SERVER/$NTFY_TOPIC" > /dev/null \
+              || echo "Notification ntfy non envoyée."
+          fi
+          exit 1

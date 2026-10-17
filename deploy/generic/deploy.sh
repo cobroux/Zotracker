@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Chemin générique (ghcr + Caddy propre), NON utilisé sur Oracle : voir deploy/oracle/
 # Déploie une version de Zotracker avec sauvegarde préalable et retour arrière automatique.
 # Usage (sur le serveur) : ./deploy.sh <tag>      ex. ./deploy.sh sha-1a2b3c4
 # Depuis la CI, ce script est la « commande forcée » de la clé SSH de déploiement :

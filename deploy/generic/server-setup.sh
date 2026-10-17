@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Chemin générique (ghcr + Caddy propre), NON utilisé sur Oracle : voir deploy/oracle/
 # Préparation et durcissement d'un serveur Ubuntu 22.04/24.04 ou Debian 12 pour Zotracker.
 # À lancer UNE fois, en root, sur un serveur neuf :
 #   curl -fsSLO https://raw.githubusercontent.com/cobroux/zotracker/main/deploy/server-setup.sh

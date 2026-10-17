@@ -1,0 +1,40 @@
+# Serveur Oracle partagé avec Zofolio : seule l'appli tourne ici, le HTTPS est fait par le Caddy de Zofolio (réseau « edge »).
+# Mise à jour : cd /opt/zotracker/src && git pull && cd .. && docker compose -f zotracker.server.yml up -d --build --wait
+name: zotracker
+
+services:
+  app:
+    build: ./src
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      TRUST_PROXY: uniquelocal
+      PUBLIC_URL: https://zotracker.88-96-45-97.sslip.io
+    volumes:
+      - data:/app/data
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    pids_limit: 200
+    mem_limit: 512m
+    cpus: 1.0
+    expose: ["3000"]
+    networks:
+      edge:
+        aliases: [zotracker]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  edge:
+    external: true
+
+volumes:
+  data: {}

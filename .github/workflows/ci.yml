@@ -69,6 +69,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  scripts:
+    name: Scripts shell (bash -n, shellcheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Syntaxe et analyse statique
+        # shellcheck est préinstallé sur les runners ubuntu-latest
+        run: |
+          mapfile -t files < <(find deploy -name '*.sh')
+          for f in "${files[@]}"; do bash -n "$f"; done
+          shellcheck --severity=warning "${files[@]}"
+
   image:
     name: Image Docker (build, scan, test de démarrage)
     needs: test

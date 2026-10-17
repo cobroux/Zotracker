@@ -1,5 +1,6 @@
-# Livraison continue : à chaque push sur main, si la CI passe, l'image est publiée sur
-# GitHub Container Registry puis déployée sur le serveur (avec retour arrière automatique).
+# Livraison continue : à chaque push sur main, CI verte, puis déploiement SSH sur la VM Oracle
+# (clé à commande forcée : le serveur construit lui-même l'image ; plus de registre ghcr).
+# Inactif tant que DEPLOY_ENABLED != true ou que le secret DEPLOY_HOST est absent (sortie propre).
 name: Déploiement
 
 on:
@@ -7,8 +8,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: deploy-production
@@ -17,74 +17,56 @@ concurrency:
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
-
-  build:
-    name: Publier l'image
-    needs: ci
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
     permissions:
       contents: read
-      packages: write
-    outputs:
-      tag: ${{ steps.meta.outputs.tag }}
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - id: meta
-        run: |
-          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-          echo "tag=sha-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
-            ${{ steps.meta.outputs.image }}:latest
-          provenance: mode=max
-          sbom: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   deploy:
     name: Déployer en production
-    needs: build
-    # activé seulement quand le serveur est prêt (variable de dépôt DEPLOY_ENABLED=true)
-    if: vars.DEPLOY_ENABLED == 'true'
+    needs: ci
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    permissions: {}
     environment:
       name: production
       url: https://${{ vars.DOMAIN }}
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DOMAIN: ${{ vars.DOMAIN }}
+      SHA: ${{ github.sha }}
     steps:
-      - name: Préparer la connexion SSH (clé dédiée + empreinte du serveur vérifiée)
+      - name: Vérifier la configuration
+        id: cfg
+        run: |
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_USER" ] || [ -z "$DOMAIN" ]; then
+            echo "Secrets de déploiement absents : déploiement ignoré."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Préparer la connexion SSH (clé dédiée, empreinte du serveur vérifiée)
+        if: steps.cfg.outputs.go == 'true'
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          (umask 077; printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key)
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-      - name: Déployer (sauvegarde, mise à jour, contrôle de santé, retour arrière si échec)
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          TAG: ${{ needs.build.outputs.tag }}
-        # la clé CI est limitée côté serveur à la commande deploy.sh (voir docs/DEPLOIEMENT.md)
-        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "$TAG"
+      - name: Déployer (sauvegarde, build, santé, retour arrière côté serveur)
+        if: steps.cfg.outputs.go == 'true'
+        # la clé est limitée côté serveur à deploy.sh ; le SHA est la seule donnée transmise
+        run: ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" "$SHA"
       - name: Vérifier le site en ligne
-        env:
-          DOMAIN: ${{ vars.DOMAIN }}
+        id: health
+        if: steps.cfg.outputs.go == 'true'
         run: curl -fsS --retry 10 --retry-delay 5 --retry-all-errors "https://$DOMAIN/healthz"
-      - if: always()
+      - name: Retour arrière si le site public ne répond pas
+        # seulement si l'échec vient du contrôle public : deploy.sh a déjà fait son propre retour si lui a échoué
+        if: steps.health.outcome == 'failure'
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" rollback
+      - name: Supprimer la clé
+        if: always() && steps.cfg.outputs.go == 'true'
         run: rm -f ~/.ssh/deploy_key

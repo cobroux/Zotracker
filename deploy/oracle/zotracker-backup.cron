@@ -1,0 +1,4 @@
+# Copie de /etc/cron.d/zotracker-backup (VM Oracle)
+15 3 * * * ubuntu cd /opt/zotracker && COMPOSE_FILE=zotracker.server.yml ./backup.sh >> /opt/zotracker/backups/backup.log 2>&1
+# Alerte si la dernière sauvegarde réussie a plus de 36 h
+45 9 * * * ubuntu /opt/zotracker/check-backup.sh >> /opt/zotracker/backups/backup.log 2>&1

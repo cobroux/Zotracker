@@ -6,7 +6,7 @@
 # Le mot de passe admin généré s'affiche dans les journaux au premier lancement
 # (ou choisis-le : ADMIN_PASSWORD=monmotdepasse docker compose up --build).
 #
-# Pour la mise en ligne sur un serveur (HTTPS, Caddy…), utilise deploy/docker-compose.yml
+# Pour la mise en ligne sur un serveur (HTTPS, Caddy…), utilise deploy/generic/docker-compose.yml
 # et suis docs/DEPLOIEMENT.md.
 name: zotracker-local
 
