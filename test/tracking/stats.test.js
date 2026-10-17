@@ -209,3 +209,24 @@ test('chargé comme dans le navigateur avec effort.js : mêmes ETA que require',
   race.session.progress = race.track.at(-1).along;
   assert.strictEqual(sandbox.self.ZTStats.computeStats(publicState(race), T0).eta, computeStats(publicState(race), T0).eta);
 });
+
+test('perf : profil de 20 000 points < 50 ms, 10 000 etaAt < 20 ms', () => {
+  const { buildEffortProfile } = require('../../server/features/tracking/effort');
+  const points = [];
+  for (let i = 0; i < 20_000; i++) points.push([45 + i * 1e-4, 5, 500 + 200 * Math.sin(i / 300), i * 10]);
+  // meilleur de 3 essais : la suite tourne en parallèle, un pic de charge ne doit pas faire échouer le test
+  const best = (fn) => Math.min(...[0, 1, 2].map(() => {
+    const t = process.hrtime.bigint();
+    fn();
+    return Number(process.hrtime.bigint() - t) / 1e6;
+  }));
+  const buildMs = best(() => assert.ok(buildEffortProfile({ points, length: 199_990 })));
+  assert.ok(buildMs < 50, `profil ${buildMs} ms`);
+
+  const course = { points, length: 199_990 };
+  const race = serverRace({ course, track: serverTrack(300, 30) });
+  race.session.progress = race.track.at(-1).along;
+  const st = raceStats(race);
+  const etaMs = best(() => { for (let i = 0; i < 10_000; i++) st.etaAt(50_000 + i * 10); });
+  assert.ok(etaMs < 20, `10 000 etaAt : ${etaMs} ms`);
+});
