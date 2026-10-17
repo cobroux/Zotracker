@@ -20,6 +20,14 @@
     return [`${word} ${ZT.fmtClock(p.at)}`, until].filter(Boolean).join(' · ');
   }
 
+  /** Barrière d'un point : marge (texte + pictogramme + sr-only), sinon la barrière seule ; rien sans barrière. */
+  P.cutoffLine = (c) => {
+    if (!c) return null;
+    const m = ZT.formatMargin(c.status, c.marginMs, c.estimated);
+    if (!m) return el('span', { class: 'cut' }, c.cutoffAt ? `Barrière à ${ZT.fmtClock(c.cutoffAt)}` : `Barrière : ${ZT.fmtMargin(c.cutoffMin * 60_000)} après le départ`);
+    return el('span', { class: `cut is-${m.status}` }, el('span', { 'aria-hidden': 'true' }, m.text), el('span', { class: 'sr-only' }, m.sr));
+  };
+
   function details(p, idPrefix = 'pass-') {
     const c = P.state.course;
     const ll = c ? ZT.courseAt(c, p.dist) : null;
@@ -27,6 +35,7 @@
     return el('div', { class: 'pass-more', id: `${idPrefix}${Math.round(p.dist)}` },
       p.info && el('p', { class: 'pass-info' }, p.info),
       el('p', { class: 'pass-when' }, whenLine(p), fromMe ? ` · à ${ZT.fmtDist(fromMe)} de toi` : ''),
+      p.cutoff && el('p', { class: 'pass-cut' }, P.cutoffLine(p.cutoff)),
       !p.passed && ll && P.goButton(ll[0], ll[1], p.name),
     );
   }
@@ -40,7 +49,7 @@
         onclick: () => toggle(p),
       },
       el('span', { class: 'pass-dot', 'aria-hidden': 'true' }),
-      el('span', { class: 'pass-main' }, el('span', { class: 'pass-name' }, p.name), sub && el('span', { class: 'pass-sub' }, sub)),
+      el('span', { class: 'pass-main' }, el('span', { class: 'pass-name' }, p.name), sub && el('span', { class: 'pass-sub' }, sub), p.cutoff && P.cutoffLine(p.cutoff)),
       el('span', { class: 'pass-time num' }, time, state === 'done' && el('span', { class: 'sr-only' }, ' (passé)'))),
       open && details(p),
     );

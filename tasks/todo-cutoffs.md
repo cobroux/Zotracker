@@ -59,7 +59,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
   - Fichiers : `public/admin/js/safety.js`
   - [ ] Case « Alerter sur les barrières » (`cutoffs`) et seuil en minutes (1 à 120, défaut 15), libellés en français, même motif que les réglages voisins.
   - Vérif : `npm run check`, `npm test`, essai manuel (enregistrement et relecture).
-- [ ] **T9 Marge dans la liste des ravitos publique** (S)
+- [x] **T9 Marge dans la liste des ravitos publique** (S)
   - Agent: zt-frontend | Modèle: haiku | Parallèle: oui (avant T10 sur le CSS) | Dép.: T6
   - Fichiers : `public/shared/js/format.js` (`formatMargin`), `public/tracking/js/passages.js`, `public/tracking/tracking.css`, `test/pages/`
   - [ ] `formatMargin(status, marginMs, estimated)` pur : « ✓ Marge 42 min », « ⚠ Marge 8 min », « ✕ Barrière dépassée de 5 min », « ≈ » si estimée, `sr-only` pour le texte complet.

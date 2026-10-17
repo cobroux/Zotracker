@@ -78,9 +78,11 @@ window.ZTP = (() => {
 
   /**
    * Points de passage dans l'ordre du parcours : départ, ravitos, arrivée.
-   * Chaque point : { kind, name, sub, info, dist, km, passed, at, planned }.
+   * Chaque point : { kind, name, sub, info, dist, km, passed, at, planned, cutoff }.
    */
   P.timeline = (stats) => {
+    const cutoffs = P.race().cutoffs || [];
+    const cutoffAt = (dist, id) => cutoffs.find((c) => (id ? c.id === id : Math.abs(c.dist - dist) < 1)) || null;
     const st = P.state;
     const s = st.session;
     const rc = P.race();
@@ -92,12 +94,12 @@ window.ZTP = (() => {
     }];
     for (const a of ZT.aidSchedule(st, stats)) {
       if (total != null && a.dist > total) continue;
-      points.push({ kind: 'aid', name: a.name || 'Ravitaillement', info: a.info || '', dist: a.dist, km: a.km, passed: a.passed, at: a.at, planned: !!a.planned });
+      points.push({ kind: 'aid', name: a.name || 'Ravitaillement', info: a.info || '', dist: a.dist, km: a.km, passed: a.passed, at: a.at, planned: !!a.planned, cutoff: cutoffAt(a.dist) });
     }
     if (total) {
       const done = P.arrived();
       const ended = s.status === 'finished'; // arrêtée sans arrivée : on ne promet pas d'heure d'arrivée
-      points.push({ kind: 'finish', name: 'Arrivée', dist: total, km: total / 1000, passed: done, at: done ? s.finishedAt : ended ? null : stats.eta, planned: idle });
+      points.push({ kind: 'finish', name: 'Arrivée', dist: total, km: total / 1000, passed: done, at: done ? s.finishedAt : ended ? null : stats.eta, planned: idle, cutoff: cutoffAt(total, 'finish') });
     }
     return points;
   };

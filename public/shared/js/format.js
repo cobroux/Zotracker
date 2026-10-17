@@ -52,4 +52,23 @@ Object.assign(ZT, {
     if (m < 1000) return `${Math.max(10, Math.round(m / 10) * 10)} m`;
     return `${(m / 1000).toLocaleString('fr-FR', { maximumFractionDigits: m < 10_000 ? 1 : 0 })} km`;
   },
+
+  /** Durée de marge lisible : « 8 min », « 1 h 05 ». */
+  fmtMargin(ms) {
+    const min = Math.max(0, Math.round(Math.abs(ms) / 60_000));
+    return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
+  },
+
+  /**
+   * Marge de barrière : { text, sr, status } ou null sans marge. Pictogramme + texte (jamais la couleur seule),
+   * « ≈ » quand la marge est estimée ; `sr` est la phrase complète pour les lecteurs d'écran.
+   */
+  formatMargin(status, marginMs, estimated) {
+    if (!status || marginMs == null) return null;
+    const dur = `${estimated ? '≈ ' : ''}${ZT.fmtMargin(marginMs)}`;
+    if (status === 'over') return { status, text: `✕ Barrière dépassée de ${dur}`, sr: `Barrière dépassée de ${dur}` };
+    const icon = status === 'ok' ? '✓' : '⚠';
+    const word = status === 'ok' ? 'confortable' : 'serrée';
+    return { status, text: `${icon} Marge ${dur}`, sr: `Marge ${word} : ${dur}` };
+  },
 });
