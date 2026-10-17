@@ -12,6 +12,7 @@ const { str } = require('../../core/http');
 const { store, state, activeRace } = require('../../core/context');
 const { broadcastFull, notifyIfActive } = require('../../core/hub');
 const { adminConfig } = require('../admin/admin-config');
+const { sanitizeCutoff, checkCutoffOrder } = require('./cutoffs');
 
 const router = express.Router();
 
@@ -24,17 +25,23 @@ function findRace(req, res, next) {
 function sanitizeAidStations(list) {
   return (Array.isArray(list) ? list : [])
     .map((a) => ({
+      cutoffMin: sanitizeCutoff(a.cutoffMin), // lève RangeError si invalide
       id: typeof a.id === 'string' && a.id ? a.id.slice(0, 40) : crypto.randomUUID(),
       name: str(a.name, 80),
       km: Math.max(0, Math.round(parseFloat(a.km) * 1000) / 1000),
       info: str(a.info, 200),
     }))
+    .map(({ cutoffMin, ...a }) => (cutoffMin === null ? a : { ...a, cutoffMin }))
     .filter((a) => Number.isFinite(a.km) && (a.name || a.info))
     .sort((a, b) => a.km - b.km)
     .slice(0, 60);
 }
 
+/** Applique les champs saisis. Lève RangeError (barrière invalide) AVANT toute modification. */
 function applyRaceFields(race, b) {
+  const aidStations = b.aidStations !== undefined ? sanitizeAidStations(b.aidStations) : race.aidStations;
+  const finishCutoffMin = b.finishCutoffMin !== undefined ? sanitizeCutoff(b.finishCutoffMin) : race.finishCutoffMin ?? null;
+  checkCutoffOrder(aidStations, finishCutoffMin);
   const km = parseFloat(b.distanceKm);
   race.name = str(b.name, 120);
   race.location = str(b.location, 120);
@@ -42,12 +49,25 @@ function applyRaceFields(race, b) {
   race.distanceKm = Number.isFinite(km) && km > 0 ? km : null;
   if (b.targetPace !== undefined) race.targetPace = parsePace(b.targetPace);
   race.description = str(b.description, 3000);
-  if (b.aidStations !== undefined) race.aidStations = sanitizeAidStations(b.aidStations);
+  race.aidStations = aidStations;
+  race.finishCutoffMin = finishCutoffMin;
+}
+
+/** Applique les champs ; en cas de barrière invalide, répond 400 générique et renvoie false. */
+function applyOr400(res, race, body) {
+  try {
+    applyRaceFields(race, body);
+    return true;
+  } catch (err) {
+    if (!(err instanceof RangeError)) throw err;
+    res.status(400).json({ error: 'Barrière invalide.' });
+    return false;
+  }
 }
 
 router.post('/races', (req, res) => {
   const race = newRace();
-  applyRaceFields(race, req.body || {});
+  if (!applyOr400(res, race, req.body || {})) return;
   // pas de course « fantôme » : l'admin n'enregistre qu'une fois le nom saisi
   if (!race.name) return res.status(400).json({ error: 'Donne un nom à la course.' });
   state.races.push(race);
@@ -58,7 +78,7 @@ router.post('/races', (req, res) => {
 });
 
 router.put('/races/:id', findRace, (req, res) => {
-  applyRaceFields(req.race, req.body || {});
+  if (!applyOr400(res, req.race, req.body || {})) return;
   store.save();
   notifyIfActive(req.race, 'profile');
   res.json(adminConfig());

@@ -54,6 +54,8 @@ Dans **Mon profil → Ton point sur la carte**, choisis comment tu apparais pour
 4. **Enregistre la course**. Tu peux en préparer plusieurs à l'avance.
 5. Le jour venu, clique sur **Mettre en ligne** pour afficher la course sur la page publique. Le compte à rebours démarre alors pour tes supporters.
 
+**Barrières horaires (facultatives)** : pour chaque ravitaillement et pour l'arrivée, saisis la barrière en durée depuis le départ au format `H:MM` (ex. `2:30`). Elles doivent croître le long du parcours ; l'heure limite s'affiche dès que le départ prévu est connu. Les supporters voient la marge (✓ confortable, ⚠ serrée, ✕ dépassée, « ≈ » si estimée). Une alerte **privée** (admin et contacts de confiance, jamais le public) part une fois par ravito quand la marge estimée passe sous le seuil, puis une fois si la barrière est probablement dépassée. Case et seuil (15 min par défaut) dans **🛟 Sécurité**.
+
 Sur la page publique, chaque ravitaillement apparaît sur la carte et dans une liste. Elle montre l'heure de passage réelle (✓) ou estimée (≈), et un bandeau indique le prochain ravito.
 
 ### Venir t'encourager
@@ -185,7 +187,7 @@ server/core/                          socle : context (état partagé, secrets, 
 server/features/tracking/             positions : tracker, stats (allure, heures de passage), public-state, tiles, ingest.routes.js (applis GPS), public.routes.js (état, SSE, push)
 server/features/auth/                 connexion, 2FA (totp : RFC 6238, codes de secours)
 server/features/sos/                  alertes de sécurité privées (safety : immobilité, signal, batterie…), sos.routes.js
-server/features/races/                parcours : gpx, marker, races.routes.js
+server/features/races/                parcours : gpx, marker, cutoffs (barrières, marge), races.routes.js
 server/features/alerts/               règles d'alerte (alerts), notifications (notify : push, ntfy, SOS), push (Web Push)
 server/features/simulation/           simulation de course (simulator, sim-runner : test sans courir)
 server/features/admin/                admin-config, session.routes.js (course en direct), settings.routes.js (profil, réglages)

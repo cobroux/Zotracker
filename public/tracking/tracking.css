@@ -163,6 +163,14 @@ button.pass-row:active:not(:disabled) { transform: none; }
 .pass-main { min-width: 0; display: flex; flex-direction: column; }
 .pass-name { font-weight: var(--fw-medium); overflow-wrap: anywhere; }
 .pass-sub { font-size: var(--fs-sm); color: var(--muted); }
+/* marge de barrière : pictogramme + texte, la couleur ne porte jamais seule l'information */
+.cut { font-size: var(--fs-sm); color: var(--muted); }
+.cut.is-ok { color: var(--ok); }
+.cut.is-tight { background: var(--warn-bg); color: var(--warn-text); border-radius: 6px; padding: 0 6px; align-self: flex-start; }
+.cut.is-over { color: var(--danger); font-weight: var(--fw-medium); }
+.pass-cut { margin: 0; }
+.next-cut { margin-top: 2px; }
+.next-cut .cut.is-tight { display: inline-block; }
 .pass-time { font-size: var(--fs-lg); font-weight: var(--fw-medium); white-space: nowrap; }
 .pass.is-done .pass-name, .pass.is-done .pass-time { color: var(--muted); }
 .pass.is-next .pass-time { color: var(--accent); font-weight: var(--fw-bold); }
