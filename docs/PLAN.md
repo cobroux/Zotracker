@@ -137,5 +137,5 @@ Les heures estimées (arrivée, ravitos, points touchés, alertes serveur) vienn
 
 - Effort d'un segment : montée `dd + 10·dz` ; descente `dd × clamp(1 + 2p, 0,7 ; 1)`. Profil rééchantillonné à 25 m, altitude lissée sur ±75 m, seuil de pente de 0,3 % contre le bruit. Constantes exportées (`CLIMB_FACTOR`, `DESCENT_FLOOR`, `FLAT_SLOPE`…).
 - Allure d'effort `k` (s par km-effort) : avant le départ `k₀ = targetPace × distance / E_total` (`targetPace` est l'allure moyenne sur la distance totale) ; en course, moyenne des allures globale et récente (bornée à 0,7 à 1,4 fois la globale), mélangée à `k₀` sur les 3 premiers km-effort. Les pauses restent comptées.
-- `plannedPassages(race)` donne les heures prévues (départ, ravitos, arrivée) depuis `plannedStart` et `targetPace`, jamais l'allure réelle ; consommé par `recap`.
+- `plannedPassages(race)` donne les heures prévues (départ, ravitos, arrivée) depuis `plannedStart` et `targetPace`, jamais l'allure réelle ; consommé par `recap` (`snapshotRecap` fige l'écart réel/prévu et les marges `cutoffMargins` dans `race.recap`, en durées).
 - En attente : comparaison avec les temps de passage réels d'Enzo (trace GPS ou temps aux ravitos) pour caler les constantes, la fatigue et la descente (questions Q1, Q3, Q4 de la spec). Le GPX officiel sert de test local de cohérence uniquement.

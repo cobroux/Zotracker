@@ -2,6 +2,7 @@
 
 /** Conservation des données : les traces GPS et les encouragements anciens sont effacés automatiquement. */
 const { store, state, RETENTION_DAYS } = require('./context');
+const { snapshotRecap } = require('../features/recap/recap');
 
 /** Vide les cheers (prénoms compris, y compris ceux publiés dans le fil) une fois la course ancienne. */
 function purgeCheers(race, now, limit) {
@@ -29,6 +30,7 @@ function purgeOldTracks(now = Date.now()) {
     const s = race.session;
     const done = s.status === 'finished' ? s.finishedAt : s.status === 'running' ? race.track[race.track.length - 1].t : null;
     if (done && now - done > limit) {
+      if (!race.recap) snapshotRecap(race); // avant d'effacer : le récap survit à la trace
       race.track = [];
       race.trackPurgedAt = now;
       race.safety = { alerts: [], fired: {}, sos: null };

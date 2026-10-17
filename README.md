@@ -136,6 +136,10 @@ Dans l'admin, **Tableau de bord → 🧪 Simulation** fait courir un coureur vir
 - La page publique affiche un badge **🧪 Simulation**. Les positions de ton vrai GPS sont ignorées pendant ce temps ; le bouton SOS, lui, fonctionne toujours.
 - **Arrêter et effacer** remet la course à zéro. La simulation est indisponible pendant une vraie course.
 
+## Le récap de course
+
+Une fois la course terminée, la page `/recap` (liste) et `/recap/<course>` affichent le récap : temps final, splits par ravito (durée, allure, D+/D−), écart avec le prévu (`targetPace` et `plannedStart`, calculé au km-effort) et marge sur chaque barrière horaire (négative si dépassée). Une valeur inconnue s'affiche « n/d », jamais inventée. Le récap est figé en durées écoulées (aucun horodatage absolu) avec une trace décimée dont le domicile est masqué ; il survit à la purge de la trace.
+
 ## Le jour de la course
 
 1. **Avant** : vérifie que la bonne course est **en ligne** et partage le lien de la page publique.

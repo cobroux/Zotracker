@@ -323,3 +323,8 @@ html.dark .brand img, html.dark .login-logo { box-shadow: 0 0 0 1px var(--line);
 .cheer-text { font-weight: 600; }
 .cheer-list li.is-new small { color: var(--accent); font-weight: 600; }
 .cheer-actions { display: flex; flex-wrap: wrap; gap: 8px; flex: none; }
+
+/* récap d'une course terminée : lien et visibilité */
+.race-recap { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.race-recap a { display: inline-flex; align-items: center; min-height: 44px; }
+.race-recap label { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; }

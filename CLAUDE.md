@@ -9,7 +9,8 @@ server/index.js            montage Express, en-têtes, start()/shutdown
 server/core/               socle transverse : context, store, http (asyncHandler, toNum), hub SSE, security, text, geo, retention, auth
 server/features/<domaine>/ un dossier par fonctionnalité, routes (*.routes.js) et logique métier côte à côte :
   auth, tracking (tracker, stats UMD, public-state, tiles, ingest, public), sos, races (gpx, marker),
-  alerts (alerts, notify, push), simulation, admin (admin-config, session, settings), share (share-meta, page)
+  alerts (alerts, notify, push), simulation, admin (admin-config, session, settings), share (share-meta, page),
+  recap (récap figé en fin de course : splits, prévu, marges barrières, trace décimée)
 public/                    pages à la racine (index.html, admin.html, sos.html), sw.js, manifests ; img/ ; shared/ (common.js, theme.js, style.css, js/ : format, course, map)
 public/tracking/js/       page publique (namespace window.ZTP), tracking.css
 public/admin/js/          admin par vue (namespace window.ZTA), admin.css

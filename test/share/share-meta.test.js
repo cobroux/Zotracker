@@ -190,3 +190,71 @@ test('parsePublicUrl : origine http(s) sans chemin, sinon erreur claire', () => 
     assert.throws(() => parsePublicUrl(bad), /PUBLIC_URL invalide/, bad);
   }
 });
+
+// ---------------------------------------------------------------- récap
+
+const { describeRecap, recapMetaTags } = require('../../server/features/share/share-meta');
+const { recapPageRouter } = require('../../server/features/share/page.routes');
+
+const RECAP = { totals: { complete: true, finalMs: 3_725_000, distanceM: 10_200, reachedM: 10_200, up: 1234, down: 1000 } };
+const RACE = { name: 'Trail "><b>', session: { status: 'finished' } };
+
+test('describeRecap : mode public, arrivée, distance et D+', () => {
+  const d = describeRecap({ mode: 'public', runner: { name: 'Léa' }, race: RACE, recap: RECAP });
+  assert.match(d.description, /^Arrivé en 1 h 02 min 05 s · 10,2 km · 1\s?234 m D\+$/);
+  assert.match(d.title, /Léa/);
+});
+
+test('describeRecap : abandon sans temps final', () => {
+  const recap = { totals: { ...RECAP.totals, complete: false, finalMs: null, reachedM: 5000, distanceM: 5000 } };
+  const d = describeRecap({ mode: 'public', runner: {}, race: RACE, recap });
+  assert.match(d.description, /^Course arrêtée au km 5 /);
+  assert.ok(!d.description.includes('Arrivé'));
+});
+
+test('describeRecap : link, off ou course inconnue => même texte générique, sans nom ni chiffres', () => {
+  const generic = describeRecap({ mode: 'off', runner: {}, race: null, recap: null });
+  for (const mode of ['link', 'off']) {
+    const d = describeRecap({ mode, runner: { name: 'Léa' }, race: RACE, recap: RECAP });
+    assert.deepStrictEqual(d, generic);
+  }
+  assert.ok(!/Léa|10,2|1\s?234/.test(JSON.stringify(generic)));
+});
+
+test('recapMetaTags : valeurs échappées', () => {
+  const tags = recapMetaTags({ origin: 'https://x.fr', mode: 'public', runner: { name: 'Léa' }, race: RACE, recap: RECAP });
+  assert.ok(!tags.includes('<b>'));
+  assert.match(tags, /og:url" content="https:\/\/x\.fr\/recap"/);
+});
+
+test('/recap : aperçu public, générique en link et pour un id inconnu', async () => {
+  const file = path.join(TMP, 'recap.html');
+  fs.writeFileSync(file, HTML);
+  const app = express();
+  app.use(recapPageRouter(file, 'https://x.fr'));
+  const s = app.listen(0);
+  await new Promise((r) => s.on('listening', r));
+  const get = async (q) => (await fetch(`http://127.0.0.1:${s.address().port}/recap${q}`)).text();
+  try {
+    setup({ id: 'r1', name: 'Trail', session: { status: 'finished', startedAt: 1, finishedAt: 3_725_001, endedBy: 'finish' }, track: [], recap: RECAP }, 'Léa', 'public');
+    assert.match(await get('?r=r1'), /Arrivé en 1 h 02 min 05 s/);
+    const unknown = await get('?r=zzz');
+    srv.state.privacy.mode = 'link';
+    const link = await get('?r=r1');
+    assert.strictEqual(link, unknown);
+    assert.ok(!/Léa|Arrivé/.test(link));
+    assert.ok(!(await get('')).includes(MARKER));
+  } finally {
+    s.close();
+    s.closeAllConnections();
+  }
+});
+
+test('public/recap.html réelle : marqueur OG présent et page servie sans fichier brut', async () => {
+  assert.ok(fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'recap.html'), 'utf8').includes(MARKER));
+  setup(null, '', 'public');
+  for (const url of ['/recap', '/recap.html', '/recap/recap.css', '/recap/js/core.js']) assert.strictEqual((await fetch(base + url)).status, 200, url);
+  const html = await (await fetch(base + '/recap')).text();
+  assert.ok(!html.includes(MARKER));
+  assert.match(html, /og:title" content="Récap de course"/);
+});

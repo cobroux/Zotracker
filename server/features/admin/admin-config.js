@@ -13,6 +13,7 @@ const adminRace = (r) => ({
   session: r.session,
   trackCount: r.track.length,
   messageCount: r.messages.length,
+  recapMode: r.recapMode || null,
   createdAt: r.createdAt,
   lastDeviceFixAt: r.lastDeviceFixAt ?? null,
 });
