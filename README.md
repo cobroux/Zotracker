@@ -35,7 +35,7 @@ Sans `ADMIN_PASSWORD`, un mot de passe est généré au premier lancement et aff
 | `DATA_DIR` | Dossier de stockage (état JSON) | `./data` |
 | `NTFY_SERVER` | Serveur ntfy des alertes de sécurité | `https://ntfy.sh` |
 | `VAPID_SUBJECT` | Contact pour les notifications push | `mailto:zotracker@example.com` |
-| `TRACK_RETENTION_DAYS` | Positions GPS effacées N jours après la course (0 = jamais) | `90` |
+| `TRACK_RETENTION_DAYS` | Positions GPS et encouragements effacés N jours après la course (0 = jamais) | `90` |
 | `PUBLIC_TRACK_MASK_M` | Confidentialité du domicile : sur la trace publique, points masqués à moins de N m du premier point GPS (et du dernier une fois la course terminée). Aucune exception pour la position actuelle : tant que le coureur est dans la zone du départ, le public ne voit ni trace ni marqueur (la progression reste affichée), le marqueur apparaît dès la sortie de la zone ; l'admin voit tout (0 = désactivé) | `300` |
 | `PUBLIC_URL` | Origine canonique du site (ex. `https://suivi.exemple.fr`), utilisée pour `og:url` et `og:image` de l'aperçu du lien partagé. `http(s)` seulement, sans chemin : sinon le serveur refuse de démarrer. À défaut, l'origine vient de la requête (en-tête `Host`, que le client peut forger : à définir en production) | — |
 | `TRUST_PROXY` | Proxys autorisés à transmettre l'IP du client (`X-Forwarded-For`). Derrière un proxy dans un réseau Docker privé (Caddy de `deploy/`) : `uniquelocal`. Ne l'élargis jamais si l'appli est joignable sans passer par ce proxy | `loopback` |
@@ -84,6 +84,20 @@ Elles s'affichent en bandeau et dans le fil « En direct » de la page publique.
 Dans l'admin, la section **Alertes** permet de choisir les alertes envoyées et les délais. Elle affiche le nombre d'abonnés et propose un bouton « Envoyer une alerte de test ».
 
 Les clés de notification (VAPID) sont générées au premier lancement et conservées dans `data/secrets.json`. Si tu les perds, tes abonnés devront se réabonner. Tu peux définir `VAPID_SUBJECT` avec ton adresse de contact (`mailto:toi@exemple.fr`).
+
+## Encouragements des supporters
+
+Un formulaire de la page publique permet aux supporters d'envoyer un court message, sans compte :
+
+- **Lecture** : sur l'écran SOS du coureur (flux privé, en direct) et dans l'admin, qui modère. Pas de lecture vocale, pas de notification push.
+- **Publication** : l'admin peut publier un message dans le fil « En direct ». Désactivée par défaut : rien n'est public sans publication explicite.
+- **Affichage** : texte brut, sans lien.
+
+Seuils (constantes en tête de `server/features/cheers/cheers.js`) : 140 caractères par message (`MAX_TEXT`), 50 messages non lus (`MAX_PENDING`), 200 messages par course (`MAX_PER_RACE`).
+
+Limites par IP (`LIMITS` dans `server/features/cheers/cheers.routes.js`) : 3 par minute, 20 par heure, plafond global de 30 par minute.
+
+Le module est actif pour les nouvelles courses. Pour une course existante, il reste coupé tant que l'admin ne l'active pas. Les encouragements suivent la rétention de `TRACK_RETENTION_DAYS`. Détails dans [SECURITY.md](SECURITY.md).
 
 ## Sécurité : alertes privées en cas de problème
 

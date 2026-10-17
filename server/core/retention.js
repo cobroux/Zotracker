@@ -1,7 +1,19 @@
 'use strict';
 
-/** Conservation des données : les traces GPS anciennes sont effacées automatiquement. */
+/** Conservation des données : les traces GPS et les encouragements anciens sont effacés automatiquement. */
 const { store, state, RETENTION_DAYS } = require('./context');
+
+/** Vide les cheers (prénoms compris, y compris ceux publiés dans le fil) une fois la course ancienne. */
+function purgeCheers(race, now, limit) {
+  const cheers = race.cheers || [];
+  const s = race.session;
+  const lastT = Math.max(0, ...cheers.map((c) => c.t), ...race.track.slice(-1).map((p) => p.t));
+  const ref = s.status === 'finished' && s.finishedAt ? s.finishedAt : lastT;
+  if (!cheers.length || !ref || now - ref <= limit) return false;
+  race.cheers = [];
+  race.messages = race.messages.filter((m) => m.from !== 'supporter');
+  return true;
+}
 
 /**
  * Efface les positions GPS des courses terminées depuis plus de RETENTION_DAYS jours, et de celles
@@ -12,6 +24,7 @@ function purgeOldTracks(now = Date.now()) {
   const limit = RETENTION_DAYS * 86_400_000;
   let changed = false;
   for (const race of state.races) {
+    if (purgeCheers(race, now, limit)) changed = true;
     if (!race.track.length) continue;
     const s = race.session;
     const done = s.status === 'finished' ? s.finishedAt : s.status === 'running' ? race.track[race.track.length - 1].t : null;

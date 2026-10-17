@@ -12,7 +12,7 @@ const sec = require('./core/security');
 const { store, secrets, state, TRACK_MASK_M } = require('./core/context');
 const { currentTiles, tileHosts } = require('./features/tracking/tiles');
 const { isAdmin, requireAdmin } = require('./core/auth');
-const { clients, adminClients } = require('./core/hub');
+const { clients, adminClients, sosClients } = require('./core/hub');
 const { retryUndeliveredSos, NTFY_RETRY_DELAYS } = require('./features/alerts/notify');
 const { purgeOldTracks, scheduleRetention } = require('./core/retention');
 const publicRoutes = require('./features/tracking/public.routes');
@@ -20,6 +20,9 @@ const { pageRouter } = require('./features/share/page.routes');
 const authRoutes = require('./features/auth/auth.routes');
 const ingestRoutes = require('./features/tracking/ingest.routes');
 const sosRoutes = require('./features/sos/sos.routes');
+const cheersRoutes = require('./features/cheers/cheers.routes');
+const cheersSos = require('./features/cheers/cheers.sos.routes');
+const cheersAdmin = require('./features/cheers/cheers.admin.routes');
 const adminRaces = require('./features/races/races.routes');
 const adminSession = require('./features/admin/session.routes');
 const adminSettings = require('./features/admin/settings.routes');
@@ -93,11 +96,13 @@ app.get('/api/admin/stream', adminSession.adminStream);
 
 const admin = express.Router();
 admin.use(requireAdmin);
-admin.use(adminSettings, adminRaces, adminSession.router, authRoutes.adminRouter);
+admin.use(adminSettings, adminRaces, cheersAdmin, adminSession.router, authRoutes.adminRouter);
 app.use('/api/admin', admin);
 
 app.use(ingestRoutes.ingestRouter); // applis GPS externes
 app.use(sosRoutes.sosRouter); // page SOS du coureur
+app.use(cheersRoutes.publicRouter); // encouragements des supporters
+app.use(cheersSos.sosCheersRouter); // flux privé des encouragements pour l'écran SOS
 app.use(publicRoutes.pushRouter); // notifications push
 
 scheduleRetention();
@@ -133,7 +138,7 @@ function start(port = PORT) {
       store.flush(); // modifications arrivées pendant la fermeture des connexions
       process.exit(0);
     });
-    for (const res of [...clients, ...adminClients]) res.end();
+    for (const res of [...clients, ...adminClients, ...sosClients]) res.end();
     setTimeout(() => { store.flush(); process.exit(0); }, 2000).unref();
   };
   process.on('SIGINT', shutdown);

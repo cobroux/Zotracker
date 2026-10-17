@@ -48,6 +48,7 @@ function publicState({ raw = false } = {}) {
     track: race ? (raw ? race.track : publicTrack(race)).map(compactPoint) : [],
     messages: race ? race.messages : [],
     alerts: race ? race.alerts.slice(0, 50) : [],
+    cheersEnabled: !!(race && race.cheersCfg && race.cheersCfg.enabled), // la boîte elle-même n'est jamais publique
     serverTime: Date.now(),
   };
 }

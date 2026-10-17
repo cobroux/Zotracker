@@ -77,3 +77,23 @@ body[data-result=sent] .sos-call { background: none; border-color: var(--on-acce
 
 /* après .sos-btn.holding pour l'emporter à spécificité égale */
 @media (prefers-reduced-motion: reduce) { .sos-btn.holding { transform: none; } }
+
+/* Encouragements : bandeau fixe en haut, sans jamais intercepter un appui (sauf la pastille) ni toucher à la mise en page du bouton.
+ * Visible au repos seulement : masqué pendant l'appui, l'envoi, l'alerte active et l'échec. */
+.cheer-bar {
+  position: fixed; top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; z-index: 5;
+  display: none; align-items: flex-start; justify-content: space-between; gap: 8px; pointer-events: none;
+}
+body[data-phase="idle"] .cheer-bar, body[data-phase="lifted"] .cheer-bar { display: flex; }
+.cheer-text { margin: 0; }
+.cheer-text.show {
+  flex: 1; padding: 8px 12px; border: 2px solid var(--accent); border-radius: var(--r-md);
+  background: var(--surface); color: var(--text); text-align: left;
+  font-size: 20px; font-weight: 700; line-height: 1.25;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden; /* 4 lignes : reste au-dessus du bouton */
+}
+.cheer-badge {
+  pointer-events: auto; margin-left: auto; min-width: 56px; min-height: 44px; padding: 6px 12px;
+  border-radius: 22px; border: 2px solid var(--accent); background: var(--surface); color: var(--text); font-size: 1rem; font-weight: 800;
+}
+.cheer-badge[hidden] { display: none; }
