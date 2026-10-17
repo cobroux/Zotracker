@@ -16,6 +16,54 @@ Ce guide met Zotracker en ligne sur un petit serveur (VPS), en HTTPS. Une fois e
 **Budget** : environ 4 à 6 €/mois pour un VPS de 1 vCPU / 1 Go de RAM (Hetzner, OVH, Scaleway…), plus un nom de domaine (environ 10 €/an). C'est largement suffisant pour des milliers de supporters.
 
 
+## Production actuelle : VM Oracle (parcours à suivre)
+
+> Les sections 1 à 5 plus bas décrivent le **chemin générique** (image ghcr + Caddy propre), conservé dans `deploy/generic/` et **non utilisé sur Oracle**. Sur Oracle, le HTTPS est fait par le Caddy de Zofolio (`/opt/zofolio`, à ne jamais toucher) et l'appli est construite sur la VM.
+
+```
+push sur main ─▶ CI verte ─▶ SSH (clé à commande forcée) ─▶ deploy.sh sur la VM
+   deploy.sh : sauvegarde si > 24 h, vérifie que le SHA est dans main, git checkout, build, --wait
+   puis GitHub contrôle https://$DOMAIN/healthz ; si KO : commande « rollback » ; ntfy dans tous les cas d'échec
+```
+
+Fichiers versionnés : `deploy/oracle/` (compose, cron, `env.example`, `deploy.sh`, `check-backup.sh`), `deploy/backup.sh`, `deploy/restore.sh`, `deploy/restore-test.sh`.
+
+### Étapes manuelles (une fois)
+
+- **M1 Oracle** : bucket privé `zotracker-backups`, utilisateur IAM dédié, « Customer Secret Key » S3 limitée au bucket, règle de cycle de vie 90 j. Note le namespace et la région.
+- **M2 Mac** : `age-keygen -o zotracker.agekey` ; clé privée dans le gestionnaire de mots de passe (2 copies) ; seule la clé publique `age1...` va sur la VM.
+- **M3 VM** : `sudo apt install age rclone` ; `rclone config` (remote `oracle`, `chmod 600 ~/.config/rclone/rclone.conf`) ; dans `/opt/zotracker/.env` : `BACKUP_AGE_RECIPIENT`, `BACKUP_RCLONE_REMOTE=oracle:zotracker-backups`, `NTFY_TOPIC` (voir `deploy/oracle/env.example`). Liens :
+  ```bash
+  cd /opt/zotracker && ln -sf src/deploy/backup.sh backup.sh && ln -sf src/deploy/restore.sh restore.sh \
+    && ln -sf src/deploy/restore-test.sh restore-test.sh && ln -sf src/deploy/oracle/deploy.sh deploy.sh \
+    && ln -sf src/deploy/oracle/check-backup.sh check-backup.sh
+  sudo cp src/deploy/oracle/zotracker-backup.cron /etc/cron.d/zotracker-backup
+  ```
+- **M4 Clé de déploiement** : `ssh-keygen -t ed25519 -N "" -C github-zotracker -f zotracker-deploy` ; sur la VM, dans `~/.ssh/authorized_keys` : `command="/opt/zotracker/deploy.sh",restrict,no-pty ssh-ed25519 AAAA... github-zotracker` ; `git -C /opt/zotracker/src checkout main && git -C /opt/zotracker/src pull` si le clone suit l'ancienne branche.
+- **M5 Secrets GitHub** : `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `DEPLOY_HOST`, `DEPLOY_USER`, `NTFY_TOPIC` ; variable `DOMAIN` ; **`DEPLOY_ENABLED=true` en dernier**.
+- **M6 GitHub** : environnement `production`, protection de `main` (PR, checks requis, branche à jour, pas de force-push).
+- **M7 Calendrier** : rappel mensuel du test de restauration.
+
+### Premier déploiement
+
+Le premier déploiement n'a pas de version précédente (pas de retour arrière) : fais-le à la main, hors course : `/opt/zotracker/deploy.sh $(git -C /opt/zotracker/src rev-parse origin/main)`.
+
+### Restauration à blanc (mensuelle)
+
+Depuis le Mac, avec la vraie clé : `rclone copyto oracle:zotracker-backups/<fichier>.age b.age && age -d -i zotracker.agekey b.age | tar tzf -`. Sur la VM, `./restore-test.sh /chemin/zotracker.agekey` (la clé est apportée à la main puis supprimée ; jamais stockée sur la VM).
+
+### Restauration réelle
+
+`cd /opt/zotracker && COMPOSE_FILE=zotracker.server.yml ./restore.sh oracle:zotracker-backups/zotracker-AAAA.tar.gz.age /chemin/zotracker.agekey` (confirmation « oui », sauvegarde de sécurité préalable).
+
+### Retour arrière manuel
+
+`COMPOSE_FILE=zotracker.server.yml /opt/zotracker/deploy.sh rollback` revient à la version précédente. Pour une version précise : `/opt/zotracker/deploy.sh <sha-40-caractères>` (doit être dans l'historique de `main`).
+
+### Interrupteur
+
+Variable `DEPLOY_ENABLED` absente ou différente de `true` : aucun déploiement. Ne déploie jamais pendant une course.
+
 ---
 
 ## 1. Le serveur
