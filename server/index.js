@@ -69,6 +69,7 @@ app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 // calculs d'allure et d'heures de passage : même source côté serveur et navigateur (window.ZTStats)
 app.get('/shared/stats.js', (req, res) => res.sendFile(path.join(__dirname, 'features', 'tracking', 'stats.js')));
+app.get('/shared/effort.js', (req, res) => res.sendFile(path.join(__dirname, 'features', 'tracking', 'effort.js')));
 app.use(pageRouter()); // '/' et '/index.html' reçoivent l'aperçu du lien partagé (le static n'a plus d'index : // et /./ ne servent pas la page brute)
 // /admin et /sos AVANT le static : sinon serve-static les redirige vers les dossiers public/admin et public/sos
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'admin.html')));

@@ -36,7 +36,7 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
   - Critères : tous les tests existants passent sans modification ; sans altitude, sorties strictement identiques (snapshot) ; avec profil, `etaAt` d'un point en montée est plus tardif que le modèle plat ; `alerts.js` (`st.etaAt`) inchangé et fonctionnel.
   - Vérification : `node --test test/tracking/stats.test.js`, `npm test`, `npm run check`.
 
-- [ ] **T5 : Servir `effort.js` au navigateur** (S, parallélisable avec T3 et T4)
+- [x] **T5 : Servir `effort.js` au navigateur** (S, parallélisable avec T3 et T4)
   - Agent: zt-backend | Modèle: haiku | Dépend de : T2
   - Fichiers : `server/index.js`, `public/index.html`, `public/admin.html`, `test/core/security.test.js`
   - Description : route `/shared/effort.js` sur le modèle de la ligne 71 (`/shared/stats.js`) ; balise `<script src="/shared/effort.js">` avant `stats.js` dans les deux pages (pas de script inline).
