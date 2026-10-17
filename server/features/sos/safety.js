@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { haversine } = require('../../core/geo');
 const { raceStats } = require('../tracking/stats');
+const { cutoffReport } = require('../races/cutoffs');
 const { firstName, deName, fmtKm } = require('../../core/text');
 
 /**
@@ -19,6 +20,8 @@ const DEFAULT_SAFETY = {
   lowBattery: true, // batterie du téléphone (si l'appli GPS la transmet)
   lowBatteryPercent: 15,
   slowdown: false, // allure récente beaucoup plus lente que la moyenne
+  cutoffs: true, // marge estimée sous le seuil ou barrière horaire dépassée
+  cutoffMarginMinutes: 15,
   ntfyTopic: '',
 };
 
@@ -45,6 +48,7 @@ function normalizeSafety(input = {}, prev = {}) {
   num('offCourseMinutes', 1, 60);
   num('signalLostMinutes', 2, 60);
   num('lowBatteryPercent', 5, 50);
+  num('cutoffMarginMinutes', 1, 120);
   const topic = String(input.ntfyTopic !== undefined ? input.ntfyTopic : prev.ntfyTopic || '').trim();
   out.ntfyTopic = TOPIC_RE.test(topic) ? topic : prev.ntfyTopic && TOPIC_RE.test(prev.ntfyTopic) ? prev.ntfyTopic : newTopic();
   return out;
@@ -79,7 +83,7 @@ function makeAlert(race, level, title, body, pos, now = Date.now()) {
  * Les clés d'incident sont relatives au départ : la simulation accélérée décale départ, positions
  * et heures ensemble à chaque tick, une clé absolue changerait donc à chaque minute simulée.
  */
-function evaluateSafety(race, runner, settings, now = Date.now()) {
+function evaluateSafety(race, runner, settings, now = Date.now(), { etaAt = null } = {}) {
   const s = race.session;
   if (s.status !== 'running' || !s.startedAt) return [];
   const safety = ensureSafety(race);
@@ -131,6 +135,17 @@ function evaluateSafety(race, runner, settings, now = Date.now()) {
     const st = raceStats(race);
     if (st.progress > 2000 && st.avgPace && st.recentPace && st.recentPace > st.avgPace * 1.6) {
       emit(`slow:${Math.floor(st.progress / 3000)}`, 'warning', `${name} ralentit fortement`, `Allure récente bien plus lente que sa moyenne. ${where}`, last);
+    }
+  }
+
+  // Barrières : marge estimée sous le seuil, puis barrière probablement dépassée (une alerte chacune, texte sans heure absolue)
+  if (settings.cutoffs) {
+    for (const c of cutoffReport(race, { thresholdMin: settings.cutoffMarginMinutes, etaAt })) {
+      if (!c.estimated || c.status === 'ok') continue;
+      const min = Math.max(1, Math.round(Math.abs(c.marginMs) / 60_000));
+      const at = c.id === 'finish' ? 'à l’arrivée' : `au ${c.name || 'ravitaillement'}`;
+      if (c.status === 'tight') emit(`cut:tight:${c.id}`, 'warning', `Marge serrée ${at} : ~${min} min`, `${name} risque de manquer de marge sur la barrière. ${where}`, last);
+      else emit(`cut:over:${c.id}`, 'danger', `Barrière probablement dépassée ${at} (~${min} min)`, `Selon l’estimation, ${name} arrivera après la fermeture. ${where}`, last);
     }
   }
 

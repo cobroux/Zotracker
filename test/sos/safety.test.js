@@ -117,3 +117,15 @@ test('simulation accélérée : départ et positions décalés à chaque tick, l
     assert.strictEqual(again.filter((a) => /hors parcours/.test(a.title)).length, 0, `hors parcours, tick ${i}`);
   }
 });
+
+test('réglages barrières : défauts, bornes 1 à 120, complétés pour un ancien safetySettings', () => {
+  const d = normalizeSafety({});
+  assert.strictEqual(d.cutoffs, true);
+  assert.strictEqual(d.cutoffMarginMinutes, 15);
+  assert.strictEqual(normalizeSafety({ cutoffMarginMinutes: 0 }).cutoffMarginMinutes, 1);
+  assert.strictEqual(normalizeSafety({ cutoffMarginMinutes: 500 }).cutoffMarginMinutes, 120);
+  assert.strictEqual(normalizeSafety({ cutoffs: false }).cutoffs, false);
+  const old = { stopped: false, stoppedMinutes: 9, ntfyTopic: 'zotracker-0123456789abcdef' }; // persisté avant ce module
+  const n = normalizeSafety({}, old);
+  assert.deepStrictEqual([n.cutoffs, n.cutoffMarginMinutes, n.stopped, n.stoppedMinutes], [true, 15, false, 9]);
+});

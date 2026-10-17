@@ -5,8 +5,16 @@ const { defaultSession } = require('../../core/store');
 const { haversine } = require('../../core/geo');
 const { state, activeRace, TRACK_MASK_M } = require('../../core/context');
 const { recapMode } = require('../recap/recap.routes');
+const { cutoffReport } = require('../races/cutoffs');
 
 const compactPoint = (p) => [p.lat, p.lon, p.t, p.along];
+
+/** Barrières avec marge calculée côté serveur (le front ne fait que formater). Absent sans barrière. */
+function cutoffsInfo(r) {
+  const thresholdMin = state.safetySettings.cutoffMarginMinutes;
+  const list = cutoffReport(r, { thresholdMin }).map(({ id, dist, cutoffMin, cutoffAt, marginMs, status, estimated }) => ({ id, dist, cutoffMin, cutoffAt, marginMs, status, estimated }));
+  return list.length ? { cutoffs: list } : {};
+}
 
 const raceInfo = (r) => ({
   id: r.id,
@@ -17,6 +25,8 @@ const raceInfo = (r) => ({
   targetPace: r.targetPace || null,
   description: r.description,
   aidStations: r.aidStations,
+  finishCutoffMin: r.finishCutoffMin || null,
+  ...cutoffsInfo(r),
 });
 
 /** Session sans les détails internes (batterie, horodatages techniques) : minimisation des données. */

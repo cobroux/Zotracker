@@ -113,3 +113,42 @@ test('page publique : ravitos, distance, D+, départ prévu et allure prévue', 
   const a = pub.race.aidStations[0];
   assert.deepStrictEqual({ name: a.name, km: a.km, info: a.info }, { name: 'Ravito 1', km: 10, info: 'Eau et fruits' });
 });
+
+test('barrières : saisie, relecture, suppression, refus si invalide ou non croissant', async () => {
+  const id = srv.state.races[0].id;
+  const aid = (km, cutoffMin) => ({ name: `R${km}`, km, cutoffMin });
+  const put = (body) => call('PUT', `/api/admin/races/${id}`, { name: 'Trail du lac', ...body });
+  assert.strictEqual((await put({ aidStations: [aid(10, 90), aid(20), aid(30, 180)], finishCutoffMin: 300 })).status, 200);
+  let r = srv.state.races[0];
+  assert.deepStrictEqual(r.aidStations.map((a) => a.cutoffMin), [90, undefined, 180]);
+  assert.strictEqual(r.finishCutoffMin, 300);
+  assert.strictEqual((await publicFetch()).race.aidStations[0].cutoffMin, 90);
+
+  const before = JSON.stringify(r);
+  for (const body of [
+    { aidStations: [aid(10, 0)] },
+    { aidStations: [aid(10, 'abc')] },
+    { aidStations: [aid(10, 90), aid(20, 60)] },
+    { aidStations: [aid(10, 90)], finishCutoffMin: 90 },
+    { aidStations: [aid(10, 60)], finishCutoffMin: true },
+  ]) {
+    const res = await put({ ...body, location: 'Autre' });
+    assert.strictEqual(res.status, 400, JSON.stringify(body));
+    assert.deepStrictEqual(await res.json(), { error: 'Barrière invalide.' });
+    assert.strictEqual(JSON.stringify(srv.state.races[0]), before, 'course inchangée');
+  }
+
+  assert.strictEqual((await put({ aidStations: [aid(10), aid(20, '')], finishCutoffMin: null })).status, 200);
+  r = srv.state.races[0];
+  assert.ok(r.aidStations.every((a) => a.cutoffMin === undefined));
+  assert.strictEqual(r.finishCutoffMin, null);
+});
+
+test('barrières : sans session admin 401, hors même origine 403', async () => {
+  const id = srv.state.races[0].id;
+  const body = JSON.stringify({ name: 'X', finishCutoffMin: 99 });
+  const headers = { 'Content-Type': 'application/json' };
+  assert.strictEqual((await fetch(`${base}/api/admin/races/${id}`, { method: 'PUT', headers: { ...headers, Origin: base }, body })).status, 401);
+  assert.strictEqual((await fetch(`${base}/api/admin/races/${id}`, { method: 'PUT', headers: { ...headers, Origin: 'https://evil.example', cookie }, body })).status, 403);
+  assert.notStrictEqual(srv.state.races[0].finishCutoffMin, 99);
+});

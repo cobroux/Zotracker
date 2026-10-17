@@ -4,8 +4,8 @@
 (() => {
   const { $, el, state, api, toast, action, setConfig, copyOnClick } = ZTA;
 
-  const SAFETY_FLAGS = ['stopped', 'signalLost', 'offCourse', 'lowBattery', 'slowdown'];
-  const SAFETY_NUMS = ['stoppedMinutes', 'signalLostMinutes', 'offCourseMinutes', 'lowBatteryPercent'];
+  const SAFETY_FLAGS = ['stopped', 'signalLost', 'offCourse', 'lowBattery', 'slowdown', 'cutoffs'];
+  const SAFETY_NUMS = ['stoppedMinutes', 'signalLostMinutes', 'offCourseMinutes', 'lowBatteryPercent', 'cutoffMarginMinutes'];
 
   function fill(st) {
     const f = $('safetyForm');
