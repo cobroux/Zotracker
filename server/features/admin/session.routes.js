@@ -17,6 +17,7 @@ const { simStatus, isSimRunning, startSim, stopSim, setSimModes } = require('../
 const { ingest } = require('../tracking/ingest.routes');
 const { removeSimCheers } = require('../cheers/cheers');
 const { notifyCheers } = require('../cheers/cheers.routes');
+const { snapshotRecap } = require('../recap/recap');
 
 /** Flux privé de l'admin (alertes de sécurité), authentifié par le cookie de session. */
 function adminStream(req, res) {
@@ -69,6 +70,7 @@ router.post('/session/finish', requireActive, (req, res) => {
     race.session.status = 'finished';
     race.session.finishedAt = Date.now();
     race.session.endedBy = 'manual';
+    snapshotRecap(race);
     store.save();
     // arrivée masquée sur la trace publique : l'état complet remplace les points déjà envoyés
     if (TRACK_MASK_M && race.track.length) broadcastFull();
@@ -84,6 +86,7 @@ router.post('/session/resume', requireActive, (req, res) => {
     race.session.status = 'running';
     race.session.finishedAt = null;
     race.session.endedBy = null;
+    delete race.recap; // course reprise : l'ancien récap n'est plus valable
     store.save();
     if (TRACK_MASK_M && race.track.length) broadcastFull();
     else broadcast('session', publicSession(race.session));
@@ -96,6 +99,7 @@ router.post('/session/reset', requireActive, (req, res) => {
   clearSimCheers(req.race);
   req.race.session = defaultSession();
   req.race.track = [];
+  delete req.race.recap;
   alerts.resetAlerts(req.race);
   store.save();
   broadcastFull();

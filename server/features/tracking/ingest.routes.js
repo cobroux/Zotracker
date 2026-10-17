@@ -8,6 +8,7 @@ const { toNum } = require('../../core/http');
 const { store, secrets, state, activeRace } = require('../../core/context');
 const { broadcastPositions } = require('../../core/hub');
 const { checkAlerts, triggerSos } = require('../alerts/notify');
+const { snapshotRecap } = require('../recap/recap');
 
 const { safeEqual } = sec;
 
@@ -47,6 +48,7 @@ function ingest(points) {
     if (!r.ignored) added.push(r);
   }
   if (added.length) {
+    if (!wasFinished && race.session.status === 'finished') snapshotRecap(race);
     store.save();
     broadcastPositions(race, added, prevLast, wasFinished);
     checkAlerts();

@@ -124,4 +124,22 @@ function decimate(points, max = MAX_POINTS, minStep = MIN_STEP_M) {
   });
 }
 
-module.exports = { MAX_POINTS, MIN_STEP_M, climbBetween, eleAt, computeSplits, realPassages, buildSummary, decimate };
+/**
+ * Fige le récap d'une course terminée dans race.recap (l'appelant sauvegarde le store). La trace passe
+ * par publicTrack AVANT d'être décimée : le masque du domicile est donc gravé dans l'instantané, sans
+ * horodatage absolu. `extras` = { planned, margins } facultatifs. null si la course n'est pas terminée.
+ */
+function snapshotRecap(race, extras = {}) {
+  const s = race.session;
+  if (s.status !== 'finished' || s.startedAt == null) return null;
+  // chargé ici pour que les fonctions pures restent utilisables sans l'état partagé
+  const { publicTrack } = require('../tracking/public-state');
+  const pts = publicTrack(race).map((p) => ({ dt: p.t - s.startedAt, lat: p.lat, lon: p.lon, ele: race.course ? eleAt(race.course, p.along) : null, dist: p.along }));
+  race.recap = { v: 1, ...buildSummary(race, extras), track: decimate(pts) };
+  return race.recap;
+}
+
+/** Récap figé de la course, calculé à la demande s'il manque (anciennes courses, simulation). */
+const ensureRecap = (race, extras) => race.recap || snapshotRecap(race, extras);
+
+module.exports = { snapshotRecap, ensureRecap, MAX_POINTS, MIN_STEP_M, climbBetween, eleAt, computeSplits, realPassages, buildSummary, decimate };
