@@ -16,7 +16,7 @@ const { clients, adminClients, sosClients } = require('./core/hub');
 const { retryUndeliveredSos, NTFY_RETRY_DELAYS } = require('./features/alerts/notify');
 const { purgeOldTracks, scheduleRetention } = require('./core/retention');
 const publicRoutes = require('./features/tracking/public.routes');
-const { pageRouter } = require('./features/share/page.routes');
+const { pageRouter, recapPageRouter } = require('./features/share/page.routes');
 const authRoutes = require('./features/auth/auth.routes');
 const ingestRoutes = require('./features/tracking/ingest.routes');
 const sosRoutes = require('./features/sos/sos.routes');
@@ -79,6 +79,7 @@ for (const name of ['stats.js', 'effort.js']) {
   app.get('/shared/' + name, (req, res) => res.type('js').send(source));
 }
 app.use(pageRouter()); // '/' et '/index.html' reçoivent l'aperçu du lien partagé (le static n'a plus d'index : // et /./ ne servent pas la page brute)
+app.use(recapPageRouter()); // '/recap' : page récap avec aperçu
 // /admin et /sos AVANT le static : sinon serve-static les redirige vers les dossiers public/admin et public/sos
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'admin.html')));
 app.get('/sos', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'sos.html')));

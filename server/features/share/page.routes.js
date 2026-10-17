@@ -5,7 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { state, activeRace, PUBLIC_URL } = require('../../core/context');
-const { shareMetaTags, injectShareMeta } = require('./share-meta');
+const { shareMetaTags, recapMetaTags, injectShareMeta } = require('./share-meta');
+const { recapMode } = require('../recap/recap.routes');
+const { ensureRecap } = require('../recap/recap');
 
 const DEFAULT_FILE = path.join(__dirname, '..', '..', '..', 'public', 'index.html');
 
@@ -51,4 +53,27 @@ function pageRouter(file = DEFAULT_FILE, publicUrl = PUBLIC_URL) {
   return router;
 }
 
-module.exports = { pageRouter, pageOrigin };
+const RECAP_FILE = path.join(__dirname, '..', '..', '..', 'public', 'recap.html');
+
+/** Page /recap (+ /recap.html) avec son aperçu ; avant le static, sinon /recap serait redirigé vers le dossier public/recap/. */
+function recapPageRouter(file = RECAP_FILE, publicUrl = PUBLIC_URL) {
+  const read = cachedReader(file);
+  const router = express.Router();
+  router.get(['/recap', '/recap.html'], (req, res, next) => {
+    let html;
+    try {
+      html = read();
+    } catch (err) {
+      return next(err);
+    }
+    const id = typeof req.query.r === 'string' ? req.query.r : '';
+    const race = state.races.find((r) => r.id === id && r.session && r.session.status === 'finished') || null;
+    const mode = race ? recapMode(race) : 'off';
+    const recap = race && mode === 'public' ? ensureRecap(race) : null;
+    const tags = recapMetaTags({ origin: pageOrigin(req, publicUrl), mode, runner: state.runner, race, recap });
+    res.set('Cache-Control', 'no-store').type('html').send(injectShareMeta(html, tags));
+  });
+  return router;
+}
+
+module.exports = { pageRouter, recapPageRouter, pageOrigin };

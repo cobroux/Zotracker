@@ -5,7 +5,7 @@
  * les balises sont donc insérées côté serveur dans public/index.html, à la place du marqueur
  * `<!-- zt:og -->`. Le mode « lien privé » n'y met jamais le nom du coureur ni de la course.
  */
-const { fmtDuration } = require('../../core/text');
+const { fmtDuration, fmtKm } = require('../../core/text');
 
 const MARKER = '<!-- zt:og -->';
 const GENERIC_TITLE = 'Suivi en direct';
@@ -40,9 +40,8 @@ function shareText({ privacy, runner, race }) {
   return { title: race.name ? `${who} · ${race.name}` : who, description: describe(race) };
 }
 
-/** Balises <meta> (échappées) de l'aperçu ; `origin` : https://exemple.fr, sans barre finale. */
-function shareMetaTags({ origin, ...ctx }) {
-  const { title, description } = shareText(ctx);
+/** Balises <meta> (échappées) d'un aperçu ; `origin` : https://exemple.fr, sans barre finale. */
+function renderTags(origin, urlPath, { title, description }) {
   const tag = (attr, key, value) => `<meta ${attr}="${key}" content="${escapeHtml(value)}">`;
   return [
     tag('name', 'description', description),
@@ -50,12 +49,34 @@ function shareMetaTags({ origin, ...ctx }) {
     tag('property', 'og:title', title),
     tag('property', 'og:description', description),
     tag('property', 'og:image', `${origin}/img/og.png`),
-    tag('property', 'og:url', `${origin}/`),
+    tag('property', 'og:url', `${origin}${urlPath}`),
     tag('name', 'twitter:card', 'summary_large_image'),
   ].join('\n    ');
 }
 
+/** Balises de l'aperçu de la page publique. */
+const shareMetaTags = ({ origin, ...ctx }) => renderTags(origin, '/', shareText(ctx));
+
+const RECAP_GENERIC = { title: 'Récap de course', description: 'Ouvre le lien partagé pour voir le récap de la course.' };
+
+/**
+ * Aperçu du récap. `mode` : visibilité effective (public | link | off). Hors mode public, ou sans récap,
+ * texte générique identique : ni nom, ni chiffres, ni indice sur l'existence de la course.
+ */
+function describeRecap({ mode, runner, race, recap }) {
+  if (mode !== 'public' || !race || !recap) return RECAP_GENERIC;
+  const t = recap.totals;
+  const name = (runner && runner.name || '').trim() || 'Le coureur';
+  const facts = [t.complete ? `Arrivé en ${fmtDuration(t.finalMs)}` : `Course arrêtée au km ${fmtKm(t.reachedM)}`];
+  if (t.distanceM) facts.push(`${fmtKm(t.distanceM)} km`);
+  if (t.up != null) facts.push(`${t.up.toLocaleString('fr-FR')} m D+`);
+  return { title: race.name ? `Récap de ${name} · ${race.name}` : `Récap de ${name}`, description: facts.join(' · ') };
+}
+
+/** Balises de l'aperçu de la page récap. */
+const recapMetaTags = ({ origin, ...ctx }) => renderTags(origin, '/recap', describeRecap(ctx));
+
 /** Remplace le marqueur ; sans marqueur, la page est rendue telle quelle. */
 const injectShareMeta = (html, tags) => (html.includes(MARKER) ? html.replace(MARKER, () => tags) : html);
 
-module.exports = { MARKER, escapeHtml, shareMetaTags, injectShareMeta };
+module.exports = { MARKER, escapeHtml, shareMetaTags, describeRecap, recapMetaTags, injectShareMeta };
