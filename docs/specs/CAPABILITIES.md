@@ -12,4 +12,9 @@ Validée par Enzo le 17/10/2026. Chaque module a sa spec `SPEC-<id>.md` dans ce 
 
 Ordre : `ops` → `effort-eta` → `cutoffs` → `cheers` (parallélisable) → `recap`.
 
+## Interfaces entre modules (font foi sur les specs)
+
+- `effort-eta` fournit `raceStats(race).etaAt(distM) -> epoch ms | null` (heure de passage estimée en direct, déjà existante, réécrite au km-effort) et `plannedPassages(race) -> [{ dist, kind, plannedAt }]` (heures prévues depuis `plannedStart` et l'allure prévue, jamais l'allure réelle).
+- `cutoffs` fournit `cutoffMargin(limitAt, passedAt, estimatedAt)` et `cutoffMargins(race, passages) -> [{ dist, cutoffAt | null, marginMs | null }]` (simple boucle sur `cutoffMargin`).
+
 Hors périmètre (non retenus) : mode économie de batterie, rappel périodique d'un incident en cours.
