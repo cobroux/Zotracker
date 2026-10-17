@@ -54,7 +54,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
   - [ ] Champ « Barrière » `H:MM` après le départ, à côté de Km / Nom / Proposé, plus un champ pour l'arrivée ; heure limite calculée en lecture si `plannedStart` connu.
   - [ ] Parse/format `H:MM` testés en fonctions pures ; `ZT.el()` uniquement ; valeur vide = pas de barrière.
   - Vérif : `npm test`, `npm run check`, essai manuel clair et sombre.
-- [ ] **T8 Réglages d'alerte dans 🛟 Sécurité** (XS)
+- [x] **T8 Réglages d'alerte dans 🛟 Sécurité** (XS)
   - Agent: zt-frontend | Modèle: haiku | Parallèle: oui | Dép.: T4
   - Fichiers : `public/admin/js/safety.js`
   - [ ] Case « Alerter sur les barrières » (`cutoffs`) et seuil en minutes (1 à 120, défaut 15), libellés en français, même motif que les réglages voisins.

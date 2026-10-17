@@ -407,6 +407,7 @@
               <div class="detect-row"><label class="check"><input type="checkbox" name="offCourse"> Hors parcours depuis</label><input type="number" name="offCourseMinutes" min="1" max="60" class="mini" inputmode="numeric" aria-label="Hors parcours : minutes avant l’alerte"><span aria-hidden="true">min</span></div>
               <div class="detect-row"><label class="check"><input type="checkbox" name="lowBattery"> Batterie sous</label><input type="number" name="lowBatteryPercent" min="5" max="50" class="mini" inputmode="numeric" aria-label="Batterie faible : seuil en pourcentage"><span aria-hidden="true">%</span></div>
               <label class="check"><input type="checkbox" name="slowdown"> Fort ralentissement</label>
+              <div class="detect-row"><label class="check"><input type="checkbox" name="cutoffs"> Alerter sur les barrières sous</label><input type="number" name="cutoffMarginMinutes" min="1" max="120" class="mini" inputmode="numeric" aria-label="Barrières : marge en minutes avant l’alerte"><span aria-hidden="true">min de marge</span></div>
               <div class="row-buttons"><button class="primary" type="submit">Enregistrer les détections</button><span class="save-state" role="status"></span></div>
             </form>
           </section>
