@@ -9,7 +9,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
   - Fichiers : `server/features/races/cutoffs.js`, `test/races/cutoffs.test.js`
   - `sanitizeCutoff` (null/`''` -> null ; `true`, 0, 1.5, 99999, `'abc'` -> RangeError ; 1 à 4320) et `checkCutoffOrder(aidStations, finishCutoffMin)` (croissant entre barrières renseignées).
   - Vérif : `node --test test/races/cutoffs.test.js`, `npm test`, `npm run check`.
-- [ ] **T2 Limite, marge et statut** (S)
+- [x] **T2 Limite, marge et statut** (S)
   - Agent: zt-backend | Modèle: sonnet | Parallèle: oui (avec T1) | Dép.: aucune
   - Fichiers : `server/features/races/cutoffs.js`, `test/races/cutoffs.test.js` (ajouts après T1 si même fichier : coordonner, T1 finit d'abord)
   - [ ] `cutoffLimit(race, cutoffMin)` = `startedAt` sinon `plannedStart` + min, `null` si aucun départ.
