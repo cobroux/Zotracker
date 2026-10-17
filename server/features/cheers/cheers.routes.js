@@ -6,6 +6,7 @@ const express = require('express');
 const sec = require('../../core/security');
 const { store, activeRace } = require('../../core/context');
 const { requireViewer } = require('../../core/auth');
+const { broadcastAdmin } = require('../../core/hub');
 const { validateCheer, addCheer, createDuplicateGuard } = require('./cheers');
 
 // Limites par IP (préfixe /64 en IPv6) et plafond global ; à ajuster après la première course.
@@ -18,6 +19,11 @@ const ipHash = (req) => crypto.createHmac('sha256', SALT).update(sec.ipKey(req.i
 
 const duplicates = createDuplicateGuard();
 const tooMany = 'Trop de messages, réessaie dans un moment.';
+
+/** Prévient les écrans privés (admin) que la boîte a changé : liste complète, elle est bornée à 200 messages. */
+function notifyCheers(race) {
+  broadcastAdmin('cheers', { cheers: race.cheers, cfg: race.cheersCfg });
+}
 
 const publicRouter = express.Router();
 
@@ -43,8 +49,9 @@ publicRouter.post(
     const added = addCheer(race, { text: v.text, name: v.name });
     if (!added.ok) return res.status(429).json({ error: tooMany });
     store.save();
+    notifyCheers(race);
     res.status(202).json({ ok: true });
   },
 );
 
-module.exports = { publicRouter, LIMITS };
+module.exports = { publicRouter, notifyCheers, LIMITS };

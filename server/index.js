@@ -20,6 +20,7 @@ const authRoutes = require('./features/auth/auth.routes');
 const ingestRoutes = require('./features/tracking/ingest.routes');
 const sosRoutes = require('./features/sos/sos.routes');
 const cheersRoutes = require('./features/cheers/cheers.routes');
+const cheersAdmin = require('./features/cheers/cheers.admin.routes');
 const adminRaces = require('./features/races/races.routes');
 const adminSession = require('./features/admin/session.routes');
 const adminSettings = require('./features/admin/settings.routes');
@@ -89,7 +90,7 @@ app.get('/api/admin/stream', adminSession.adminStream);
 
 const admin = express.Router();
 admin.use(requireAdmin);
-admin.use(adminSettings, adminRaces, adminSession.router, authRoutes.adminRouter);
+admin.use(adminSettings, adminRaces, cheersAdmin, adminSession.router, authRoutes.adminRouter);
 app.use('/api/admin', admin);
 
 app.use(ingestRoutes.ingestRouter); // applis GPS externes

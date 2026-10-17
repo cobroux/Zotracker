@@ -35,9 +35,9 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T4 : routes admin et publication
 - Agent: zt-backend | Modèle: sonnet | Parallélisable: oui (avec T5, T6) | Dépend de: T3
 - Fichiers: `server/features/cheers/cheers.admin.routes.js`, `server/index.js`, `test/cheers/cheers.admin.test.js`
-- [ ] `GET /api/admin/cheers`, `publish`, `unpublish`, `DELETE`, `PUT config` : `requireAdmin` + `sameOrigin` ; sans session 401
-- [ ] publier émet `messages` `{ id, text, t, from: 'supporter', name }` sans push ; supprimer retire du fil ; refusé si `publish` faux
-- [ ] `broadcastAdmin('cheers', …)` à chaque nouveau message
+- [x] `GET /api/admin/cheers`, `publish`, `unpublish`, `DELETE`, `PUT config` : `requireAdmin` + `sameOrigin` ; sans session 401
+- [x] publier émet `messages` `{ id, text, t, from: 'supporter', name }` sans push ; supprimer retire du fil ; refusé si `publish` faux
+- [x] `broadcastAdmin('cheers', …)` à chaque nouveau message
 - Vérif: `node --test test/cheers/`, `npm test`, `npm run check`
 
 ## T5 : flux SSE privé pour l'écran SOS
