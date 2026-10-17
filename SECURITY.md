@@ -10,6 +10,7 @@ Zotracker manipule des données sensibles : ta **position en temps réel**, ton 
 | Courses, parcours GPX, ravitaillements | `state.json` | Page publique (course en ligne) |
 | Positions GPS (trace, heure) | `state.json`, effacées 90 jours après la course | Page publique, **pendant la course seulement** |
 | Messages et alertes de course | `state.json` | Page publique |
+| Encouragements des supporters (texte, prénom) | `state.json`, purgés après `TRACK_RETENTION_DAYS` | **Admin et coureur** ; page publique seulement s'ils sont publiés |
 | Batterie, alertes de sécurité, SOS | `state.json` | **Admin et contacts ntfy uniquement** |
 | Mot de passe admin | `secrets.json`, **haché** (scrypt) | Personne |
 | Clé du traceur, clés de session et de notification | `secrets.json` | Serveur uniquement |
@@ -48,6 +49,11 @@ Zotracker manipule des données sensibles : ta **position en temps réel**, ton 
   - débit sur l'API GPS, le SOS et les abonnements ;
   - nombre de connexions temps réel par IP.
 - **Minimisation** : la page publique ne reçoit ni la batterie, ni les alertes de sécurité, ni les détails internes.
+- **Encouragements des supporters** :
+  - visibles par l'admin et l'écran SOS du coureur, jamais par le public sans publication explicite ;
+  - aucune IP ni user-agent stocké ni journalisé ; les compteurs de limite sont en mémoire, avec des empreintes HMAC à sel de processus ;
+  - texte brut, sans lien, affiché avec `textContent` ;
+  - les prénoms suivent la même rétention que la trace : purgés après `TRACK_RETENTION_DAYS` (0 = conservés).
 - **Erreurs** : réponses génériques, sans pile d'appels ni détail technique.
 - **Journaux** : aucune URL complète n'est enregistrée, car elles peuvent contenir des clés.
 

@@ -84,8 +84,8 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T10 : doc et SECURITY.md
 - Agent: zt-devops | Modèle: haiku | Parallélisable: oui (après T4) | Dépend de: T4
 - Fichiers: `SECURITY.md`, `README.md`
-- [ ] SECURITY.md : « Cheers : admin et coureur uniquement, sauf messages publiés » + rétention
-- [ ] README : fonctionnalité, seuils et où les ajuster ; aucun secret
+- [x] SECURITY.md : « Cheers : admin et coureur uniquement, sauf messages publiés » + rétention
+- [x] README : fonctionnalité, seuils et où les ajuster ; aucun secret
 - Vérif: `npm run check`, relecture
 
 ## T11 : revue sécurité et vie privée
