@@ -4,7 +4,7 @@ Plan : `tasks/plan-cutoffs.md`. Chaque tâche : test d'abord (`test-driven-devel
 Légende : Agent / Modèle / Parallèle / Dépendances.
 
 ## Phase 1 : fondations
-- [ ] **T1 Validation et ordre des barrières** (XS)
+- [x] **T1 Validation et ordre des barrières** (XS)
   - Agent: zt-backend | Modèle: haiku | Parallèle: oui (avec T2) | Dép.: aucune
   - Fichiers : `server/features/races/cutoffs.js`, `test/races/cutoffs.test.js`
   - `sanitizeCutoff` (null/`''` -> null ; `true`, 0, 1.5, 99999, `'abc'` -> RangeError ; 1 à 4320) et `checkCutoffOrder(aidStations, finishCutoffMin)` (croissant entre barrières renseignées).
