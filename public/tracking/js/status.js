@@ -128,6 +128,9 @@
     setText('nextKm', next.kind === 'finish' ? '' : `km ${ZT.fmtPk(next.km)}`);
     setText('nextAt', next.at ? ZT.fmtClock(next.at) : '');
     setText('nextIn', next.at ? P.fmtUntil(next.at) : 'heure estimée sous peu');
+    const cut = P.cutoffLine(next.cutoff); // rien d'affiché sans barrière
+    $('nextCut').hidden = !cut;
+    $('nextCut').replaceChildren(...(cut ? [cut] : []));
   }
 
   /** Fraîcheur : l'âge de la donnée compte plus qu'un bandeau « hors ligne ». */

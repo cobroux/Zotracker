@@ -65,7 +65,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
   - [ ] `formatMargin(status, marginMs, estimated)` pur : « ✓ Marge 42 min », « ⚠ Marge 8 min », « ✕ Barrière dépassée de 5 min », « ≈ » si estimée, `sr-only` pour le texte complet.
   - [ ] Tokens `--ok`, `--warn-bg`/`--warn-text`, `--danger`, aucune couleur codée en dur ; sans marge, barrière seule.
   - Vérif : `npm test`, `npm run check`, contraste AA clair et sombre à la main.
-- [ ] **T10 Marge dans le bandeau « prochain ravito »** (XS)
+- [x] **T10 Marge dans le bandeau « prochain ravito »** (XS)
   - Agent: zt-frontend | Modèle: haiku | Parallèle: non (après T9, même CSS) | Dép.: T6, T9
   - Fichiers : `public/tracking/js/status.js`, `public/tracking/tracking.css`
   - [ ] Réutilise `formatMargin` ; rien d'affiché sans barrière ; `ZT.el()` seulement.
