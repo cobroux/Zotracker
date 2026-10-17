@@ -52,18 +52,33 @@ function cutoffPoints(race, total) {
   return pts;
 }
 
+/** Heure réelle de passage à `dist` : premier point de trace au-delà, ou l'arrivée si la course est terminée. */
+function passageAt(race, dist, total) {
+  const p = race.track.find((x) => x.along >= dist);
+  if (p) return p.t;
+  return race.session.status === 'finished' && dist === total ? race.session.finishedAt || null : null;
+}
+
 /**
- * Barrières et marges d'une course : [{ dist, cutoffAt|null, marginMs|null }].
- * passages = [{ dist, at }] (heures réelles de passage), etaAt = estimation (injectable pour les tests).
+ * Rapport complet par barrière : { id, name, dist, cutoffMin, cutoffAt, marginMs, status, estimated }.
+ * passages = [{ dist, at }] (sinon déduits de la trace), etaAt = estimation (injectable pour les tests).
+ * Sans estimation ni passage, barrière seule.
  */
-function cutoffMargins(race, passages = [], etaAt = null) {
+function cutoffReport(race, { thresholdMin = 15, etaAt = null, passages = null } = {}) {
   const st = raceStats(race);
   const eta = etaAt || st.etaAt;
   return cutoffPoints(race, st.total).map((p) => {
     const cutoffAt = cutoffLimit(race, p.cutoffMin);
-    const passed = passages.find((x) => Math.abs(x.dist - p.dist) < 1);
-    return { dist: p.dist, cutoffAt, marginMs: cutoffMargin(cutoffAt, passed ? passed.at : null, eta(p.dist)) };
+    const passed = passages && passages.find((x) => Math.abs(x.dist - p.dist) < 1);
+    const passedAt = passages ? (passed ? passed.at : null) : passageAt(race, p.dist, st.total);
+    const marginMs = cutoffMargin(cutoffAt, passedAt, eta(p.dist));
+    return { ...p, cutoffAt, marginMs, status: cutoffStatus(marginMs, thresholdMin), estimated: passedAt == null && marginMs != null };
   });
 }
 
-module.exports = { MAX_CUTOFF_MIN, sanitizeCutoff, checkCutoffOrder, cutoffLimit, cutoffMargin, cutoffStatus, cutoffPoints, cutoffMargins };
+/** Barrières et marges d'une course : [{ dist, cutoffAt|null, marginMs|null }] (consommé par `recap`). */
+function cutoffMargins(race, passages = [], etaAt = null) {
+  return cutoffReport(race, { passages, etaAt }).map(({ dist, cutoffAt, marginMs }) => ({ dist, cutoffAt, marginMs }));
+}
+
+module.exports = { MAX_CUTOFF_MIN, sanitizeCutoff, checkCutoffOrder, cutoffLimit, cutoffMargin, cutoffStatus, cutoffPoints, cutoffReport, cutoffMargins };

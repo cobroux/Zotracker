@@ -31,7 +31,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
   - [ ] `cutoffs: true` et `cutoffMarginMinutes: 15` (bornes 1 à 120) complétés pour un `safetySettings` déjà persisté.
   - [ ] `migrate()` d'un JSON sans barrières : aucune erreur, aucune réécriture, alertes existantes inchangées.
   - Vérif : `npm test`, `npm run check`.
-- [ ] **T6 Exposition publique de la marge** (M)
+- [x] **T6 Exposition publique de la marge** (M)
   - Agent: zt-backend | Modèle: sonnet | Parallèle: oui (avec T3, T4) | Dép.: T2
   - Fichiers : `server/features/tracking/public-state.js`, `test/tracking/`
   - [ ] Lire le fichier d'abord (forme à confirmer). Exposer par ravito et arrivée : `cutoffMin`, `cutoffAt`, `marginMs`, `status`, `estimated` (booléen).
