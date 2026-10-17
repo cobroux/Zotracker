@@ -26,6 +26,7 @@ const cheersAdmin = require('./features/cheers/cheers.admin.routes');
 const adminRaces = require('./features/races/races.routes');
 const adminSession = require('./features/admin/session.routes');
 const adminSettings = require('./features/admin/settings.routes');
+const recapRoutes = require('./features/recap/recap.routes');
 
 const PORT = process.env.PORT || 3000;
 
@@ -96,7 +97,7 @@ app.get('/api/admin/stream', adminSession.adminStream);
 
 const admin = express.Router();
 admin.use(requireAdmin);
-admin.use(adminSettings, adminRaces, cheersAdmin, adminSession.router, authRoutes.adminRouter);
+admin.use(adminSettings, adminRaces, cheersAdmin, recapRoutes.adminRouter, adminSession.router, authRoutes.adminRouter);
 app.use('/api/admin', admin);
 
 app.use(ingestRoutes.ingestRouter); // applis GPS externes
@@ -104,6 +105,7 @@ app.use(sosRoutes.sosRouter); // page SOS du coureur
 app.use(cheersRoutes.publicRouter); // encouragements des supporters
 app.use(cheersSos.sosCheersRouter); // flux privé des encouragements pour l'écran SOS
 app.use(publicRoutes.pushRouter); // notifications push
+app.use(recapRoutes.router); // récap après course
 
 scheduleRetention();
 
