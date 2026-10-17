@@ -91,9 +91,9 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T11 : revue sécurité et vie privée
 - Agent: zt-architect | Modèle: sonnet | Parallélisable: non | Dépend de: T1 à T10
 - Fichiers: aucun (rapport) ; correctifs signalés à zt-backend / zt-frontend
-- [ ] aucune IP ni user-agent dans `state.json`, journaux, réponses ; aucun `innerHTML` ; CSP et dépendances inchangées
-- [ ] boîte jamais dans `/api/state` ni `/api/stream` ; 7 critères de succès vérifiés
+- [x] aucune IP ni user-agent dans `state.json`, journaux, réponses ; aucun `innerHTML` ; CSP et dépendances inchangées
+- [x] boîte jamais dans `/api/state` ni `/api/stream` ; 7 critères de succès vérifiés
 - Vérif: `npm test`, `npm run check`, `git diff --stat`
 
 ### Checkpoint : complet
-- [ ] tout vert, essai local `DATA_DIR=$(mktemp -d) ADMIN_PASSWORD=<12+ car.> npm run dev`, serveur arrêté
+- [x] tout vert, essai local `DATA_DIR=$(mktemp -d) ADMIN_PASSWORD=<12+ car.> npm run dev`, serveur arrêté
