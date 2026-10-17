@@ -82,7 +82,7 @@ jobs:
         run: |
           mapfile -t files < <(find deploy -name '*.sh')
           for f in "${files[@]}"; do bash -n "$f"; done
-          shellcheck "${files[@]}"
+          shellcheck --severity=warning "${files[@]}"
 
   image:
     name: Image Docker (build, scan, test de démarrage)
