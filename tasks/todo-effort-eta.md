@@ -4,14 +4,14 @@ Voir `tasks/plan-effort-eta.md`. Vérification commune : `npm test` et `npm run 
 
 ## Phase 1 : Fondation
 
-- [ ] **T1 : Emplacement de fixture locale gitignorée** (S, parallélisable avec T2)
+- [x] **T1 : Emplacement de fixture locale gitignorée** (S, parallélisable avec T2)
   - Agent: zt-devops | Modèle: haiku | Dépend de : aucune
   - Fichiers : `.gitignore`, `test/fixtures/local/README.md`, `test/helpers/local-gpx.js`
   - Description : ignorer `test/fixtures/local/*` sauf `README.md` ; le helper expose `loadLocalCourse()` (lit `test/fixtures/local/utmb-auvergne.gpx` via `server/features/races/gpx.js`, retourne `null` si absent).
   - Critères : `git check-ignore test/fixtures/local/x.gpx` réussit ; copier le GPX d'Enzo ne fait rien apparaître dans `git status` ; helper retourne `null` sans fichier.
   - Vérification : `npm test`, `npm run check`.
 
-- [ ] **T2 : Profil d'effort (TDD)** (M, parallélisable avec T1)
+- [x] **T2 : Profil d'effort (TDD)** (M, parallélisable avec T1)
   - Agent: zt-backend | Modèle: sonnet | Dépend de : aucune
   - Fichiers : `server/features/tracking/effort.js`, `test/tracking/effort.test.js`
   - Description : `buildEffortProfile(course)` (rééchantillon 25 m, lissage ±75 m, effort cumulé `Float32Array`, `WeakMap`, `null` si < 90 % d'altitudes ou dégénéré), `effortAt(profile, dist)` dichotomique, constantes exportées.

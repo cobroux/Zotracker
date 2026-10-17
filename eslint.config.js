@@ -4,7 +4,7 @@
  * ESLint (flat config). Pas de règles de style : uniquement des erreurs probables.
  *  - backend (server/, test/) : CommonJS + globales Node ;
  *  - front (public/) : scripts classiques chargés par <script>, qui partagent quelques globales ;
- *  - server/features/tracking/stats.js : module UMD servi aussi au navigateur (/shared/stats.js).
+ *  - server/features/tracking/{stats,effort}.js : modules UMD servis aussi au navigateur (/shared/).
  */
 const js = require('@eslint/js');
 const globals = require('globals');
@@ -42,7 +42,7 @@ module.exports = [
     languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
   },
   {
-    files: ['server/features/tracking/stats.js'],
+    files: ['server/features/tracking/stats.js', 'server/features/tracking/effort.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
