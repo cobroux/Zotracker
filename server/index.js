@@ -19,6 +19,7 @@ const { pageRouter } = require('./features/share/page.routes');
 const authRoutes = require('./features/auth/auth.routes');
 const ingestRoutes = require('./features/tracking/ingest.routes');
 const sosRoutes = require('./features/sos/sos.routes');
+const cheersRoutes = require('./features/cheers/cheers.routes');
 const adminRaces = require('./features/races/races.routes');
 const adminSession = require('./features/admin/session.routes');
 const adminSettings = require('./features/admin/settings.routes');
@@ -93,6 +94,7 @@ app.use('/api/admin', admin);
 
 app.use(ingestRoutes.ingestRouter); // applis GPS externes
 app.use(sosRoutes.sosRouter); // page SOS du coureur
+app.use(cheersRoutes.publicRouter); // encouragements des supporters
 app.use(publicRoutes.pushRouter); // notifications push
 
 scheduleRetention();

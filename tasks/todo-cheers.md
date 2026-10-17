@@ -26,10 +26,10 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T3 : `POST /api/cheers` et limites
 - Agent: zt-backend | Modèle: sonnet | Parallélisable: non | Dépend de: T1, T2
 - Fichiers: `server/features/cheers/cheers.routes.js`, `server/index.js`, `server/features/tracking/public-state.js`, `test/cheers/cheers.routes.test.js`
-- [ ] `requireViewer` + `sameOrigin`, corps 2 ko ; `202`, `400` vide/long, `403` module coupé, `429` limites ou file pleine
-- [ ] 3/min et 20/h par IP (/64 IPv6 via `ipKey`), plafond global 30/min ; doublon 10 min refusé ; filtré = même `202`
-- [ ] clés HMAC à sel de processus ; aucune IP stockée ni journalisée
-- [ ] `publicState` expose `cheersEnabled` seulement
+- [x] `requireViewer` + `sameOrigin`, corps 2 ko ; `202`, `400` vide/long, `403` module coupé, `429` limites ou file pleine
+- [x] 3/min et 20/h par IP (/64 IPv6 via `ipKey`), plafond global 30/min ; doublon 10 min refusé ; filtré = même `202`
+- [x] clés HMAC à sel de processus ; aucune IP stockée ni journalisée
+- [x] `publicState` expose `cheersEnabled` seulement
 - Vérif: `node --test test/cheers/`, `npm test`, `npm run check`
 
 ## T4 : routes admin et publication
