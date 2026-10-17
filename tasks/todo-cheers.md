@@ -15,13 +15,13 @@ Vérification commune : `npm test` et `npm run check` verts.
 ## T2 : état par défaut et rétention
 - Agent: zt-backend | Modèle: haiku | Parallélisable: oui (avec T1) | Dépend de: aucune
 - Fichiers: `server/core/store.js`, `server/core/retention.js`, `test/core/retention.test.js`
-- [ ] `race.cheers = []`, `race.cheersCfg = { enabled, publish: false }` ; actif pour les nouvelles courses, coupé pour l'existante
-- [ ] `purgeOldTracks` vide `cheers` après `RETENTION_DAYS` (0 = conservé)
-- [ ] ancien `state.json` sans ces champs chargé sans erreur
+- [x] `race.cheers = []`, `race.cheersCfg = { enabled, publish: false }` ; actif pour les nouvelles courses, coupé pour l'existante
+- [x] `purgeOldTracks` vide `cheers` après `RETENTION_DAYS` (0 = conservé)
+- [x] ancien `state.json` sans ces champs chargé sans erreur
 - Vérif: `node --test test/core/`, `npm test`, `npm run check`
 
 ### Checkpoint : T1 et T2
-- [ ] `npm test` et `npm run check` verts
+- [x] `npm test` et `npm run check` verts
 
 ## T3 : `POST /api/cheers` et limites
 - Agent: zt-backend | Modèle: sonnet | Parallélisable: non | Dépend de: T1, T2

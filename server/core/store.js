@@ -22,6 +22,8 @@ function newRace(fields = {}) {
     session: defaultSession(),
     track: [],
     messages: [],
+    cheers: [], // encouragements des supporters (boîte privée : jamais dans l'état public)
+    cheersCfg: { enabled: true, publish: false },
     alerts: [],
     alertsFired: {},
     safety: { alerts: [], fired: {}, sos: null },
@@ -48,7 +50,7 @@ function migrate(saved) {
   if (!saved) return defaultState();
   if (saved.races) {
     const state = { ...defaultState(), ...saved };
-    state.races = state.races.map((r) => ({ alerts: [], alertsFired: {}, safety: { alerts: [], fired: {}, sos: null }, ...r }));
+    state.races = state.races.map((r) => ({ cheers: [], cheersCfg: { enabled: false, publish: false }, alerts: [], alertsFired: {}, safety: { alerts: [], fired: {}, sos: null }, ...r }));
     // anciennes sessions : endedBy inconnu (null), le front affiche alors l'état neutre « Course terminée »
     for (const r of state.races) if (r.session && r.session.endedBy === undefined) r.session = { ...r.session, endedBy: null };
     return state;
@@ -63,6 +65,7 @@ function migrate(saved) {
       session: saved.session || defaultSession(),
       track: saved.track || [],
       messages: saved.messages || [],
+      cheersCfg: { enabled: false, publish: false }, // course existante : l'admin allume le module
     });
     state.races.push(race);
     state.activeRaceId = race.id;
