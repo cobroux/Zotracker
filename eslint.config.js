@@ -51,7 +51,7 @@ module.exports = [
     rules: { 'no-implicit-globals': 'error' },
   },
   {
-    files: ['public/recap/js/timeline.js'], // module UMD : aussi chargé par node:test
+    files: ['public/recap/js/timeline.js', 'public/recap/js/format.js'], // module UMD : aussi chargé par node:test
     languageOptions: { globals: { ...globals.node } },
   },
   {

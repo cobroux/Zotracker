@@ -34,3 +34,15 @@
   .replay-map { height: 420px; }
   .replay-out { flex-basis: auto; min-width: 12ch; }
 }
+
+/* ---------------------------------------------------------------- tableau */
+
+.recap-splits { margin: 0 0 var(--sp-6); }
+.recap-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.recap-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: var(--fs-sm); }
+.recap-table caption { padding: var(--sp-3) var(--sp-4); text-align: left; color: var(--muted); }
+.recap-table th, .recap-table td { padding: var(--sp-3) var(--sp-3); text-align: left; border-top: 1px solid var(--line); white-space: nowrap; }
+.recap-table thead th { color: var(--muted); font-weight: var(--fw-medium); }
+.recap-table tbody th { font-weight: var(--fw-bold); }
+.recap-late { color: var(--danger); font-weight: var(--fw-medium); }
+.recap-early { color: var(--ok); font-weight: var(--fw-medium); }
