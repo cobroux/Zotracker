@@ -3,7 +3,7 @@
 // Logique pure du rejeu : temps écoulé -> point de la trace, pas clavier, texte d'accessibilité.
 const test = require('node:test');
 const assert = require('node:assert');
-const { pointAt, advance, keyStep, valueText } = require('../../public/recap/js/timeline');
+const { pointAt, advance, speedFor, keyStep, valueText } = require('../../public/recap/js/timeline');
 
 const track = [
   { dt: 0, lat: 45, lon: 6, ele: 100, dist: 0 },
@@ -33,6 +33,13 @@ test('pointAt : écart d’au plus un point avec la trace (marqueur et profil re
 test('advance : temps réel x vitesse, borné à la durée', () => {
   assert.strictEqual(advance(1000, 2000, 60, 1e9), 1000 + 120_000);
   assert.strictEqual(advance(900, 500, 300, 1000), 1000);
+});
+
+test('speedFor : une course de 13 h tient en 1 min de lecture, la vitesse suit la durée', () => {
+  const course = 13 * 3600_000;
+  assert.strictEqual(advance(0, 60_000, speedFor(course, 60_000), course), course);
+  assert.strictEqual(advance(0, 30_000, speedFor(course, 30_000), course), course);
+  assert.strictEqual(speedFor(course, 600_000), 78);
 });
 
 test('keyStep : flèches +/-1 %, PageUp/PageDown +/-10 %, bornes', () => {

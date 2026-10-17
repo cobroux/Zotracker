@@ -35,7 +35,6 @@
     return el('div', { class: 'pass-more', id: `${idPrefix}${Math.round(p.dist)}` },
       p.info && el('p', { class: 'pass-info' }, p.info),
       el('p', { class: 'pass-when' }, whenLine(p), fromMe ? ` · à ${ZT.fmtDist(fromMe)} de toi` : ''),
-      p.cutoff && el('p', { class: 'pass-cut' }, P.cutoffLine(p.cutoff)),
       !p.passed && ll && P.goButton(ll[0], ll[1], p.name),
     );
   }

@@ -169,7 +169,6 @@ button.pass-row:active:not(:disabled) { transform: none; }
 .cut.is-ok { color: var(--ok); }
 .cut.is-tight { background: var(--warn-bg); color: var(--warn-text); border-radius: 6px; padding: 0 6px; align-self: flex-start; }
 .cut.is-over { color: var(--danger); font-weight: var(--fw-medium); }
-.pass-cut { margin: 0; }
 .next-cut { margin-top: 2px; }
 .next-cut .cut.is-tight { display: inline-block; }
 .pass-time { font-size: var(--fs-lg); font-weight: var(--fw-medium); white-space: nowrap; }

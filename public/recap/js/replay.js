@@ -4,7 +4,9 @@
 (() => {
   const R = window.ZTR;
   const T = window.ZTRTimeline;
-  const SPEEDS = [1, 10, 60, 300];
+  // durée de lecture de la course entière (ms) ; la vitesse en découle
+  const REPLAY_MS = [[30_000, '30 s'], [60_000, '1 min'], [180_000, '3 min'], [600_000, '10 min']];
+  const DEFAULT_REPLAY_MS = 60_000;
 
   function init({ recap }) {
     const track = recap.track || [];
@@ -22,7 +24,8 @@
     const mapDiv = R.el('div', { class: 'replay-map', id: 'replayMap' });
     const canvas = R.el('canvas', { class: 'replay-profile', role: 'img', 'aria-label': 'Profil d’altitude du parcours avec la position du rejeu' });
     const playBtn = R.el('button', { type: 'button', class: 'replay-play' }, 'Lecture');
-    const speed = R.el('select', { id: 'replaySpeed' }, SPEEDS.map((v) => R.el('option', { value: v }, `×${v}`)));
+    const speed = R.el('select', { id: 'replaySpeed' }, REPLAY_MS.map(([ms, label]) => R.el('option', { value: ms }, label)));
+    speed.value = String(DEFAULT_REPLAY_MS);
     const range = R.el('input', { type: 'range', id: 'replayRange', min: 0, max: duration, step: 1000, value: 0 });
     const out = R.el('output', { class: 'replay-out num', for: 'replayRange' });
     host.append(R.el('section', { class: 'replay', 'aria-labelledby': 'replayTitle' },
@@ -36,7 +39,8 @@
         out)));
 
     const latlngs = track.map((p) => [p.lat, p.lon]);
-    const map = L.map(mapDiv, { zoomControl: true });
+    // la molette fait défiler la page ; les boutons +/− et le pincement zooment encore
+    const map = L.map(mapDiv, { zoomControl: true, scrollWheelZoom: false });
     ZT.addTiles(map);
     const route = L.polyline(latlngs, { weight: 4 }).addTo(map);
     const done = L.polyline([], { weight: 5 }).addTo(map);
@@ -70,7 +74,7 @@
     let raf = 0;
     let last = 0;
     function frame(now) {
-      setT(T.advance(R.t, now - last, Number(speed.value), duration));
+      setT(T.advance(R.t, now - last, T.speedFor(duration, Number(speed.value)), duration));
       last = now;
       if (R.t >= duration) return pause();
       raf = requestAnimationFrame(frame);

@@ -29,6 +29,9 @@
   /** Nouveau t après `realMs` de lecture à la vitesse `speed`, borné à la durée. */
   const advance = (t, realMs, speed, duration) => Math.min(duration, t + realMs * speed);
 
+  /** Vitesse qui fait durer le rejeu `replayMs` pour une course de `durationMs` (ex. 13 h en 1 min = ×780). */
+  const speedFor = (durationMs, replayMs) => durationMs / replayMs;
+
   /** Pas clavier : flèches ±1 %, PageUp/PageDown ±10 %, Début/Fin ; null pour toute autre touche. */
   function keyStep(key, t, duration) {
     const clamp = (v) => Math.max(0, Math.min(duration, v));
@@ -50,5 +53,5 @@
     return `${time}, km ${(Math.round(distM / 100) / 10).toLocaleString('fr-FR')}`;
   }
 
-  return { pointAt, advance, keyStep, valueText };
+  return { pointAt, advance, speedFor, keyStep, valueText };
 });
