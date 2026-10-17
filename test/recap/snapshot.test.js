@@ -79,3 +79,17 @@ test('purgeOldTracks : un récap déjà figé n’est pas recalculé', () => {
   purgeOldTracks(T0 + N * 10_000 + 91 * DAY);
   assert.deepStrictEqual(race.recap, { frozen: true });
 });
+
+test('snapshotRecap : prévu (effort-eta) et marge barrière (cutoffs) figés en durées, sans horodatage absolu', () => {
+  const race = finished({ targetPace: 600, plannedStart: new Date(T0).toISOString(), aidStations: [{ name: 'Col', km: 2, cutoffMin: 1 }] });
+  const row = snapshotRecap(race).rows[0];
+  assert.strictEqual(typeof row.plannedMs, 'number');
+  assert.strictEqual(row.deltaMs, row.elapsedMs - row.plannedMs);
+  assert.ok(row.marginMs < 0, 'barrière dépassée => marge négative');
+  assert.ok(!JSON.stringify(race.recap).includes(String(T0)));
+});
+
+test('snapshotRecap : sans allure prévue ni barrière, colonnes à null', () => {
+  const row = snapshotRecap(finished()).rows[0];
+  assert.deepStrictEqual([row.plannedMs, row.deltaMs, row.marginMs], [null, null, null]);
+});

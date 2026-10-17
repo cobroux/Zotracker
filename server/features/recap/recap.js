@@ -129,9 +129,15 @@ function decimate(points, max = MAX_POINTS, minStep = MIN_STEP_M) {
  * par publicTrack AVANT d'être décimée : le masque du domicile est donc gravé dans l'instantané, sans
  * horodatage absolu. `extras` = { planned, margins } facultatifs. null si la course n'est pas terminée.
  */
-function snapshotRecap(race, extras = {}) {
+function snapshotRecap(race, extras = null) {
   const s = race.session;
   if (s.status !== 'finished' || s.startedAt == null) return null;
+  if (!extras) {
+    // prévu = effort-eta ; marges = cutoffs sur les passages réels. Absents => null (« n/d »).
+    const { plannedPassages } = require('../tracking/effort');
+    const { cutoffMargins } = require('../races/cutoffs');
+    extras = { planned: plannedPassages(race), margins: cutoffMargins(race, realPassages(race)) };
+  }
   // chargé ici pour que les fonctions pures restent utilisables sans l'état partagé
   const { publicTrack } = require('../tracking/public-state');
   const pts = publicTrack(race).map((p) => ({ dt: p.t - s.startedAt, lat: p.lat, lon: p.lon, ele: race.course ? eleAt(race.course, p.along) : null, dist: p.along }));

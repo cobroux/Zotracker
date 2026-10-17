@@ -69,10 +69,10 @@ Vérification commune à chaque tâche : `npm test` et `npm run check` verts. Ch
 
 ## Phase 3 : intégration (en dernier)
 
-- [ ] **T10 Brancher effort-eta et cutoffs** (S) | Agent: zt-backend | Modèle: haiku (en attente de cutoffs)
+- [x] **T10 Brancher effort-eta et cutoffs** (S) | Agent: zt-backend | Modèle: haiku (en attente de cutoffs)
   Prérequis : modules `effort-eta` et `cutoffs` livrés. Fichiers : `server/features/recap/recap.js`, `server/features/recap/recap.routes.js`, `test/recap/recap.test.js`.
-  - [ ] `plannedPassages(race)` et `cutoffMargins(race, passages)` appelées (signatures de CAPABILITIES.md relues), résultats figés dans `race.recap`.
-  - [ ] Marge négative si barrière dépassée ; contrat absent => `null` (« n/d »), jamais d'invention.
+  - [x] `plannedPassages(race)` et `cutoffMargins(race, passages)` appelées (signatures de CAPABILITIES.md relues), résultats figés dans `race.recap`.
+  - [x] Marge négative si barrière dépassée ; contrat absent => `null` (« n/d »), jamais d'invention.
   - Vérif : test rouge puis vert, `npm test`, `npm run check`. Dépend de : T2, effort-eta, cutoffs.
 
 - [ ] **T11 Doc et recette** (S) | Agent: zt-devops | Modèle: haiku (en attente de cutoffs)
