@@ -41,7 +41,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
 - [ ] **Checkpoint 2** : barrière saisie par l'API, relue, refusée si invalide ; ancien JSON chargé ; `npm test` et `npm run check` verts.
 
 ## Phase 3 : alertes et interfaces
-- [ ] **T5 Alertes privées de barrière** (M)
+- [x] **T5 Alertes privées de barrière** (M)
   - Agent: zt-backend | Modèle: sonnet | Parallèle: oui (avec T7 à T10) | Dép.: T2, T4
   - Fichiers : `server/features/sos/safety.js` (`cutoffAlerts`, appel dans `evaluateSafety`), `test/sos/safety-cutoffs.test.js`
   - [ ] 1 alerte `warning` (clé `cut:tight:<aid.id>`) quand la marge estimée passe sous le seuil, 1 alerte `danger` (`cut:over:<aid.id>`) si dépassée ; texte sans heure absolue.
