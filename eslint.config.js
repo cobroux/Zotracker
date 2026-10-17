@@ -51,6 +51,10 @@ module.exports = [
     rules: { 'no-implicit-globals': 'error' },
   },
   {
+    files: ['public/recap/js/timeline.js'], // module UMD : aussi chargé par node:test
+    languageOptions: { globals: { ...globals.node } },
+  },
+  {
     files: ['public/sw.js'],
     languageOptions: { globals: { ...globals.serviceworker } },
   },
