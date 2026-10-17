@@ -120,6 +120,7 @@ body.public.is-empty .map-wrap { display: none; }
   background: var(--surface); color: var(--text); font-size: var(--fs-sm); font-weight: var(--fw-medium);
   touch-action: manipulation;
 }
+a.btn-quiet { text-decoration: none; }
 .btn-quiet svg { color: var(--accent); flex: none; }
 .btn-quiet .me-pip { fill: currentColor; stroke: none; }
 #locateBtn.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }

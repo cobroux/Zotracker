@@ -162,6 +162,9 @@
     else if (status === 'finished') renderFinished(s);
     else renderRunning(s);
     if (status !== 'running') $('paceDetails').hidden = true;
+    const recapLink = $('recapLink');
+    recapLink.hidden = !(status === 'finished' && P.state.recapEnabled && P.state.race);
+    if (!recapLink.hidden) recapLink.href = P.withKey(`/recap?r=${encodeURIComponent(P.state.race.id)}`);
 
     const pct = s.total && status !== 'idle' ? Math.min(100, (s.progress / s.total) * 100) : 0;
     const bar = $('progressBox');

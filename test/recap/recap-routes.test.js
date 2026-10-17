@@ -33,7 +33,7 @@ const recap = { v: 1, totals: { complete: true, finalMs: 3_600_000, distanceM: 1
 const race = (id, over = {}) => ({
   id, name: `Course ${id}`, location: 'Annecy', plannedStart: '2026-11-14T08:30:00Z', aidStations: [], course: null,
   session: { status: 'finished', startedAt: 1, finishedAt: 3_600_001, endedBy: 'finish' },
-  track: [], messages: [], recap, ...over,
+  track: [], messages: [], alerts: [], recap, ...over,
 });
 function seed(...races) {
   srv.state.races = races;
@@ -107,4 +107,20 @@ test('POST admin : réglage du mode, validé, derrière admin et même origine',
   const ok = await admin('POST', '/api/admin/recap/a/mode', { mode: 'link' });
   assert.strictEqual(ok.status, 200);
   assert.strictEqual(srv.state.races[0].recapMode, 'link');
+});
+
+test('état public : recapEnabled faux pour une course off, sans autre indice', async () => {
+  const set = (over) => { srv.state.races = [race('a', over)]; srv.state.activeRaceId = 'a'; srv.state.privacy.mode = 'public'; };
+  set({});
+  assert.strictEqual((await (await call('GET', '/api/state')).json()).recapEnabled, true);
+  set({ recapMode: 'off' });
+  const off = await (await call('GET', '/api/state')).json();
+  assert.strictEqual(off.recapEnabled, false);
+  assert.ok(!JSON.stringify(off).includes('recapMode'));
+});
+
+test('admin : la configuration expose recapMode de chaque course', async () => {
+  srv.state.races = [race('a', { recapMode: 'link' })];
+  const cfg = await (await admin('GET', '/api/admin/config')).json();
+  assert.strictEqual(cfg.races[0].recapMode, 'link');
 });

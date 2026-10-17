@@ -18,6 +18,19 @@
     return ['', 'À venir'];
   }
 
+  /** Course terminée : lien vers le récap et réglage de sa visibilité (public, lien privé, désactivé). */
+  function recapControls(r, config) {
+    const current = r.recapMode || (config.privacy.mode === 'link' ? 'link' : 'public');
+    const select = el('select', { id: `recapMode-${r.id}`, onchange: action(async () => {
+      await api('POST', `/api/admin/recap/${r.id}/mode`, { mode: select.value });
+      r.recapMode = select.value;
+      toast('Visibilité du récap enregistrée');
+    }) }, [['public', 'Public'], ['link', 'Lien privé'], ['off', 'Désactivé']].map(([v, label]) => el('option', { value: v, selected: v === current ? '' : null }, label)));
+    return el('span', { class: 'race-recap' },
+      el('a', { href: `/recap?r=${encodeURIComponent(r.id)}`, target: '_blank', rel: 'noopener' }, 'Voir le récap'),
+      el('label', { for: select.id }, 'Récap ', select));
+  }
+
   function renderRaceList() {
     const config = state.config;
     const races = [...config.races].sort((a, b) => (Date.parse(a.plannedStart) || a.createdAt) - (Date.parse(b.plannedStart) || b.createdAt));
@@ -48,6 +61,7 @@
           el('div', { class: 'muted small' }, details),
         ),
         el('div', { class: 'race-actions' },
+          r.session.status === 'finished' && recapControls(r, config),
           el('button', { type: 'button', onclick: action(() => openEditor(r.id)) }, 'Modifier'),
           !isLive && el('button', { type: 'button', class: 'primary', onclick: action(async () => {
             setConfig(await api('POST', `/api/admin/races/${r.id}/activate`));

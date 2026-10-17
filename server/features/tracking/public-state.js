@@ -4,6 +4,7 @@
 const { defaultSession } = require('../../core/store');
 const { haversine } = require('../../core/geo');
 const { state, activeRace, TRACK_MASK_M } = require('../../core/context');
+const { recapMode } = require('../recap/recap.routes');
 
 const compactPoint = (p) => [p.lat, p.lon, p.t, p.along];
 
@@ -49,6 +50,7 @@ function publicState({ raw = false } = {}) {
     messages: race ? race.messages : [],
     alerts: race ? race.alerts.slice(0, 50) : [],
     cheersEnabled: !!(race && race.cheersCfg && race.cheersCfg.enabled), // la boîte elle-même n'est jamais publique
+    recapEnabled: !!race && recapMode(race) !== 'off', // le bouton « Voir le récap » ; le mode lui-même reste privé
     serverTime: Date.now(),
   };
 }
