@@ -19,6 +19,8 @@ const DEFAULT_SAFETY = {
   lowBattery: true, // batterie du téléphone (si l'appli GPS la transmet)
   lowBatteryPercent: 15,
   slowdown: false, // allure récente beaucoup plus lente que la moyenne
+  cutoffs: true, // marge estimée sous le seuil ou barrière horaire dépassée
+  cutoffMarginMinutes: 15,
   ntfyTopic: '',
 };
 
@@ -45,6 +47,7 @@ function normalizeSafety(input = {}, prev = {}) {
   num('offCourseMinutes', 1, 60);
   num('signalLostMinutes', 2, 60);
   num('lowBatteryPercent', 5, 50);
+  num('cutoffMarginMinutes', 1, 120);
   const topic = String(input.ntfyTopic !== undefined ? input.ntfyTopic : prev.ntfyTopic || '').trim();
   out.ntfyTopic = TOPIC_RE.test(topic) ? topic : prev.ntfyTopic && TOPIC_RE.test(prev.ntfyTopic) ? prev.ntfyTopic : newTopic();
   return out;

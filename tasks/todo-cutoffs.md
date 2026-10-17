@@ -25,7 +25,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
   - [ ] `sanitizeAidStations` garde `cutoffMin` ; `applyRaceFields` gère `finishCutoffMin` ; ordre vérifié par `checkCutoffOrder`.
   - [ ] Valeur invalide ou non croissante : 400 message générique, course inchangée ; sans admin 401 ; hors même origine 403 ; barrière absente acceptée ; suppression possible.
   - Vérif : `node --test test/races/races.test.js`, `npm test`, `npm run check`.
-- [ ] **T4 Réglages et migration** (S)
+- [x] **T4 Réglages et migration** (S)
   - Agent: zt-backend | Modèle: haiku | Parallèle: oui (avec T3, T6) | Dép.: aucune
   - Fichiers : `server/features/sos/safety.js` (`DEFAULT_SAFETY`, `normalizeSafety` seulement), `server/core/store.js` (si besoin), `test/core/`, `test/sos/`
   - [ ] `cutoffs: true` et `cutoffMarginMinutes: 15` (bornes 1 à 120) complétés pour un `safetySettings` déjà persisté.

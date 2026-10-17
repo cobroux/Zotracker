@@ -160,3 +160,14 @@ test('clé SOS distincte de la clé du traceur, ajoutée aux installations exist
   s.update({ sosKey: 'nouvelle-cle-sos' });
   assert.strictEqual(new Store(dir).secrets().sosKey, 'nouvelle-cle-sos');
 });
+
+test('migrate : un JSON sans barrières se charge tel quel (aucun champ ajouté aux ravitos)', () => {
+  const { migrate } = require('../../server/core/store');
+  const saved = { races: [{ id: 'r', name: 'Vieux', aidStations: [{ id: 'a', name: 'R1', km: 5, info: '' }], session: { status: 'idle' } }], activeRaceId: 'r' };
+  const copy = JSON.stringify(saved);
+  const state = migrate(saved);
+  assert.strictEqual(JSON.stringify(saved), copy, 'entrée non modifiée');
+  assert.deepStrictEqual(state.races[0].aidStations, [{ id: 'a', name: 'R1', km: 5, info: '' }]);
+  assert.strictEqual(state.races[0].finishCutoffMin, undefined);
+  assert.deepStrictEqual(state.races[0].alerts, []);
+});
