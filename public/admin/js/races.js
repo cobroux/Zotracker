@@ -3,6 +3,7 @@
 
 (() => {
   const { $, el, state, api, toast, action, toLocalInput, fromLocalInput, setConfig } = ZTA;
+  const { parseHM, fmtHM } = window.ZTCutoffs;
 
   let editId = null; // course en cours d'édition
   let isNew = false; // éditeur ouvert sur une course pas encore créée : rien n'existe côté serveur avant « Enregistrer »
@@ -142,6 +143,7 @@
     f.distanceKm.value = r.distanceKm ?? '';
     f.targetPace.value = r.targetPace ? ZT.fmtPace(r.targetPace).replace('/km', '').replace("'", ':').replace('"', '') : '';
     f.description.value = r.description || '';
+    $('finishCutoffBox').replaceChildren(cutoffField('finishCutoff', r.finishCutoffMin));
     showEditor(r, scroll);
   }
 
@@ -196,7 +198,22 @@
       km: row.querySelector('[name=km]').value,
       name: row.querySelector('[name=aidName]').value,
       info: row.querySelector('[name=info]').value,
+      cutoffMin: parseHM(row.querySelector('[name=cutoff]').value),
     }));
+  }
+
+  /** Heure limite en lecture (« Limite 10:30 »), si le départ prévu est connu et la saisie valide. */
+  function limitHint(text) {
+    const start = Date.parse(fromLocalInput($('raceForm').plannedStart.value));
+    const min = parseHM(text);
+    return Number.isFinite(start) && min ? `Limite ${ZT.fmtClock(start + min * 60_000)}` : '';
+  }
+
+  /** Champ « H:MM » + heure limite calculée ; l'heure limite se met à jour à la frappe. */
+  function cutoffField(name, min, className = '') {
+    const hint = el('span', { class: 'help', 'aria-live': 'polite' }, limitHint(fmtHM(min)));
+    const input = el('input', { name, value: fmtHM(min), placeholder: 'H:MM', maxlength: '5', inputmode: 'numeric', autocomplete: 'off', oninput: () => { hint.textContent = limitHint(input.value); raceTrack.dirty(); } });
+    return el('label', { class: className }, 'Barrière', input, hint);
   }
 
   function renderAidList() {
@@ -205,6 +222,7 @@
       el('div', { class: 'aid-row', 'data-id': a.id || '' },
         el('label', { class: 'aid-km' }, 'Km', el('input', { name: 'km', type: 'number', step: 'any', min: '0', value: a.km, required: true, onchange: () => { readAidRows(); renderAidMarkers(); } })),
         el('label', { class: 'aid-name' }, 'Nom', el('input', { name: 'aidName', maxlength: '80', value: a.name, placeholder: 'Ravito 1' })),
+        cutoffField('cutoff', a.cutoffMin, 'aid-cutoff'),
         el('label', { class: 'aid-info' }, 'Proposé', el('input', { name: 'info', maxlength: '200', value: a.info, placeholder: 'Eau, fruits, gels…' })),
         el('button', { type: 'button', class: 'link danger', title: 'Retirer', 'aria-label': 'Retirer ce ravitaillement', onclick: () => {
           readAidRows();
@@ -220,7 +238,7 @@
 
   function addAid(km) {
     readAidRows();
-    editAid.push({ id: '', km: km == null ? '' : Math.round(km * 10) / 10, name: `Ravito ${editAid.length + 1}`, info: '' });
+    editAid.push({ id: '', cutoffMin: null, km: km == null ? '' : Math.round(km * 10) / 10, name: `Ravito ${editAid.length + 1}`, info: '' });
     renderAidList();
     raceTrack.dirty();
   }
@@ -241,7 +259,10 @@
     readAidRows();
     const f = e.target;
     if (!f.name.value.trim()) { f.name.focus(); throw new Error('Donne un nom à la course.'); }
+    const finishCutoffMin = parseHM($('finishCutoffBox').querySelector('input').value);
+    if ([finishCutoffMin, ...editAid.map((a) => a.cutoffMin)].some(Number.isNaN)) throw new Error('Barrière invalide : saisis une durée au format H:MM (ex. 2:30).');
     const body = {
+      finishCutoffMin,
       name: f.name.value,
       location: f.location.value,
       plannedStart: fromLocalInput(f.plannedStart.value),

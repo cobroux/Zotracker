@@ -48,7 +48,7 @@ Légende : Agent / Modèle / Parallèle / Dépendances.
   - [ ] Test : 10 ticks = 1 seule alerte `tight` par ravito ; rien si `cutoffs: false` ou sans barrière ; aucune exposition publique.
   - [ ] Simulation : pas de ntfy sans `simNotify` (code `checkAlerts` inchangé).
   - Vérif : `node --test test/sos`, `npm test`, `npm run check`.
-- [ ] **T7 Champ Barrière dans l'éditeur de course** (S)
+- [x] **T7 Champ Barrière dans l'éditeur de course** (S)
   - Agent: zt-frontend | Modèle: haiku | Parallèle: oui | Dép.: T3
   - Fichiers : `public/admin/js/races.js`, `public/admin/js/` (helper `H:MM`), `test/admin/`
   - [ ] Champ « Barrière » `H:MM` après le départ, à côté de Km / Nom / Proposé, plus un champ pour l'arrivée ; heure limite calculée en lecture si `plannedStart` connu.
