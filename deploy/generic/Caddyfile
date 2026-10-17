@@ -1,3 +1,4 @@
+# Chemin générique (ghcr + Caddy propre), NON utilisé sur Oracle : voir deploy/oracle/
 # Reverse proxy HTTPS (certificat Let's Encrypt automatique et renouvelé).
 {
 	email {$ACME_EMAIL}

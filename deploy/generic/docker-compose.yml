@@ -1,3 +1,4 @@
+# Chemin générique (ghcr + Caddy propre), NON utilisé sur Oracle : voir deploy/oracle/
 # Déploiement de production : Zotracker derrière Caddy (HTTPS automatique Let's Encrypt).
 # Sur le serveur : /opt/zotracker/{docker-compose.yml,Caddyfile,.env,deploy.sh,backup.sh,restore.sh}
 name: zotracker

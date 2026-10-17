@@ -15,6 +15,7 @@ Ce guide met Zotracker en ligne sur un petit serveur (VPS), en HTTPS. Une fois e
 
 **Budget** : environ 4 à 6 €/mois pour un VPS de 1 vCPU / 1 Go de RAM (Hetzner, OVH, Scaleway…), plus un nom de domaine (environ 10 €/an). C'est largement suffisant pour des milliers de supporters.
 
+
 ---
 
 ## 1. Le serveur
@@ -25,7 +26,7 @@ Ce guide met Zotracker en ligne sur un petit serveur (VPS), en HTTPS. Une fois e
 
    ```bash
    ssh root@IP_DU_SERVEUR
-   curl -fsSLO https://raw.githubusercontent.com/cobroux/zotracker/main/deploy/server-setup.sh
+   curl -fsSLO https://raw.githubusercontent.com/cobroux/zotracker/main/deploy/generic/server-setup.sh
    less server-setup.sh
    bash server-setup.sh
    ```
@@ -45,7 +46,7 @@ Ce guide met Zotracker en ligne sur un petit serveur (VPS), en HTTPS. Une fois e
 Depuis ton ordinateur, dans le dossier du projet :
 
 ```bash
-scp deploy/{docker-compose.yml,Caddyfile,.env.example,deploy.sh,backup.sh,restore.sh} deploy@IP_DU_SERVEUR:/opt/zotracker/
+scp deploy/generic/{docker-compose.yml,Caddyfile,.env.example,deploy.sh} deploy/{backup.sh,restore.sh} deploy@IP_DU_SERVEUR:/opt/zotracker/
 ```
 
 Sur le serveur :

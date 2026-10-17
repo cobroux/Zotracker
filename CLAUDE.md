@@ -15,7 +15,7 @@ public/tracking/js/       page publique (namespace window.ZTP), tracking.css
 public/admin/js/          admin par vue (namespace window.ZTA), admin.css
 public/sos/                page SOS (sos.js, sos-core.js, sos.css)
 test/<fonctionnalité>/     node:test, un sous-dossier par fonctionnalité (core, tracking, sos, races, alerts, auth, simulation, admin, share, pages), un fichier *.test.js par module ou parcours
-deploy/                    docker-compose de prod, Caddyfile, scripts déploiement / sauvegarde / restauration
+deploy/                    scripts sauvegarde / restauration ; deploy/generic/ = docker-compose, Caddyfile, deploy.sh (chemin générique, non utilisé sur Oracle)
 .github/workflows/         CI (tests, audit, gitleaks, image + Trivy), CodeQL, déploiement continu sur main
 ```
 
