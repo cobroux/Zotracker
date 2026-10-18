@@ -1,5 +1,7 @@
 # Zotracker : architecture et plan d'amélioration
 
+> Évolution vers une version commercialisable (multi-comptes, paiement) : voir [ADR 0001](adr/0001-architecture-saas.md).
+
 Établi le 14/10/2026 à partir du graphe graphify (`graphify-out/`, 482 nœuds, 848 liens, 22 communautés), d'une revue de code et d'un audit de sécurité.
 
 ## 1. Architecture actuelle
