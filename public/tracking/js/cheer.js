@@ -13,9 +13,9 @@
 
   function updateCount() { $('cheerCount').textContent = `${$('cheerText').value.length}/${MAX}`; }
 
-  /** Carte visible seulement si le module est actif pour la course en ligne. */
+  /** Carte visible seulement si le module est actif et la course pas terminée (l'événement session ne renvoie pas cheersEnabled). */
   function render() {
-    $('cheerBox').hidden = !(P.state && P.state.cheersEnabled);
+    $('cheerBox').hidden = !(P.state && P.state.cheersEnabled && P.status() !== 'finished');
   }
 
   async function send(e) {
@@ -51,4 +51,5 @@
   $('cheerText').addEventListener('input', updateCount);
   $('cheerForm').addEventListener('submit', send);
   P.on('course', render);
+  P.on('progress', render);
 })();
