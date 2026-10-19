@@ -37,6 +37,9 @@ function validateCheer(body) {
   return { ok: true, text, name };
 }
 
+/** Dépôt ouvert : module actif et course pas encore terminée (après l'arrivée, plus personne ne lit). */
+const cheersOpen = (race) => !!(race && race.cheersCfg && race.cheersCfg.enabled && race.session.status !== 'finished');
+
 /**
  * Ajoute un message (en tête) à race.cheers. Refuse (reason 'full') au-delà de MAX_PENDING non lus :
  * jamais d'éviction d'un message non lu. Au-delà de MAX_PER_RACE, les plus anciens déjà traités partent.
@@ -83,4 +86,4 @@ function createDuplicateGuard(windowMs = DUPLICATE_WINDOW_MS) {
   };
 }
 
-module.exports = { MAX_TEXT, MAX_NAME, MAX_PENDING, MAX_PER_RACE, DUPLICATE_WINDOW_MS, validateCheer, addCheer, removeSimCheers, createDuplicateGuard, ipHash };
+module.exports = { MAX_TEXT, MAX_NAME, MAX_PENDING, MAX_PER_RACE, DUPLICATE_WINDOW_MS, validateCheer, cheersOpen, addCheer, removeSimCheers, createDuplicateGuard, ipHash };

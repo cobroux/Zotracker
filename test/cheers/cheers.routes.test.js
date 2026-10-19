@@ -90,6 +90,15 @@ test('403 : module coupé pour la course', async () => {
   race.cheersCfg.enabled = true;
 });
 
+test('403 : course terminée, et publicState ferme la carte', async () => {
+  const race = activeRace();
+  const prev = race.session.status;
+  race.session.status = 'finished';
+  assert.strictEqual((await cheer({ text: 'bravo' })).status, 403);
+  assert.strictEqual((await (await fetch(base + '/api/state')).json()).cheersEnabled, false);
+  race.session.status = prev;
+});
+
 test('429 : file pleine (50 non lus), aucune éviction', async () => {
   const race = activeRace();
   const saved = race.cheers;
