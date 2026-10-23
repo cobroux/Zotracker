@@ -79,11 +79,14 @@
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        URL.revokeObjectURL(img.src);
         resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
       img.onerror = () => reject(new Error("Impossible de lire l'image"));
-      img.src = URL.createObjectURL(file);
+      // data: plutôt que blob: : la CSP (img-src 'self' data:) bloque les URL blob:
+      const reader = new FileReader();
+      reader.onload = () => { img.src = reader.result; };
+      reader.onerror = img.onerror;
+      reader.readAsDataURL(file);
     });
   }
 

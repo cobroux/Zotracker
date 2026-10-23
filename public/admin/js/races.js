@@ -90,6 +90,16 @@
 
   const adminMap = L.map('adminMap').setView([46.6, 2.4], 5);
   ZT.addTiles(adminMap);
+  // Recadrage sur le tracé dès que la carte a une taille réelle : masquée (vue cachée, éditeur fermé),
+  // Leaflet la croit large de 0 px et fitBounds reste sur la France.
+  let fitPending = false;
+  const fitWhenVisible = () => { fitPending = true; onMapResize(); };
+  function onMapResize() {
+    if (!$('adminMap').offsetWidth) return;
+    adminMap.invalidateSize();
+    if (fitPending) { fitPending = false; renderEditorCourse(true); }
+  }
+  new ResizeObserver(onMapResize).observe($('adminMap'));
   const courseLine = L.polyline([], { color: ZT.cssVar('--track-done'), weight: 4 }).addTo(adminMap);
   window.addEventListener('themechange', () => courseLine.setStyle({ color: ZT.cssVar('--track-done') }));
   const aidLayer = L.layerGroup().addTo(adminMap);
@@ -119,7 +129,7 @@
         if (isNew) f.name.focus({ preventScroll: true });
       }, 60);
     }
-    if (r) setTimeout(() => { adminMap.invalidateSize(); renderEditorCourse(true); }, 50); // la carte était masquée
+    if (r) fitWhenVisible();
   }
 
   /** Ouvrir une autre course (ou une nouvelle) alors que l'éditeur a des modifications : on demande avant de les perdre. */
@@ -343,7 +353,7 @@
 
   /** La vue redevient visible : la carte de l'éditeur était masquée, recalcul de sa taille. */
   function onViewShown() {
-    if (editId && !isNew) setTimeout(() => { adminMap.invalidateSize(); renderEditorCourse(true); }, 50);
+    if (editId && !isNew) fitWhenVisible();
   }
 
   ZTA.races = { onConfig, onViewShown };
