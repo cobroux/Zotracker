@@ -18,8 +18,8 @@ test('CARTO avec clé à caractères spéciaux : clé encodée dans l’URL, sec
   assert.ok(CARTO_KEY.test(key));
   state.map = { provider: 'carto', maptilerKey: '', cartoKey: key };
   const t = currentTiles();
-  assert.equal(t.url, `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`);
-  assert.equal(new URL(t.url.replace(/\{[xyz]\}/g, '0')).searchParams.get('key'), key);
+  assert.equal(t.url, `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(key)}`);
+  assert.equal(new URL(t.url.replace(/\{[xyzr]\}/g, '0')).searchParams.get('key'), key);
   assert.match(t.attribution, /CARTO/);
   assert.match(t.fallback.url, /^https:\/\/tile\.openstreetmap\.org\//);
   assert.deepEqual(tileHosts(), ['https://basemaps.cartocdn.com', 'https://tile.openstreetmap.org']);
@@ -39,7 +39,10 @@ test('MapTiler avec clé à caractères spéciaux : clé encodée dans l’URL',
   const t = currentTiles();
   assert.match(t.url, /^https:\/\/api\.maptiler\.com\/maps\/dataviz-v4-light\//);
   assert.match(t.dark, /^https:\/\/api\.maptiler\.com\/maps\/dataviz-v4-dark\//);
-  assert.equal(new URL(t.url.replace(/\{[xyz]\}/g, '0')).searchParams.get('key'), key);
-  assert.equal(new URL(t.dark.replace(/\{[xyz]\}/g, '0')).searchParams.get('key'), key);
+  assert.equal(new URL(t.url.replace(/\{[xyzr]\}/g, '0')).searchParams.get('key'), key);
+  assert.equal(new URL(t.dark.replace(/\{[xyzr]\}/g, '0')).searchParams.get('key'), key);
+  // tuiles @2x sur écran Retina (Leaflet remplace {r}), sinon la carte paraît pixélisée
+  assert.match(t.url, /\/256\/\{z\}\/\{x\}\/\{y\}\{r\}\.png\?/);
+  assert.match(t.dark, /\/256\/\{z\}\/\{x\}\/\{y\}\{r\}\.png\?/);
   state.map = { provider: 'osm', maptilerKey: '', cartoKey: '' };
 });
