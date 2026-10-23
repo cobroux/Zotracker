@@ -54,7 +54,8 @@
   --accent-btn: #1d4ed8;      /* fonds de boutons (texte blanc lisible) */
   --accent-strong: #1e3a8a;
   --accent-soft: #e6eeff;
-  --ink-btn: #0b2545;         /* bouton principal foncé (alertes), drapeau d'arrivée */
+  --ink-btn: #0b2545;         /* bouton principal foncé (alertes) */
+  --checker: #0b1220;         /* damier de l'arche d'arrivée (avec --on-accent), identique dans les deux thèmes */
   --track-done: #1d4ed8;      /* tracé parcouru : bleu, distinct du marqueur orange */
   --marker: #ea580c;          /* marqueur par défaut du coureur (cf. js/common/map.js) */
   --on-pulse: #7df9e9;        /* point animé sur fond --accent-btn */
