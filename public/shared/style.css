@@ -177,6 +177,7 @@ html.dark .theme-ico-moon { display: none; }
 /* ---------------------------------------------------------------- carte (Leaflet) */
 
 html.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(185deg) brightness(.92) contrast(.88) saturate(.55); }
+html.dark .leaflet-container.native-dark .leaflet-tile-pane { filter: none; } /* l’emporte sur tracking.css */
 .leaflet-container { font-family: var(--font); }
 .leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 85%, transparent) !important; color: var(--muted) !important; }
 .leaflet-control-attribution a { display: inline-block; min-height: 24px; min-width: 24px; line-height: 24px; padding: 0 3px; }
