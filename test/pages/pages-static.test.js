@@ -52,3 +52,13 @@ test('admin.html : toute saisie est étiquetée (aria-label, label for ou label 
   }
   assert.deepEqual(orphans, []);
 });
+
+test('JS du front : pas d’URL blob: (la CSP img-src ne les autorise pas, la photo de profil ne se chargeait pas)', () => {
+  const { securityHeaders } = require('../../server/core/security');
+  const headers = {};
+  securityHeaders()({ path: '/', secure: false }, { set: (h) => Object.assign(headers, h) }, () => {});
+  const imgSrc = headers['Content-Security-Policy'].match(/img-src ([^;]+)/)[1];
+  if (imgSrc.includes('blob:')) return;
+  const files = fs.readdirSync(PUBLIC, { recursive: true }).filter((f) => f.endsWith('.js') && !f.includes('vendor'));
+  for (const f of files) assert.doesNotMatch(read(f), /createObjectURL/, f);
+});

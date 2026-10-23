@@ -96,7 +96,7 @@ router.post('/tracker-key/rotate', (req, res) => {
 
 router.put('/map', (req, res) => {
   const b = req.body || {};
-  const provider = b.provider === 'maptiler' ? 'maptiler' : 'osm';
+  const provider = b.provider === 'maptiler' ? 'maptiler' : 'carto';
   const key = String(b.maptilerKey || '').trim();
   if (provider === 'maptiler' && !MAPTILER_KEY.test(key)) return res.status(400).json({ error: 'Clé MapTiler invalide (lettres et chiffres uniquement).' });
   state.map = { provider, maptilerKey: provider === 'maptiler' ? key : state.map.maptilerKey };
