@@ -99,7 +99,7 @@ router.put('/map', (req, res) => {
   const provider = ['maptiler', 'carto'].includes(b.provider) ? b.provider : 'osm';
   const key = String(b.maptilerKey || '').trim();
   const cartoKey = String(b.cartoKey || '').trim();
-  if (provider === 'maptiler' && !MAPTILER_KEY.test(key)) return res.status(400).json({ error: 'Clé MapTiler invalide (lettres et chiffres uniquement).' });
+  if (provider === 'maptiler' && !MAPTILER_KEY.test(key)) return res.status(400).json({ error: 'Clé MapTiler invalide (8 à 256 caractères, sans espace).' });
   if (provider === 'carto' && !CARTO_KEY.test(cartoKey)) return res.status(400).json({ error: 'Clé CARTO invalide (8 à 256 caractères, sans espace).' });
   state.map = {
     provider,

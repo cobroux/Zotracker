@@ -4,7 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { state } = require('../../server/core/context');
-const { currentTiles, tileHosts, CARTO_KEY } = require('../../server/features/tracking/tiles');
+const { currentTiles, tileHosts, CARTO_KEY, MAPTILER_KEY } = require('../../server/features/tracking/tiles');
 
 test('sans clé : OpenStreetMap, secours OpenTopoMap', () => {
   state.map = { provider: 'osm', maptilerKey: '', cartoKey: '' };
@@ -32,8 +32,12 @@ test('CARTO sans clé valide : retour à OpenStreetMap', () => {
   assert.ok(!CARTO_KEY.test('court'));
 });
 
-test('MapTiler avec clé', () => {
-  state.map = { provider: 'maptiler', maptilerKey: 'AbCdEf123456', cartoKey: '' };
-  assert.match(currentTiles().url, /^https:\/\/api\.maptiler\.com\//);
+test('MapTiler avec clé à caractères spéciaux : clé encodée dans l’URL', () => {
+  const key = 'AbC-dEf_123.456$=';
+  assert.ok(MAPTILER_KEY.test(key));
+  state.map = { provider: 'maptiler', maptilerKey: key, cartoKey: '' };
+  const t = currentTiles();
+  assert.match(t.url, /^https:\/\/api\.maptiler\.com\//);
+  assert.equal(new URL(t.url.replace(/\{[xyz]\}/g, '0')).searchParams.get('key'), key);
   state.map = { provider: 'osm', maptilerKey: '', cartoKey: '' };
 });
