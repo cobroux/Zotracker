@@ -79,17 +79,16 @@
 
     const first = c.points[0];
     const lastP = c.points[c.points.length - 1];
-    // l'étiquette, reliée par une tige au point exact du tracé, se place du côté opposé (au nord si le tracé part vers le sud)
-    const flag = (txt, cls, from, toward) => {
-      const side = toward[0] > from[0] ? 'is-below' : '';
-      const icon = L.divIcon({ className: 'flag-icon', html: P.el('span', { class: `flag ${cls} ${side}` }, txt), iconSize: null });
-      return L.marker([from[0], from[1]], { icon, zIndexOffset: 600, interactive: false, keyboard: false }).addTo(layers.markers);
+    // petite arche centrée pile sur l'extrémité du tracé, qui passe dessous
+    const arch = (txt, cls, at) => {
+      const icon = L.divIcon({ className: 'arch-icon', html: P.el('span', { class: `arch ${cls}` }, P.el('span', {}, txt)), iconSize: null });
+      return L.marker([at[0], at[1]], { icon, zIndexOffset: 600, interactive: false, keyboard: false }).addTo(layers.markers);
     };
     if (map.distance([first[0], first[1]], [lastP[0], lastP[1]]) < 100) {
-      flag('Départ et arrivée', 'start', first, ZT.courseAt(c, Math.min(150, c.length / 2)));
+      arch('Départ · Arrivée', 'start', first);
     } else {
-      flag('Départ', 'start', first, ZT.courseAt(c, Math.min(150, c.length / 2)));
-      flag('Arrivée', 'finish', lastP, ZT.courseAt(c, Math.max(0, c.length - 150)));
+      arch('Départ', 'start', first);
+      arch('Arrivée', 'finish', lastP);
     }
 
     const step = c.length > 25000 ? 5000 : 1000;
@@ -100,7 +99,7 @@
       const icon = L.divIcon({ className: 'km-icon', html: P.el('span', {}, String(d / 1000)), iconSize: [22, 22], iconAnchor: [11, 11] });
       L.marker(ZT.courseAt(c, d), { icon, interactive: false, keyboard: false }).addTo(layers.markers);
     }
-    if (!fitted) { // marge haute et basse : les étiquettes Départ / Arrivée dépassent du tracé
+    if (!fitted) { // marge haute et basse : les arches Départ / Arrivée dépassent un peu du tracé
       map.fitBounds(layers.course.getBounds(), { paddingTopLeft: [24, 52], paddingBottomRight: [24, 60] }); fitted = true; }
   }
 
