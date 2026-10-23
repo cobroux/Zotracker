@@ -1,25 +1,39 @@
 'use strict';
 
-// Fond de carte : CARTO clair/sombre par défaut, OSM en secours, hôtes autorisés par la CSP.
+// Fond de carte : OSM sans clé par défaut, CARTO ou MapTiler avec clé, hôtes autorisés par la CSP.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { state } = require('../../server/core/context');
-const { currentTiles, tileHosts } = require('../../server/features/tracking/tiles');
+const { currentTiles, tileHosts, CARTO_KEY } = require('../../server/features/tracking/tiles');
 
-test('sans clé : CARTO Voyager, variante sombre Dark Matter, secours OpenStreetMap', () => {
-  state.map = { provider: 'carto', maptilerKey: '' };
+test('sans clé : OpenStreetMap, secours OpenTopoMap', () => {
+  state.map = { provider: 'osm', maptilerKey: '', cartoKey: '' };
   const t = currentTiles();
-  assert.match(t.url, /^https:\/\/\{s\}\.basemaps\.cartocdn\.com\/rastertiles\/voyager\//);
-  assert.match(t.dark, /^https:\/\/\{s\}\.basemaps\.cartocdn\.com\/dark_all\//);
-  assert.match(t.attribution, /CARTO/);
-  assert.match(t.fallback.url, /^https:\/\/tile\.openstreetmap\.org\//);
-  assert.deepEqual(tileHosts(), ['https://*.basemaps.cartocdn.com', 'https://tile.openstreetmap.org']);
+  assert.match(t.url, /^https:\/\/tile\.openstreetmap\.org\//);
+  assert.match(t.fallback.url, /^https:\/\/\{s\}\.tile\.opentopomap\.org\//);
 });
 
-test('MapTiler avec clé : pas de variante sombre', () => {
-  state.map = { provider: 'maptiler', maptilerKey: 'AbCdEf123456' };
+test('CARTO avec clé à caractères spéciaux : clé encodée dans l’URL, secours OSM', () => {
+  const key = 'aB3$-_.~!*+/=&?#%{}xyz';
+  assert.ok(CARTO_KEY.test(key));
+  state.map = { provider: 'carto', maptilerKey: '', cartoKey: key };
   const t = currentTiles();
-  assert.match(t.url, /^https:\/\/api\.maptiler\.com\//);
-  assert.equal(t.dark, undefined);
-  state.map = { provider: 'carto', maptilerKey: '' };
+  assert.equal(t.url, `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`);
+  assert.equal(new URL(t.url.replace(/\{[xyz]\}/g, '0')).searchParams.get('key'), key);
+  assert.match(t.attribution, /CARTO/);
+  assert.match(t.fallback.url, /^https:\/\/tile\.openstreetmap\.org\//);
+  assert.deepEqual(tileHosts(), ['https://basemaps.cartocdn.com', 'https://tile.openstreetmap.org']);
+});
+
+test('CARTO sans clé valide : retour à OpenStreetMap', () => {
+  state.map = { provider: 'carto', maptilerKey: '', cartoKey: '' };
+  assert.match(currentTiles().url, /^https:\/\/tile\.openstreetmap\.org\//);
+  assert.ok(!CARTO_KEY.test('avec espace dedans'));
+  assert.ok(!CARTO_KEY.test('court'));
+});
+
+test('MapTiler avec clé', () => {
+  state.map = { provider: 'maptiler', maptilerKey: 'AbCdEf123456', cartoKey: '' };
+  assert.match(currentTiles().url, /^https:\/\/api\.maptiler\.com\//);
+  state.map = { provider: 'osm', maptilerKey: '', cartoKey: '' };
 });

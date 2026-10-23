@@ -10,19 +10,25 @@
     const f = $('mapForm');
     f.provider.value = c.map.provider;
     f.maptilerKey.value = c.map.maptilerKey || '';
-    $('maptilerBox').hidden = c.map.provider !== 'maptiler';
+    f.cartoKey.value = c.map.cartoKey || '';
+    showKeyBox(c.map.provider);
     $('mapEnv').hidden = !c.map.fromEnv;
     for (const input of f.elements) input.disabled = c.map.fromEnv;
   }
 
   $('mapForm').addEventListener('change', (e) => {
-    if (e.target.name === 'provider') $('maptilerBox').hidden = e.target.value !== 'maptiler';
+    if (e.target.name === 'provider') showKeyBox(e.target.value);
   });
+
+  function showKeyBox(provider) {
+    $('maptilerBox').hidden = provider !== 'maptiler';
+    $('cartoBox').hidden = provider !== 'carto';
+  }
 
   $('mapForm').addEventListener('submit', action(async (e) => {
     e.preventDefault();
     const f = e.target;
-    await api('PUT', '/api/admin/map', { provider: f.provider.value, maptilerKey: f.maptilerKey.value });
+    await api('PUT', '/api/admin/map', { provider: f.provider.value, maptilerKey: f.maptilerKey.value, cartoKey: f.cartoKey.value });
     toast('Fond de carte enregistré');
     setTimeout(() => location.reload(), 900); // recharge pour appliquer le nouveau fond
   }));

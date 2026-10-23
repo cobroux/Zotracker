@@ -439,8 +439,12 @@
             <h2>Fond de carte</h2>
             <p id="mapEnv" class="help" hidden>Le fond de carte est imposé par la configuration du serveur : il ne peut pas être changé ici.</p>
             <form id="mapForm" class="alerts-form">
-              <label class="check"><input type="radio" name="provider" value="carto"> CARTO : gratuit, sans clé, clair ou sombre selon le thème (usage léger)</label>
+              <label class="check"><input type="radio" name="provider" value="osm"> OpenStreetMap : gratuit, sans clé (usage léger)</label>
               <label class="check"><input type="radio" name="provider" value="maptiler"> MapTiler : avec ta clé gratuite (recommandé si beaucoup de supporters)</label>
+              <label class="check"><input type="radio" name="provider" value="carto"> CARTO (Voyager) : avec ta clé, fond doux qui s'accorde au thème</label>
+              <div id="cartoBox" hidden>
+                <label>Clé CARTO <input name="cartoKey" autocomplete="off" spellcheck="false" placeholder="Colle ta clé telle quelle"><span class="help">Reçue de CARTO (carto.com/basemaps/apikey). Les caractères spéciaux sont acceptés.</span></label>
+              </div>
               <div id="maptilerBox" hidden>
                 <ol class="steps small">
                   <li>Crée un compte gratuit sur <a href="https://cloud.maptiler.com/" target="_blank" rel="noopener">cloud.maptiler.com</a> (sans carte bancaire).</li>

@@ -60,7 +60,12 @@ state.safetySettings = safety.normalizeSafety({}, state.safetySettings || {});
 state.privacy = { mode: state.privacy && state.privacy.mode === 'link' ? 'link' : 'public', viewKey: (state.privacy && state.privacy.viewKey) || sec.randomKey(12) };
 store.save();
 // fond de carte choisi dans l'admin (voir features/tracking/tiles.js)
-state.map = { provider: state.map && state.map.provider === 'maptiler' ? 'maptiler' : 'carto', maptilerKey: (state.map && state.map.maptilerKey) || '' };
+const savedMap = state.map || {};
+state.map = {
+  provider: ['maptiler', 'carto'].includes(savedMap.provider) ? savedMap.provider : 'osm',
+  maptilerKey: savedMap.maptilerKey || '',
+  cartoKey: savedMap.cartoKey || '',
+};
 
 const activeRace = () => state.races.find((r) => r.id === state.activeRaceId) || null;
 
