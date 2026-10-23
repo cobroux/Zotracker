@@ -158,6 +158,8 @@ Pour une course longue, utilise plutôt une appli de suivi qui fonctionne en arr
 - **OsmAnd** (Android/iOS), via Suivi de trajet → Suivi en ligne, ou **GPSLogger** (Android), via une URL personnalisée :
   `https://ton-site/api/ingest?key=CLÉ&lat={0}&lon={1}&timestamp={2}&acc={3}`
 - **Traccar Client** (Android/iOS) : adresse du serveur `https://ton-site/api/ingest`, identifiant de l'appareil = la clé.
+- **OwnTracks** (iOS/Android), mode HTTP, en mode de suivi « Move » : URL `https://ton-site/api/ingest?key=CLÉ`.
+- **Overland** (iOS) : Receiver Endpoint `https://ton-site/api/ingest`, Access Token = la clé. Mets la taille des lots (Batch Size) à 50 au plus : une requête est limitée à 64 Ko.
 
 ## Comment c'est calculé
 

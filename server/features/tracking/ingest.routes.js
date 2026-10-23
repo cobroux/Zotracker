@@ -1,6 +1,6 @@
 'use strict';
 
-/** Positions des applis GPS externes (OsmAnd, GPSLogger, Traccar Client…). */
+/** Positions des applis GPS externes (OsmAnd, GPSLogger, Traccar Client, OwnTracks, Overland…). */
 const express = require('express');
 const sec = require('../../core/security');
 const { addPosition, parseTime } = require('./tracker');
@@ -56,14 +56,32 @@ function ingest(points) {
   return { received: points.length, added: added.length, status: race.session.status };
 }
 
+/** Point d'Overland : Feature GeoJSON, coordonnées dans l'ordre [lon, lat], batterie de 0 à 1 (-1 si inconnue). */
+function fromOverland(f) {
+  const c = (f && f.geometry && f.geometry.coordinates) || [];
+  const p = (f && f.properties) || {};
+  const batt = Number(p.battery_level);
+  return { lat: c[1], lon: c[0], acc: p.horizontal_accuracy, t: p.timestamp, batt: batt >= 0 ? batt * 100 : undefined };
+}
+
 const ingestRouter = express.Router();
 const ingestLimiter = sec.rateLimit({ windowMs: 60_000, max: 120 });
 ingestRouter.all('/api/ingest', ingestLimiter, (req, res) => {
   const q = { ...req.query, ...(typeof req.body === 'object' ? req.body : {}) };
   // Traccar Client (versions récentes) envoie {location: {coords: {...}, timestamp}}
   const loc = q.location && q.location.coords ? q.location : null;
-  const key = q.key || q.id || q.device_id;
+  // Overland transmet son « Access Token » en en-tête Authorization: Bearer
+  const bearer = /^Bearer\s+(\S+)$/i.exec(req.get('authorization') || '');
+  const key = q.key || q.id || q.device_id || (bearer && bearer[1]);
   if (!safeEqual(key || '', secrets.trackerKey)) return res.status(401).json({ error: 'Clé invalide' });
+
+  // Overland envoie des lots et ne vide sa file d'attente qu'à la réponse {result: 'ok'}
+  if (Array.isArray(q.locations)) return res.json({ result: 'ok', ...ingest(q.locations.map(fromOverland)) });
+  // OwnTracks attend un tableau JSON ; seuls ses messages « location » portent une position
+  if (q._type) {
+    if (q._type === 'location') ingest([{ lat: q.lat, lon: q.lon, acc: q.acc, t: q.tst, batt: q.batt }]);
+    return res.json([]);
+  }
 
   const point = loc
     ? { lat: loc.coords.latitude, lon: loc.coords.longitude, acc: loc.coords.accuracy, t: loc.timestamp, batt: loc.battery && loc.battery.level != null ? loc.battery.level * 100 : undefined }
