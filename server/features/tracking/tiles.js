@@ -34,8 +34,8 @@ function currentTiles() {
     // styles « Dataviz » : sobres, faits pour qu'un tracé ressorte ; variante sombre native (sans filtre CSS)
     const style = (id) => `https://api.maptiler.com/maps/${id}/256/{z}/{x}/{y}.png?key=${encodeURIComponent(state.map.maptilerKey)}`;
     primary = {
-      url: style('dataviz-light'),
-      dark: style('dataviz-dark'),
+      url: style('dataviz-v4-light'),
+      dark: style('dataviz-v4-dark'),
       attribution: `&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> ${OSM_ATTRIBUTION}`,
       maxZoom: 19,
     };
