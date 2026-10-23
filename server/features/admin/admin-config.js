@@ -26,7 +26,7 @@ function adminConfig() {
     safetySettings: state.safetySettings,
     privacy: state.privacy,
     passwordFromEnv: secrets.passwordFromEnv,
-    map: { provider: state.map.provider, maptilerKey: state.map.maptilerKey, fromEnv: !!process.env.TILE_URL },
+    map: { provider: state.map.provider, maptilerKey: state.map.maptilerKey, cartoKey: state.map.cartoKey, fromEnv: !!process.env.TILE_URL },
     twoFactor: { enabled: !!(secrets.totp && secrets.totp.enabled), recoveryLeft: secrets.totp && secrets.totp.enabled ? secrets.totp.recovery.length : 0 },
     trackerKeyFromEnv: secrets.trackerKeyFromEnv,
     retentionDays: RETENTION_DAYS,

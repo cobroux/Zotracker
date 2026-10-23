@@ -9,7 +9,7 @@ const sec = require('../../core/security');
 const { asyncHandler, str } = require('../../core/http');
 const { firstName } = require('../../core/text');
 const { sanitizeMarker } = require('../races/marker');
-const { MAPTILER_KEY } = require('../tracking/tiles');
+const { MAPTILER_KEY, CARTO_KEY } = require('../tracking/tiles');
 const { store, secrets, state, push, activeRace } = require('../../core/context');
 const { clients, broadcast } = require('../../core/hub');
 const { raceInfo } = require('../tracking/public-state');
@@ -96,10 +96,16 @@ router.post('/tracker-key/rotate', (req, res) => {
 
 router.put('/map', (req, res) => {
   const b = req.body || {};
-  const provider = b.provider === 'maptiler' ? 'maptiler' : 'carto';
+  const provider = ['maptiler', 'carto'].includes(b.provider) ? b.provider : 'osm';
   const key = String(b.maptilerKey || '').trim();
+  const cartoKey = String(b.cartoKey || '').trim();
   if (provider === 'maptiler' && !MAPTILER_KEY.test(key)) return res.status(400).json({ error: 'Clé MapTiler invalide (lettres et chiffres uniquement).' });
-  state.map = { provider, maptilerKey: provider === 'maptiler' ? key : state.map.maptilerKey };
+  if (provider === 'carto' && !CARTO_KEY.test(cartoKey)) return res.status(400).json({ error: 'Clé CARTO invalide (8 à 256 caractères, sans espace).' });
+  state.map = {
+    provider,
+    maptilerKey: provider === 'maptiler' ? key : state.map.maptilerKey,
+    cartoKey: provider === 'carto' ? cartoKey : state.map.cartoKey,
+  };
   store.save();
   res.json(adminConfig());
 });

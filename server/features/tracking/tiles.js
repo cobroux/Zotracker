@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * Fond de carte, choisi dans l'admin (Paramètres) : CARTO sans clé par défaut (Voyager en thème
- * clair, Dark Matter en thème sombre), ou MapTiler avec ta clé. TILE_URL reste prioritaire.
+ * Fond de carte, choisi dans l'admin (Paramètres) : OpenStreetMap sans clé par défaut, ou CARTO
+ * (Voyager) / MapTiler avec ta clé. TILE_URL reste prioritaire. En thème sombre, le fond est
+ * assombri en CSS (style.css). CARTO sans clé ne renvoie plus qu'une tuile « API KEY REQUIRED ».
  * En cas d'erreurs de tuiles, le navigateur bascule sur le fond de secours.
  */
 const sec = require('../../core/security');
@@ -15,19 +16,20 @@ const OPENTOPOMAP = {
   attribution: `${OSM_ATTRIBUTION}, SRTM | style &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)`,
   maxZoom: 17,
 };
-// shortcut: CARTO est gratuit pour un usage non commercial (~75 000 vues/mois), licence à prendre en cas de SaaS
-const CARTO = {
-  url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  attribution: `${OSM_ATTRIBUTION} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
-  maxZoom: 20,
-};
 const MAPTILER_KEY = /^[A-Za-z0-9]{10,64}$/;
+// clé CARTO : caractères imprimables sans espace (elle peut contenir $, -, _, =…), encodée dans l'URL
+const CARTO_KEY = /^[\x21-\x7E]{8,256}$/;
 
 function currentTiles() {
-  let primary = CARTO;
+  let primary = OSM;
   if (process.env.TILE_URL) {
     primary = { url: process.env.TILE_URL, attribution: process.env.TILE_ATTRIBUTION || '', maxZoom: Number(process.env.TILE_MAX_ZOOM || 19) };
+  } else if (state.map.provider === 'carto' && CARTO_KEY.test(state.map.cartoKey)) {
+    primary = {
+      url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(state.map.cartoKey)}`,
+      attribution: `${OSM_ATTRIBUTION} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
+      maxZoom: 20,
+    };
   } else if (state.map.provider === 'maptiler' && MAPTILER_KEY.test(state.map.maptilerKey)) {
     primary = {
       url: `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${state.map.maptilerKey}`,
@@ -40,7 +42,7 @@ function currentTiles() {
 
 const tileHosts = () => {
   const t = currentTiles();
-  return [...new Set([t.url, t.dark, t.fallback.url].filter(Boolean).flatMap(sec.tileHostsFor))];
+  return [...sec.tileHostsFor(t.url), ...sec.tileHostsFor(t.fallback.url)];
 };
 
-module.exports = { currentTiles, tileHosts, MAPTILER_KEY };
+module.exports = { currentTiles, tileHosts, MAPTILER_KEY, CARTO_KEY };

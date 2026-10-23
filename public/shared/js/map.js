@@ -96,16 +96,13 @@ Object.assign(ZT, {
       attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     };
-    // variante sombre du fond (CARTO) si le thème est sombre
-    const urlFor = (c) => (c.dark && document.documentElement.classList.contains('dark') ? c.dark : c.url);
-    const make = (c) => L.tileLayer(urlFor(c), {
+    const make = (c) => L.tileLayer(c.url, {
       maxZoom: c.maxZoom || 19,
       attribution: c.attribution,
       // seule l'origine du site est envoyée au serveur de tuiles (exigé par OpenStreetMap)
       referrerPolicy: 'strict-origin-when-cross-origin',
     });
     const layer = make(cfg).addTo(map);
-    if (cfg.dark) window.addEventListener('themechange', () => layer.setUrl(urlFor(cfg)));
     if (!cfg.fallback) return layer;
     let loaded = 0;
     let failed = 0;
