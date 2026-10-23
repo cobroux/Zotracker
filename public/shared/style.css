@@ -209,14 +209,14 @@ html.dark .leaflet-container.native-dark .leaflet-tile-pane { filter: none; } /*
 @media (prefers-reduced-motion: reduce) { .runner-dot.pulse { animation: none; } }
 
 .aid-icon { background: none; border: 0; }
-/* pastille visible de 18 px, à l'échelle des arches Départ / Arrivée ; la zone tactile reste de 28 px (iconSize) */
+/* pastille visible de 22 px, à l'échelle des arches Départ / Arrivée ; la zone tactile reste de 28 px (iconSize) */
 .aid-icon span {
   display: grid; place-items: center; box-sizing: border-box;
-  width: 18px; height: 18px; margin: 5px; border-radius: 50%;
+  width: 22px; height: 22px; margin: 3px; border-radius: 50%;
   background: var(--surface); border: 2px solid var(--teal); color: var(--teal);
   box-shadow: var(--shadow-pin);
 }
-.aid-icon span svg { width: 10px; height: 10px; }
+.aid-icon span svg { width: 12px; height: 12px; }
 .aid-icon span.passed { border-color: var(--ok); color: var(--ok); }
 
 /* ---------------------------------------------------------------- formulaires et boutons */
