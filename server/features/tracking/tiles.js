@@ -16,9 +16,9 @@ const OPENTOPOMAP = {
   attribution: `${OSM_ATTRIBUTION}, SRTM | style &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)`,
   maxZoom: 17,
 };
-const MAPTILER_KEY = /^[A-Za-z0-9]{10,64}$/;
-// clé CARTO : caractères imprimables sans espace (elle peut contenir $, -, _, =…), encodée dans l'URL
+// clés de fond de carte : caractères imprimables sans espace (elles peuvent contenir $, -, _, =…), encodées dans l'URL
 const CARTO_KEY = /^[\x21-\x7E]{8,256}$/;
+const MAPTILER_KEY = CARTO_KEY;
 
 function currentTiles() {
   let primary = OSM;
@@ -32,7 +32,7 @@ function currentTiles() {
     };
   } else if (state.map.provider === 'maptiler' && MAPTILER_KEY.test(state.map.maptilerKey)) {
     primary = {
-      url: `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${state.map.maptilerKey}`,
+      url: `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${encodeURIComponent(state.map.maptilerKey)}`,
       attribution: `&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> ${OSM_ATTRIBUTION}`,
       maxZoom: 19,
     };
