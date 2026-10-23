@@ -311,12 +311,12 @@ html.dark body.public .leaflet-tile-pane { filter: invert(1) hue-rotate(205deg) 
 /* arche Départ / Arrivée : centrée sur l'extrémité du tracé, au-dessus des ravitos (zIndexOffset) */
 .arch {
   position: absolute; transform: translate(-50%, -50%);
-  padding: 2px 4px 1.5px; border-radius: 3px; border: 1px solid var(--on-accent);
-  font-family: var(--font); font-size: 7px; font-weight: 800; line-height: 1; letter-spacing: .05em; text-transform: uppercase;
+  padding: 3px 5px 2px; border-radius: 4px; border: 1px solid var(--on-accent);
+  font-family: var(--font); font-size: 8px; font-weight: 800; line-height: 1; letter-spacing: .05em; text-transform: uppercase;
   white-space: nowrap; box-shadow: var(--shadow-pin);
 }
 .arch.start { background: var(--ok-btn); color: var(--on-accent); }
-.arch.finish { background: repeating-conic-gradient(var(--checker) 0 25%, var(--on-accent) 0 50%) 0 0 / 4px 4px; color: var(--checker); }
+.arch.finish { background: repeating-conic-gradient(var(--checker) 0 25%, var(--on-accent) 0 50%) 0 0 / 5px 5px; color: var(--checker); }
 .arch.finish span { background: var(--on-accent); padding: 0 2px; border-radius: 2px; }
 .km-icon span {
   display: grid; place-items: center;
