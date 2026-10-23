@@ -26,13 +26,13 @@ function currentTiles() {
     primary = { url: process.env.TILE_URL, attribution: process.env.TILE_ATTRIBUTION || '', maxZoom: Number(process.env.TILE_MAX_ZOOM || 19) };
   } else if (state.map.provider === 'carto' && CARTO_KEY.test(state.map.cartoKey)) {
     primary = {
-      url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(state.map.cartoKey)}`,
+      url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(state.map.cartoKey)}`,
       attribution: `${OSM_ATTRIBUTION} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
       maxZoom: 20,
     };
   } else if (state.map.provider === 'maptiler' && MAPTILER_KEY.test(state.map.maptilerKey)) {
     // styles « Dataviz » : sobres, faits pour qu'un tracé ressorte ; variante sombre native (sans filtre CSS)
-    const style = (id) => `https://api.maptiler.com/maps/${id}/256/{z}/{x}/{y}.png?key=${encodeURIComponent(state.map.maptilerKey)}`;
+    const style = (id) => `https://api.maptiler.com/maps/${id}/256/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(state.map.maptilerKey)}`;
     primary = {
       url: style('dataviz-v4-light'),
       dark: style('dataviz-v4-dark'),
