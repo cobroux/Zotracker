@@ -31,8 +31,11 @@ function currentTiles() {
       maxZoom: 20,
     };
   } else if (state.map.provider === 'maptiler' && MAPTILER_KEY.test(state.map.maptilerKey)) {
+    // styles « Dataviz » : sobres, faits pour qu'un tracé ressorte ; variante sombre native (sans filtre CSS)
+    const style = (id) => `https://api.maptiler.com/maps/${id}/256/{z}/{x}/{y}.png?key=${encodeURIComponent(state.map.maptilerKey)}`;
     primary = {
-      url: `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${encodeURIComponent(state.map.maptilerKey)}`,
+      url: style('dataviz-light'),
+      dark: style('dataviz-dark'),
       attribution: `&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> ${OSM_ATTRIBUTION}`,
       maxZoom: 19,
     };

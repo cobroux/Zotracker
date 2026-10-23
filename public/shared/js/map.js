@@ -96,13 +96,17 @@ Object.assign(ZT, {
       attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     };
-    const make = (c) => L.tileLayer(c.url, {
+    // fond à variante sombre native (MapTiler) : pas de filtre CSS d'assombrissement (style.css)
+    const urlFor = (c) => (c.dark && document.documentElement.classList.contains('dark') ? c.dark : c.url);
+    const make = (c) => L.tileLayer(urlFor(c), {
       maxZoom: c.maxZoom || 19,
       attribution: c.attribution,
       // seule l'origine du site est envoyée au serveur de tuiles (exigé par OpenStreetMap)
       referrerPolicy: 'strict-origin-when-cross-origin',
     });
     const layer = make(cfg).addTo(map);
+    map.getContainer().classList.toggle('native-dark', !!cfg.dark);
+    if (cfg.dark) window.addEventListener('themechange', () => layer.setUrl(urlFor(cfg)));
     if (!cfg.fallback) return layer;
     let loaded = 0;
     let failed = 0;
@@ -111,6 +115,7 @@ Object.assign(ZT, {
       failed++;
       if (failed >= 4 && loaded === 0 && map.hasLayer(layer)) {
         map.removeLayer(layer);
+        map.getContainer().classList.remove('native-dark');
         make(cfg.fallback).addTo(map);
       }
     });

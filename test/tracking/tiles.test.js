@@ -37,7 +37,9 @@ test('MapTiler avec clé à caractères spéciaux : clé encodée dans l’URL',
   assert.ok(MAPTILER_KEY.test(key));
   state.map = { provider: 'maptiler', maptilerKey: key, cartoKey: '' };
   const t = currentTiles();
-  assert.match(t.url, /^https:\/\/api\.maptiler\.com\//);
+  assert.match(t.url, /^https:\/\/api\.maptiler\.com\/maps\/dataviz-light\//);
+  assert.match(t.dark, /^https:\/\/api\.maptiler\.com\/maps\/dataviz-dark\//);
   assert.equal(new URL(t.url.replace(/\{[xyz]\}/g, '0')).searchParams.get('key'), key);
+  assert.equal(new URL(t.dark.replace(/\{[xyz]\}/g, '0')).searchParams.get('key'), key);
   state.map = { provider: 'osm', maptilerKey: '', cartoKey: '' };
 });
