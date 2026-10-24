@@ -4,7 +4,7 @@ Statut : brouillon à valider. Aucun code n'est écrit tant que cette spec n'est
 
 ## Objective
 
-Rendre la production de Zotracker (VM Oracle Always Free, arm64, Ubuntu 24.04, 88.96.45.97) fiable et reproductible, sans casser Zofolio qui partage la VM.
+Rendre la production de Zotracker (VM Oracle Always Free, arm64) fiable et reproductible, sans casser Zofolio qui partage la VM.
 
 1. **Sauvegardes chiffrées** (`age`), copie hors site (`rclone` vers Oracle Object Storage, API S3), rétention locale et distante, restauration testée régulièrement.
 2. **Déploiement automatique** sur la branche principale après CI verte : SSH, clé dédiée à commande forcée, `git pull` + build sur la VM, contrôle `/healthz` public, retour arrière automatique.
@@ -14,7 +14,7 @@ Utilisateur : Enzo (seul opérateur). Réussite : un merge sur la branche princi
 
 ## Tech Stack
 
-- Docker Compose, Caddy (celui de Zofolio, `/opt/zofolio`, HTTPS `zotracker.88-96-45-97.sslip.io` vers alias `zotracker:3000` du réseau externe `edge`). Aucun changement de ce Caddy.
+- Docker Compose, Caddy (celui de Zofolio, `/opt/zofolio`, HTTPS `<DOMAIN>` vers alias `zotracker:3000` du réseau externe `edge`). Aucun changement de ce Caddy.
 - Bash (`set -Eeuo pipefail`), `age`, `rclone` (apt sur la VM), cron, GitHub Actions (actions épinglées par SHA), ntfy (déjà utilisé par l'appli, `NTFY_SERVER`).
 - Aucune nouvelle dépendance npm.
 
@@ -26,7 +26,7 @@ Valider : bash -n deploy/oracle/*.sh ; shellcheck deploy/oracle/*.sh (si dispo)
           docker compose -f deploy/oracle/zotracker.server.yml config
           actionlint .github/workflows/*.yml (si dispo)
 Serveur : cd /opt/zotracker && ./backup.sh | ./restore.sh <fichier.age> <cle> | ./deploy.sh
-Santé   : curl -fsS https://zotracker.88-96-45-97.sslip.io/healthz
+Santé   : curl -fsS https://<DOMAIN>/healthz
 Test restauration : /opt/zotracker/restore-test.sh   (nouveau, mensuel, voir Testing)
 ```
 
