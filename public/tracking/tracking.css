@@ -254,6 +254,88 @@ a.btn-go:hover, a.btn-go:visited { color: var(--on-accent); }
 .spot-wait { margin-top: var(--sp-2) !important; }
 .spot .go { margin-top: var(--sp-3); }
 
+/* ---- « Je suis ici » : endroit gardé sur le téléphone du supporter (violet --me = « moi ») */
+.spot-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+.spot-actions .go { flex: 1 1 auto; margin: 0; }
+.spot-actions .btn-go { flex: 1; }
+.btn-mine {
+  flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  min-height: 44px; padding: 0 var(--sp-4); border: 1.5px solid var(--me); border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--me) 12%, transparent); color: var(--text);
+  font-size: var(--fs-sm); font-weight: var(--fw-bold); touch-action: manipulation;
+  transition: transform 160ms var(--ease-out);
+}
+.btn-mine:active { transform: scale(.97); }
+.btn-mine .ico { color: var(--me); }
+.btn-mine .ico svg { width: 18px; height: 18px; }
+.btn-mine.on { background: var(--me); color: var(--on-me); }
+.btn-mine.on .ico { color: var(--on-me); }
+.spot-private { margin-top: var(--sp-2) !important; font-size: var(--fs-xs); color: var(--muted); }
+
+.myspot {
+  display: flex; flex-direction: column; gap: var(--sp-1);
+  margin-bottom: var(--sp-4); padding: var(--sp-4);
+  border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface);
+  scroll-margin-top: 72px;
+}
+.myspot[data-phase="near"] { border: 1.5px solid var(--me); }
+.myspot p { margin: 0; }
+.myspot-kicker {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: .04em; text-transform: uppercase; color: var(--me);
+}
+.myspot-kicker .ico svg { width: 14px; height: 14px; }
+.myspot-kicker.is-passed { color: var(--ok); }
+.myspot-sub { font-size: var(--fs-sm); color: var(--muted); }
+.myspot-time { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; font-size: var(--fs-sm); color: var(--muted); }
+.myspot-time .num { font-size: var(--fs-xxl); font-weight: var(--fw-bold); line-height: var(--lh-tight); color: var(--accent); }
+.myspot[data-phase="passed"] .myspot-time .num { color: var(--text); }
+.myspot-now { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-1) !important; }
+.myspot-now span:first-child { font-size: var(--fs-xl); font-weight: 800; }
+.myspot-now .num { font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--accent); }
+.myspot .progress { margin: var(--sp-2) 0 var(--sp-1); }
+.myspot-fill { height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 300ms var(--ease-out); }
+.myspot .btn-primary { margin-top: var(--sp-3); }
+
+.myspot-alert { margin-top: var(--sp-3); padding-top: var(--sp-2); border-top: 1px solid var(--line); }
+.myspot-alert label { display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; font-size: var(--fs-sm); font-weight: var(--fw-medium); cursor: pointer; }
+.myspot-alert label > span:not(.ico) { flex: 1; }
+.switch {
+  appearance: none; flex: none; position: relative; width: 46px; height: 28px; margin: 0;
+  border-radius: var(--r-pill); background: var(--track); cursor: pointer;
+  transition: background-color 160ms var(--ease-out);
+}
+.switch::before {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--on-accent); box-shadow: var(--shadow-pin); transition: transform 160ms var(--ease-out);
+}
+.switch:checked { background: var(--accent-btn); }
+.switch:checked::before { transform: translateX(18px); }
+
+.myspot-links { display: flex; flex-wrap: wrap; gap: var(--sp-4); }
+.btn-link {
+  min-height: 44px; padding: 0; border: 0; background: none;
+  color: var(--accent); font-size: var(--fs-sm); font-weight: var(--fw-medium); cursor: pointer; touch-action: manipulation;
+}
+.btn-link.is-muted { color: var(--muted); }
+
+.myspot-next { display: flex; flex-direction: column; gap: 2px; margin-top: var(--sp-3); padding: var(--sp-3) 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.myspot-next-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.myspot-next-row strong { color: var(--teal); overflow-wrap: anywhere; }
+.myspot-next-row strong span { white-space: nowrap; }
+.myspot-next-row .num { font-size: var(--fs-lg); font-weight: var(--fw-bold); white-space: nowrap; }
+.myspot-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: var(--sp-3); }
+.myspot-actions > * { flex: 1 1 10rem; margin: 0 !important; justify-content: center; }
+.myspot-actions .btn-quiet { min-height: 48px; }
+
+/* repère sur la carte : pastille violette centrée sur le point, étiquette à droite */
+.mine-icon { background: none; border: 0; }
+.mine-pin { position: absolute; display: flex; align-items: center; gap: 6px; transform: translate(-15px, -15px); white-space: nowrap; }
+.mine-pin .ico { width: 30px; height: 30px; border-radius: 50%; background: var(--me); color: var(--on-me); border: 3px solid var(--on-accent); box-shadow: var(--shadow-pin); }
+.mine-pin .ico svg { width: 16px; height: 16px; }
+.mine-label { padding: 3px 10px; border-radius: var(--r-pill); background: var(--me); color: var(--on-me); font-size: var(--fs-xs); font-weight: 800; box-shadow: var(--shadow-pin); }
+/* ---- fin « Je suis ici » */
+
 /* ---- fil « En direct » : messages du coureur en bulle, événements en lignes discrètes */
 .feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
 .feed li { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: var(--sp-3); align-items: baseline; }
@@ -337,7 +419,7 @@ html.dark body.public .leaflet-tile-pane { filter: invert(1) hue-rotate(205deg) 
 
 /* mouvement réduit : plus de déplacement ni de glissé ; les fondus d'apparition restent */
 @media (prefers-reduced-motion: reduce) {
-  #progressFill, .btn-go, .more > summary::after { transition: none; }
+  #progressFill, .btn-go, .more > summary::after, .myspot-fill, .btn-mine, .switch, .switch::before { transition: none; }
   .spot, .go-menu, .alert-banner { transition: opacity 200ms ease; @starting-style { opacity: 0; transform: none; } }
 }
 
