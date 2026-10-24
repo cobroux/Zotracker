@@ -152,6 +152,42 @@ Object.assign(ZT, {
     return out;
   },
 
+  /**
+   * Chevrons de sens du circuit sur un tracé projeté à l'écran ([{ x, y, d }], d = distance parcours) :
+   * un tous les `spacing` px, seulement après `from`. Index stables quand le coureur avance (pas de glissement).
+   * Là où le tracé repasse (aller-retour), seul le prochain passage garde son chevron.
+   * Retourne [{ x, y, angle (degrés), d, i }].
+   */
+  chevronsAlong(pts, { spacing = 70, minGap = 24, from = 0 } = {}) {
+    const all = [];
+    let s = 0;
+    let next = spacing / 2;
+    for (let k = 1; k < pts.length; k++) {
+      const a = pts[k - 1];
+      const b = pts[k];
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      while (len && next <= s + len) {
+        const t = (next - s) / len;
+        all.push({
+          x: a.x + (b.x - a.x) * t,
+          y: a.y + (b.y - a.y) * t,
+          angle: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI,
+          d: a.d + (b.d - a.d) * t,
+          i: all.length,
+        });
+        next += spacing;
+      }
+      s += len;
+    }
+    const kept = [];
+    for (const c of all) {
+      if (c.d <= from) continue;
+      if (kept.some((o) => Math.hypot(o.x - c.x, o.y - c.y) < minGap)) continue;
+      kept.push(c);
+    }
+    return kept;
+  },
+
   /** Point du parcours situé à une distance donnée. */
   courseAt(course, dist) {
     const seg = ZT.courseUpTo(course, dist);

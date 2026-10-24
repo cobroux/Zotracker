@@ -38,6 +38,8 @@
     done: L.polyline([], { color: color('--track-done'), weight: 5, interactive: false }).addTo(map),
     trace: L.polyline([], { color: color('--track-done'), weight: 3, opacity: 0.6, dashArray: '4 6', interactive: false }).addTo(map),
     markers: L.layerGroup().addTo(map),
+    // volet entre le tracé et les marqueurs (tracking.css) : les chevrons passent sous les bornes et ravitos
+    chevrons: L.layerGroup().addTo(map),
     aid: L.layerGroup().addTo(map),
     // tracé invisible et large : facilite le choix d'un endroit au doigt
     hit: L.polyline([], { weight: 28, opacity: 0, interactive: true }).addTo(map),
@@ -149,8 +151,50 @@
     }
   }
 
+  map.createPane('chevrons');
+  const FLOW = 2.4; // s : période de la vague qui court vers l'arrivée (animation chevron-flow, tracking.css)
+  const STEP = 0.2; // s de décalage entre deux chevrons consécutifs
+  const MAX_CHEVRONS = 150;
+
+  /** Chevron orienté selon le tracé ; le décalage d'animation suit l'horloge pour garder la vague continue d'un rendu à l'autre. */
+  function chevronIcon(ch, now) {
+    const wrap = P.el('span', { class: 'chevron' }, P.el('span', { class: 'chevron-mark' }));
+    wrap.style.transform = `rotate(${ch.angle.toFixed(1)}deg)`;
+    wrap.firstChild.style.animationDelay = `${-((((now - ch.i * STEP) % FLOW) + FLOW) % FLOW).toFixed(2)}s`;
+    return L.divIcon({ className: 'chevron-icon', html: wrap, iconSize: [14, 14], iconAnchor: [7, 7] });
+  }
+
+  // sens du circuit : chevrons sur le parcours restant, espacés à l'écran (même densité à tous les zooms)
+  function renderChevrons() {
+    layers.chevrons.clearLayers();
+    const c = P.state && P.state.course;
+    const status = P.status();
+    if (!c || status === 'none' || status === 'finished') return;
+    const pts = c.points.map((p) => {
+      const xy = map.latLngToLayerPoint([p[0], p[1]]);
+      return { x: xy.x, y: xy.y, d: p[3] };
+    });
+    const s = P.stats();
+    const from = status === 'idle' ? 0 : s.progress;
+    // pas de chevron sous le coureur ni sous l'arche d'arrivée
+    const clear = [pts[pts.length - 1], s.last && map.latLngToLayerPoint([s.last[0], s.last[1]])].filter(Boolean);
+    const view = map.getBounds().pad(0.1);
+    const now = performance.now() / 1000;
+    let n = 0;
+    for (const ch of ZT.chevronsAlong(pts, { from })) {
+      if (clear.some((p) => Math.hypot(p.x - ch.x, p.y - ch.y) < 26)) continue;
+      const ll = map.layerPointToLatLng([ch.x, ch.y]);
+      if (!view.contains(ll)) continue;
+      L.marker(ll, { icon: chevronIcon(ch, now), pane: 'chevrons', interactive: false, keyboard: false }).addTo(layers.chevrons);
+      if (++n >= MAX_CHEVRONS) break;
+    }
+  }
+
   P.on('course', renderCourse);
   P.on('progress', renderPosition);
+  P.on('course', renderChevrons);
+  P.on('progress', renderChevrons);
+  map.on('moveend', renderChevrons);
   P.on('profile', () => { if (layers.runner) layers.runner.setIcon(ZT.runnerIcon(P.state.runner)); });
 
   // changement clair / sombre : couleurs du tracé

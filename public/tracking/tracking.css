@@ -406,6 +406,21 @@ html.dark body.public .leaflet-tile-pane { filter: invert(1) hue-rotate(205deg) 
   background: var(--surface); color: var(--text); border: 2px solid var(--route);
   font-family: var(--font-num); font-size: 11px; font-weight: 700;
 }
+/* sens du circuit : chevrons sur le parcours restant, une vague lente qui court vers l'arrivée */
+.leaflet-chevrons-pane { z-index: 450; pointer-events: none; }
+.chevron-icon { background: none; border: 0; }
+.chevron { display: grid; place-items: center; width: 14px; height: 14px; }
+.chevron-mark {
+  width: 6px; height: 6px; margin-left: -2px;
+  border: solid var(--chevron); border-width: 2.4px 2.4px 0 0; border-radius: 1px;
+  transform: rotate(45deg);
+  /* translate est une propriété distincte de transform : le recul suit l'axe du tracé sans casser la pointe */
+  animation: chevron-flow 2.4s ease-in-out infinite;
+}
+@keyframes chevron-flow {
+  0%, 30%, 100% { opacity: .55; translate: 0 0; }
+  15% { opacity: 1; translate: 1.5px 0; }
+}
 .me-icon { background: none; border: 0; }
 .me-dot {
   display: block; width: 16px; height: 16px; border-radius: 50%;
@@ -420,6 +435,7 @@ html.dark body.public .leaflet-tile-pane { filter: invert(1) hue-rotate(205deg) 
 /* mouvement réduit : plus de déplacement ni de glissé ; les fondus d'apparition restent */
 @media (prefers-reduced-motion: reduce) {
   #progressFill, .btn-go, .more > summary::after, .myspot-fill, .btn-mine, .switch, .switch::before { transition: none; }
+  .chevron-mark { animation: none; }
   .spot, .go-menu, .alert-banner { transition: opacity 200ms ease; @starting-style { opacity: 0; transform: none; } }
 }
 
