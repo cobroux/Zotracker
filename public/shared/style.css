@@ -65,6 +65,7 @@
   --route: #9db3d3;           /* parcours restant */
   --route-casing: #ffffff;    /* liseré sous le tracé (lisibilité sur les tuiles) */
   --me: #7c3aed;              /* position du supporter */
+  --on-me: #ffffff;           /* texte et pictos posés sur --me */
   --on-accent: #ffffff;       /* texte et anneaux posés sur --accent-btn, --ok-btn, --danger-btn, --ink-btn */
   --shadow-pin: 0 1px 4px rgba(0, 0, 0, .3);        /* pastilles posées sur la carte */
   --shadow-marker: 0 2px 6px rgba(0, 0, 0, .3);    /* marqueur du coureur */
@@ -106,6 +107,7 @@ html.dark {
   --route: #4a6699;
   --route-casing: #0a1324;
   --me: #a78bfa;
+  --on-me: #0a1324;
   --on-accent: #ffffff;
   --shadow-pin: 0 1px 4px rgba(0, 0, 0, .5);
   --shadow-marker: 0 2px 6px rgba(0, 0, 0, .55);

@@ -31,6 +31,7 @@
     $('spot').hidden = true;
     P.layers.pick.clearLayers();
   }
+  P.closeSpot = close;
   $('spotClose').addEventListener('click', close);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && current && !$('goMenu').open) close(); });
 
@@ -75,7 +76,7 @@
     const stats = P.stats();
     const e = ZT.spotEstimate(P.state, stats, current.dist);
     const [lat, lon] = ZT.courseAt(P.state.course, current.dist);
-    const key = JSON.stringify([current, e, P.status(), P.me && [P.me.lat.toFixed(4), P.me.lon.toFixed(4)], Math.floor(P.now() / 60_000)]);
+    const key = JSON.stringify([current, e, P.status(), P.mySpot(), P.me && [P.me.lat.toFixed(4), P.me.lon.toFixed(4)], Math.floor(P.now() / 60_000)]);
     if (key === lastKey) return;
     lastKey = key;
     const km = current.km ?? current.dist / 1000;
@@ -86,7 +87,8 @@
       el('p', { class: 'spot-meta' }, [current.km != null && `km ${ZT.fmtPk(km)}`, current.info].filter(Boolean).join(' · ')),
       ...when(e),
       list.length > 0 ? el('details', { class: 'more', open }, el('summary', {}, 'Détails'), el('dl', { class: 'facts' }, ...list)) : null,
-      !e.passed && P.goButton(lat, lon, current.title),
+      !e.passed && el('div', { class: 'spot-actions' }, P.goButton(lat, lon, current.title), P.mySpotButton(current.dist)),
+      !e.passed && el('p', { class: 'spot-private' }, 'Ton endroit reste sur ce téléphone, personne d’autre ne le voit.'),
     );
   }
 
