@@ -64,6 +64,7 @@
   --teal-text: #155e75;
   --route: #9db3d3;           /* parcours restant */
   --route-casing: #ffffff;    /* liseré sous le tracé (lisibilité sur les tuiles) */
+  --chevron: #1e3a8a;         /* chevrons du sens du circuit, posés sur --route */
   --me: #7c3aed;              /* position du supporter */
   --on-me: #ffffff;           /* texte et pictos posés sur --me */
   --on-accent: #ffffff;       /* texte et anneaux posés sur --accent-btn, --ok-btn, --danger-btn, --ink-btn */
@@ -106,6 +107,7 @@ html.dark {
   --teal-text: #cff7f0;
   --route: #4a6699;
   --route-casing: #0a1324;
+  --chevron: #0a1324;
   --me: #a78bfa;
   --on-me: #0a1324;
   --on-accent: #ffffff;
