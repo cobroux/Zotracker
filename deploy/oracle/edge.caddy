@@ -1,0 +1,18 @@
+# Source de vérité du routage Zotracker sur la VM Oracle.
+# Copié dans /opt/edge/caddy/sites/zotracker.caddy (proxy frontal partagé, indépendant de Zofolio),
+# puis : docker exec edge-caddy caddy reload --config /etc/caddy/Caddyfile
+zotracker.88-96-45-97.sslip.io {
+	# compression, sauf pour les flux temps réel (Server-Sent Events)
+	@compressible not path /api/stream /api/admin/stream
+	encode @compressible zstd gzip
+	request_body {
+		max_size 16MB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy zotracker:3000 {
+		flush_interval -1
+	}
+}

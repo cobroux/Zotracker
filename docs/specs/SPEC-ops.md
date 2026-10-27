@@ -14,7 +14,7 @@ Utilisateur : Enzo (seul opérateur). Réussite : un merge sur la branche princi
 
 ## Tech Stack
 
-- Docker Compose, Caddy (celui de Zofolio, `/opt/zofolio`, HTTPS `<DOMAIN>` vers alias `zotracker:3000` du réseau externe `edge`). Aucun changement de ce Caddy.
+- Docker Compose, Caddy frontal partagé `/opt/edge` (indépendant de Zofolio ; HTTPS `<DOMAIN>` vers alias `zotracker:3000` du réseau externe `edge`). Bloc de site : `deploy/oracle/edge.caddy`.
 - Bash (`set -Eeuo pipefail`), `age`, `rclone` (apt sur la VM), cron, GitHub Actions (actions épinglées par SHA), ntfy (déjà utilisé par l'appli, `NTFY_SERVER`).
 - Aucune nouvelle dépendance npm.
 
