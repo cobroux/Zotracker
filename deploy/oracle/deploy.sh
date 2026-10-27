@@ -2,7 +2,7 @@
 # Déploiement Zotracker sur la VM Oracle. Sert de COMMANDE FORCÉE à la clé SSH de déploiement :
 #   command="/opt/zotracker/deploy.sh",restrict,no-pty ssh-ed25519 AAAA... github-zotracker
 # Argument accepté (SSH_ORIGINAL_COMMAND, ou $1 en manuel) : un SHA complet (40 hex) ou « rollback ».
-# Ne touche ni à /opt/zofolio ni au Caddy. Lien attendu : /opt/zotracker/deploy.sh -> src/deploy/oracle/deploy.sh
+# Ne touche ni à /opt/zofolio ni au proxy /opt/edge. Lien attendu : /opt/zotracker/deploy.sh -> src/deploy/oracle/deploy.sh
 set -Eeuo pipefail
 cd "$(dirname "$0")"
 
