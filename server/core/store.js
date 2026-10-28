@@ -208,7 +208,7 @@ function readJson(file) {
     return JSON.parse(text);
   } catch (e) {
     // ne jamais repartir de zéro (et écraser courses, traces ou 2FA) sur un fichier abîmé
-    throw new Error(`${file} est illisible (${e.message}). Corrige-le ou restaure une sauvegarde avant de redémarrer.`);
+    throw new Error(`${file} est illisible (${e.message}). Corrige-le ou restaure une sauvegarde avant de redémarrer.`, { cause: e });
   }
 }
 
